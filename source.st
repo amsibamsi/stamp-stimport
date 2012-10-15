@@ -10,7 +10,6 @@ SystemOrganization addCategory: #'Stamp-Mail-Server'!
 SystemOrganization addCategory: #'Stamp-Mail-Server-Commands'!
 SystemOrganization addCategory: #'Stamp-Mail-Server-States'!
 SystemOrganization addCategory: #'Stamp-Mail-Server-Tests'!
-SystemOrganization addCategory: #'Stamp-Storage'!
 SystemOrganization addCategory: #'Stamp-Tests'!
 SystemOrganization addCategory: #'Stamp-Web'!
 
@@ -634,18 +633,20 @@ SPConfiguration subclass: #SPStampConfiguration
 !SPStampConfiguration commentStamp: 'as 1/16/2007 11:28' prior: 0!
 Initializes a default configuration for Stamp.!
 
-!SPStampConfiguration methodsFor: 'initialize-release' stamp: 'as 1/29/2007 15:08'!
+!SPStampConfiguration methodsFor: 'initialize-release' stamp: 'as 2/8/2007 17:08'!
 initialize
 
 	super initialize.
 
-	"base"
+	"basic"
 	self attributeAt: #resolverTimeout put:
 		(SPIntegerConfigurationAttribute withValue: 3 min: 1 max: 100).
 	self attributeAt: #serverName put:
 		(SPStringConfigurationAttribute withValue: NetNameResolver localHostName).
 	self attributeAt: #timezone put:
 		(SPStringConfigurationAttribute withValue: '+0100').
+	self attributeAt: #adminAddress put:
+		(SPAddressConfigurationAttribute withValue: (SPMailAddress fromPath: '<postmaster@localhost>')).
 
 	"listener"
 	self attributeAt: #listenerMaxConnections put:
@@ -683,6 +684,20 @@ Object subclass: #SPConfigurationAttribute
 
 !SPConfigurationAttribute commentStamp: 'as 1/23/2007 14:57' prior: 0!
 A configuration attribute stores one value of any type that can be set/get. A new value is checked against the configured type and checkValue: is called which is intended to be overwritten in subclasses. There is also some code for mutability: setting a new value will fail if the instance is not mutable. As for now, mutability isn't really used, that means it is checked but by default set to true (=mutable).!
+
+SPConfigurationAttribute subclass: #SPAddressConfigurationAttribute
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration-Attributes'!
+
+!SPAddressConfigurationAttribute commentStamp: 'as 2/8/2007 16:21' prior: 0!
+Address configuration attribute.!
+
+!SPAddressConfigurationAttribute methodsFor: 'configuration' stamp: 'as 2/8/2007 16:22'!
+type
+
+	^ SPMailAddress.! !
 
 !SPConfigurationAttribute class methodsFor: 'instance creation' stamp: 'as 12/12/2006 12:56'!
 withValue: anObject
@@ -998,24 +1013,18 @@ new
 
 	self shouldNotImplement.! !
 
-!SPKernel methodsFor: 'access' stamp: 'as 6/12/2006 14:08'!
-archive
-
-	^ archive.! !
-
 !SPKernel methodsFor: 'access' stamp: 'as 12/12/2006 17:32'!
 configurator
 
 	^ configurator.! !
 
-!SPKernel methodsFor: 'initialize-release' stamp: 'as 1/24/2007 16:52'!
+!SPKernel methodsFor: 'initialize-release' stamp: 'as 2/8/2007 16:16'!
 initialize
 
 	listener _ SPMailListener new.
 	manager _ SPListManager new.
 	queue _ SPMailQueue new.
-	configurator _ SPConfigurator new.
-	archive _ SPMailArchive new.! !
+	configurator _ SPConfigurator new.! !
 
 !SPKernel methodsFor: 'access' stamp: 'as 3/10/2006 16:19'!
 listener
@@ -1490,19 +1499,6 @@ path
 
 	^ '<', localPart, '@', domain, '>'.! !
 
-Object subclass: #SPMailArchive
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Storage'!
-
-!SPMailArchive commentStamp: '<historical>' prior: 0!
-Mail archive that basically wraps around MailDB.!
-
-!SPMailArchive methodsFor: 'store' stamp: 'as 2/5/2007 17:31'!
-addMessage: aMailMessage toList: aSPList
-! !
-
 Object subclass: #SPMailHandler
 	instanceVariableNames: 'process message'
 	classVariableNames: ''
@@ -1532,7 +1528,7 @@ message: aSPMailMessage
 
 	message _ aSPMailMessage.! !
 
-!SPMailHandler methodsFor: 'processing' stamp: 'as 2/5/2007 16:19'!
+!SPMailHandler methodsFor: 'processing' stamp: 'as 2/7/2007 00:00'!
 processMessage
 
 	| recipients |
@@ -1541,7 +1537,7 @@ processMessage
 		(message isAllowedPost and: [ recipients notNil. ]) ifTrue: [
 			self sendMessageTo: recipients.
 		].
-	] ensure: [ SPKernel instance queue remove: self. ].! !
+	] ensure: [ SPKernel instance queue removeHandler: self. ].! !
 
 !SPMailHandler methodsFor: 'processing' stamp: 'as 2/5/2007 10:14'!
 sendMessageTo: aCollection
@@ -1551,10 +1547,9 @@ sendMessageTo: aCollection
 		from: message sender
 		to: aCollection.! !
 
-!SPMailHandler methodsFor: 'processing' stamp: 'as 1/30/2007 10:33'!
+!SPMailHandler methodsFor: 'processing' stamp: 'as 2/7/2007 00:00'!
 start
 
-	SPKernel instance queue add: self.
 	process resume.! !
 
 Object subclass: #SPMailListener
@@ -1629,7 +1624,7 @@ waitForStop
 	service waitForStop.! !
 
 Object subclass: #SPMailMessage
-	instanceVariableNames: 'mail sender recipients date'
+	instanceVariableNames: 'mail sender recipient date'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
@@ -1714,16 +1709,10 @@ isAllowedPost
 	].
 	^ allowed.! !
 
-!SPMailMessage methodsFor: 'posts' stamp: 'as 2/5/2007 11:00'!
+!SPMailMessage methodsFor: 'posts' stamp: 'as 2/6/2007 23:34'!
 listRecipients
 
-	| listRecipients |
-	listRecipients _ Set new.
-	self recipientLists do: [
-		:list |
-		listRecipients addAll: (SPKernel instance manager activeRecipientsForList: list).
-	].
-	^ listRecipients.! !
+	^ SPKernel instance manager activeRecipientsForList: self recipientList.! !
 
 !SPMailMessage methodsFor: 'access' stamp: 'as 5/24/2006 12:42'!
 mail
@@ -1740,27 +1729,20 @@ postCopy
 
 	mail := MailMessage from: mail text.! !
 
-!SPMailMessage methodsFor: 'access' stamp: 'as 1/30/2007 10:09'!
+!SPMailMessage methodsFor: 'access' stamp: 'as 2/6/2007 23:35'!
+recipient
+
+	^ recipient.! !
+
+!SPMailMessage methodsFor: 'access' stamp: 'as 2/6/2007 23:38'!
 recipient: aSPMailAddress
 
-	recipients add: aSPMailAddress.! !
+	recipient _ aSPMailAddress.! !
 
-!SPMailMessage methodsFor: 'posts' stamp: 'as 2/5/2007 09:43'!
-recipientLists
+!SPMailMessage methodsFor: 'posts' stamp: 'as 2/6/2007 23:34'!
+recipientList
 
-	| lists list |
-	lists _ Set new.
-	recipients do: [
-		:recipient |
-		list _ SPKernel instance manager listWithAddress: recipient.
-		list ifNotNil: [ lists add: list. ].
-	].
-	^ lists.! !
-
-!SPMailMessage methodsFor: 'access' stamp: 'as 1/30/2007 10:09'!
-recipients
-
-	^ recipients.! !
+	SPKernel instance manager listWithAddress: recipient.! !
 
 !SPMailMessage methodsFor: 'access' stamp: 'as 9/26/2006 16:13'!
 sender
@@ -1786,12 +1768,26 @@ Object subclass: #SPMailQueue
 !SPMailQueue commentStamp: '<historical>' prior: 0!
 Mail queue.!
 
-!SPMailQueue methodsFor: 'queue' stamp: 'as 1/25/2007 11:43'!
-add: aSPMailHandler
+!SPMailQueue methodsFor: 'queue' stamp: 'as 2/7/2007 00:14'!
+addMessages: aCollection
 
+	| handlers |
+	handlers _ IdentitySet new.
 	monitor critical: [
-		self checkQueueNotFull.
-		queue add: aSPMailHandler.
+		self checkFreeQueueSize: aCollection size.
+		aCollection do: [
+			:each |
+			handlers add: (SPMailHandler withMessage: each).
+		].
+		queue addAll: handlers.
+		handlers do: [ :each | each start. ].
+	].! !
+
+!SPMailQueue methodsFor: 'check' stamp: 'as 2/7/2007 00:02'!
+checkFreeQueueSize: aNumber
+
+	(queue size + aNumber) > self queueSize ifTrue: [
+		SPQueueFullException signal.
 	].! !
 
 !SPMailQueue methodsFor: 'check' stamp: 'as 1/17/2007 19:45'!
@@ -1817,15 +1813,15 @@ queueSize
 
 	^ self config preferenceAt: #queueSize.! !
 
-!SPMailQueue methodsFor: 'queue' stamp: 'as 1/25/2007 11:43'!
-remove: aSPMailHandler
+!SPMailQueue methodsFor: 'queue' stamp: 'as 2/7/2007 00:00'!
+removeHandler: aSPMailHandler
 
 	monitor critical: [
 		queue remove: aSPMailHandler.
 	].! !
 
 Object subclass: #SPMailReceiver
-	instanceVariableNames: 'state stream quit message'
+	instanceVariableNames: 'state stream quit message recipients'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
@@ -1866,10 +1862,11 @@ config
 
 	^ SPKernel instance configurator.! !
 
-!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 1/30/2007 10:16'!
+!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 2/6/2007 23:43'!
 initMessage
 
-	message _ SPMailMessage new.! !
+	message _ SPMailMessage new.
+	recipients _ IdentitySet new.! !
 
 !SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 1/30/2007 10:16'!
 initialize
@@ -1944,10 +1941,16 @@ postInit
 
 	SPKernel instance listener addConnection: self.! !
 
-!SPMailReceiver methodsFor: 'message' stamp: 'as 1/30/2007 10:24'!
-queueMessage
+!SPMailReceiver methodsFor: 'message' stamp: 'as 2/6/2007 23:46'!
+queueMessages
 
-		(SPMailHandler withMessage: message) start.! !
+	| messages |
+	messages _ IdentitySet new.
+	recipients do: [
+		:each |
+		messages add: (message copy recipient: each).
+	].
+	SPKernel instance queue queueAll: messages.! !
 
 !SPMailReceiver methodsFor: 'quit' stamp: 'as 1/15/2007 17:35'!
 quit
@@ -2061,11 +2064,11 @@ receiverMaxRecipients
 
 	^ self config preferenceAt: #receiverMaxRecipients.! !
 
-!SPMailReceiver methodsFor: 'message' stamp: 'as 1/30/2007 10:18'!
+!SPMailReceiver methodsFor: 'message' stamp: 'as 2/6/2007 23:41'!
 recipient: aSPMailAddress
 
 	self checkNumberOfRecipients.
-	message recipient: aSPMailAddress.! !
+	recipients add: aSPMailAddress.! !
 
 !SPMailReceiver methodsFor: 'socket' stamp: 'as 9/20/2006 14:40'!
 remoteAddress
@@ -2208,14 +2211,14 @@ verb
 
 	^ 'data'.! !
 
-!SPDataSmtpCommand methodsFor: 'execute' stamp: 'as 2/5/2007 09:14'!
+!SPDataSmtpCommand methodsFor: 'execute' stamp: 'as 2/6/2007 23:43'!
 doExecute
 
 	target
 		reply: SPSmtpReply mailInput;
 		mail: target receiveMail;
 		insertTraces;
-		queueMessage;
+		queueMessages;
 		reset.
 	self state: SPResetSmtpState.! !
 
@@ -3385,8 +3388,8 @@ SPException subclass: #SPQueueFullException
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server-Exceptions'!
 
-!SPQueueFullException commentStamp: 'as 1/15/2007 17:38' prior: 0!
-The queue is full, no further messages can be queued.!
+!SPQueueFullException commentStamp: 'as 2/7/2007 00:02' prior: 0!
+The requested amount can't be queued, it would overfill the queue.!
 
 SPException subclass: #SPReceiverException
 	instanceVariableNames: 'receiver'
