@@ -1262,7 +1262,7 @@ initialize
 
 	self initTable.! !
 
-!SPWebListView methodsFor: 'rendering' stamp: 'as 2/28/2007 17:35'!
+!SPWebListView methodsFor: 'rendering' stamp: 'as 3/8/2007 14:51'!
 renderContentOn: html
 
 	html heading: 'Lists' level: 2.
@@ -2232,10 +2232,10 @@ withUser: aSPUser
 		user: aSPUser;
 		yourself.! !
 
-!SPWebUnregister methodsFor: 'rendering' stamp: 'as 3/7/2007 16:12'!
-confirmUnregister
+!SPWebUnregister methodsFor: 'call/answer' stamp: 'as 3/8/2007 15:00'!
+cancel
 
-	^ self confirm: 'Do you really want to remove the user ', user name, ' with its ', self numberOfContacts, ' contact(s) and ', self numberOfSubscriptions, ' subscription(s)?'.! !
+	self answer: false.! !
 
 !SPWebUnregister methodsFor: 'user' stamp: 'as 3/7/2007 16:11'!
 numberOfContacts
@@ -2247,21 +2247,26 @@ numberOfSubscriptions
 
 	^ (SPKernel instance manager numberOfSubscriptionsForUser: user) asString.! !
 
-!SPWebUnregister methodsFor: 'rendering' stamp: 'as 2/28/2007 18:07'!
+!SPWebUnregister methodsFor: 'rendering' stamp: 'as 3/8/2007 15:02'!
 renderContentOn: html
 
-	self confirmUnregister ifTrue: [
-		self unregister.
-		self answer: true.
-	] ifFalse: [
-		self answer: false.
+	self renderTitle: 'Unregister' renderer: html.
+	html emphasis: 'Do you really want to remove the user ', user name, ' with its ', self numberOfContacts, ' contact(s) and ', self numberOfSubscriptions, ' subscription(s)?'.
+	html paragraph: [
+		html form: [
+			html submitButtonOn: #unregister of: self.
+			html submitButtonOn: #cancel of: self.
+		].
 	].! !
 
-!SPWebUnregister methodsFor: 'call/answer' stamp: 'as 2/26/2007 09:52'!
+!SPWebUnregister methodsFor: 'call/answer' stamp: 'as 3/8/2007 15:02'!
 unregister
 
-	self do: [ SPKernel instance manager removeUser: user. ]
-		catchExceptions: SPException.! !
+	self do: [
+		SPKernel instance manager removeUser: user.
+		self answer: true.
+	] catchExceptions: SPException.
+	self cancel.! !
 
 !SPWebUnregister methodsFor: 'access' stamp: 'as 2/21/2007 17:53'!
 user: aSPUser
