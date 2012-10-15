@@ -725,7 +725,7 @@ TestCase subclass: #SPMailReceivingSendingTest
 	category: 'Stamp-Tests'!
 
 !SPMailReceivingSendingTest commentStamp: '<historical>' prior: 0!
-Test the whole mail receiving subsystem.!
+Test the whole mail receiving/sending subsystem.!
 
 !SPMailReceivingSendingTest methodsFor: 'running' stamp: 'as 2/21/2006 10:15'!
 findPortFor: aSPMailListener
@@ -757,13 +757,11 @@ setUp
 		client == nil and: [ tries <= maxTries ].
 	]! !
 
-!SPMailReceivingSendingTest methodsFor: 'running' stamp: 'as 2/22/2006 15:39'!
+!SPMailReceivingSendingTest methodsFor: 'running' stamp: 'as 3/3/2006 16:02'!
 tearDown
 
 	client close.
-	server stop.
-	server waitForStopUntil: 2000.
-	server kill.! !
+	server unregister.! !
 
 !SPMailReceivingSendingTest methodsFor: 'testing' stamp: 'as 2/22/2006 19:34'!
 testBasic
