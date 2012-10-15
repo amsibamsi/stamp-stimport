@@ -3243,7 +3243,7 @@ rootUsername
 
 	^ 'root'.! !
 
-!SPListManager methodsFor: 'subscription' stamp: 'as 2/27/2007 22:14'!
+!SPListManager methodsFor: 'subscription' stamp: 'as 3/7/2007 17:52'!
 subscribe: aSPContact to: aSPList
 
 	| subscription |
@@ -3264,18 +3264,18 @@ subscriptionExists: aSPSubscription
 		subscriptions includes: aSPSubscription.
 	].! !
 
-!SPListManager methodsFor: 'get-subscription' stamp: 'as 2/2/2007 18:27'!
+!SPListManager methodsFor: 'get-subscription' stamp: 'as 3/7/2007 17:37'!
 subscriptionsForContact: aSPContact
 
 	^ monitor critical: [
-		subscriptions select: [ :each | aSPContact = each contact. ].
+		subscriptions select: [ :each | aSPContact == each contact. ].
 	].! !
 
-!SPListManager methodsFor: 'get-subscription' stamp: 'as 2/2/2007 18:27'!
+!SPListManager methodsFor: 'get-subscription' stamp: 'as 3/7/2007 17:37'!
 subscriptionsForList: aSPList
 
 	^ monitor critical: [
-		subscriptions select: [ :each | each list = aSPList. ].
+		subscriptions select: [ :each | each list == aSPList. ].
 	].! !
 
 !SPListManager methodsFor: 'get-subscription' stamp: 'as 2/27/2007 17:33'!
@@ -3823,12 +3823,12 @@ Object subclass: #SPMailNotifier
 !SPMailNotifier commentStamp: 'as 2/26/2007 13:28' prior: 0!
 Send pre-defined mail notifications.!
 
-!SPMailNotifier class methodsFor: 'notifications' stamp: 'as 3/1/2007 18:09'!
+!SPMailNotifier class methodsFor: 'notifications' stamp: 'as 3/7/2007 17:50'!
 acceptedSubscription: aSPSubscription
 
 	self send: (
 		SPMailMessage
-			from: (self listAdmin: aSPSubscription list) asString
+			from: (self listAdmin: aSPSubscription) asString
 			to: aSPSubscription contact address asString
 			mail: (self textAcceptedSubscription: aSPSubscription)
 	).! !
@@ -3843,12 +3843,12 @@ config
 
 	^ SPKernel instance configurator.! !
 
-!SPMailNotifier class methodsFor: 'notifications' stamp: 'as 3/1/2007 18:07'!
+!SPMailNotifier class methodsFor: 'notifications' stamp: 'as 3/7/2007 17:50'!
 deniedSubscription: aSPSubscription
 
 	self send: (
 		SPMailMessage
-			from: (self listAdmin: aSPSubscription list) asString
+			from: (self listAdmin: aSPSubscription) asString
 			to: aSPSubscription contact address asString
 			mail: (self textDeniedSubscription: aSPSubscription)
 	).! !
@@ -3859,18 +3859,18 @@ greetingText
 ^
 'Hi, this is Stamp, the mailing list manager at ', self serverName, '.'.! !
 
-!SPMailNotifier class methodsFor: 'lists' stamp: 'as 3/1/2007 18:10'!
-listAdmin: aSPList
+!SPMailNotifier class methodsFor: 'lists' stamp: 'as 3/7/2007 17:46'!
+listAdmin: aSPSubscription
 
-	^ SPKernel instance manager adminForList: aSPList.! !
+	^ SPKernel instance manager adminForList: aSPSubscription list.! !
 
-!SPMailNotifier class methodsFor: 'notifications' stamp: 'as 3/1/2007 18:09'!
+!SPMailNotifier class methodsFor: 'notifications' stamp: 'as 3/7/2007 17:47'!
 pendingSubscription: aSPSubscription
 
 	self send: (
 		SPMailMessage
-			from: (self listAdmin: aSPSubscription list) asString
-			to: aSPSubscription list admin asString
+			from: (self listAdmin: aSPSubscription) asString
+			to: (self listAdmin: aSPSubscription) asString
 			mail: (self textPendingSubscription: aSPSubscription)
 	).! !
 
@@ -3884,11 +3884,11 @@ serverName
 
 	^ self config preferenceAt: #serverName.! !
 
-!SPMailNotifier class methodsFor: 'text' stamp: 'as 3/1/2007 18:09'!
+!SPMailNotifier class methodsFor: 'text' stamp: 'as 3/7/2007 17:50'!
 textAcceptedSubscription: aSPSubscription
 
 ^ (self
-	textFrom: (self listAdmin: aSPSubscription list) asString
+	textFrom: (self listAdmin: aSPSubscription) asString
 	to: aSPSubscription contact address asString
 	subject: 'Subscription Accepted'),
 self greetingText, '
@@ -3898,11 +3898,11 @@ Your subscription from ', aSPSubscription contact address asString, ' for the li
 
 ', self textFooter.! !
 
-!SPMailNotifier class methodsFor: 'text' stamp: 'as 3/1/2007 18:09'!
+!SPMailNotifier class methodsFor: 'text' stamp: 'as 3/7/2007 17:51'!
 textDeniedSubscription: aSPSubscription
 
 ^ (self
-	textFrom: (self listAdmin: aSPSubscription list) asString
+	textFrom: (self listAdmin: aSPSubscription) asString
 	to: aSPSubscription contact address asString
 	subject: 'Subscription Denied'),
 self greetingText, '
@@ -3930,12 +3930,12 @@ Date: ', MailMessage dateStampNow, ' ', self timezone, '
 
 '.! !
 
-!SPMailNotifier class methodsFor: 'text' stamp: 'as 3/1/2007 18:09'!
+!SPMailNotifier class methodsFor: 'text' stamp: 'as 3/7/2007 17:48'!
 textPendingSubscription: aSPSubscription
 
 ^ (self
-	textFrom: (self listAdmin: aSPSubscription list) asString
-	to: aSPSubscription list admin asString
+	textFrom: (self listAdmin: aSPSubscription) asString
+	to: (self listAdmin: aSPSubscription) asString
 	subject: 'New Subscription'),
 self greetingText, '
 
