@@ -1258,7 +1258,7 @@ SPWATable subclass: #SPWebQueue
 !SPWebQueue commentStamp: 'as 2/23/2007 16:38' prior: 0!
 Mail queue view.!
 
-!SPWebQueue methodsFor: 'rendering' stamp: 'as 2/28/2007 17:42'!
+!SPWebQueue methodsFor: 'rendering' stamp: 'as 2/28/2007 22:02'!
 columns
 
 	^ OrderedCollection new
@@ -1266,7 +1266,7 @@ columns
 		add: (WAReportColumn new title: 'Sender'; valueBlock: [ :item | item message sender. ]; yourself);
 		add: (WAReportColumn new title: 'Date'; valueBlock: [ :item | item message date. ]; yourself);
 		add: (WAReportColumn selector: #state title: 'State');
-		add: (WAReportColumn selector: #tries title: 'Sending Attempts');
+		add: (WAReportColumn selector: #attempts title: 'Send Attempts');
 		yourself.! !
 
 !SPWebQueue methodsFor: 'rendering' stamp: 'as 2/28/2007 18:27'!
@@ -2125,7 +2125,7 @@ SPConfiguration subclass: #SPStampConfiguration
 !SPStampConfiguration commentStamp: 'as 1/16/2007 11:28' prior: 0!
 Initializes a default configuration for Stamp.!
 
-!SPStampConfiguration methodsFor: 'initialize-release' stamp: 'as 2/26/2007 17:33'!
+!SPStampConfiguration methodsFor: 'initialize-release' stamp: 'as 2/28/2007 22:58'!
 initialize
 
 	super initialize.
@@ -2161,8 +2161,8 @@ initialize
 	"queue"
 	self attributeAt: #queueSize put:
 		(SPIntegerConfigurationAttribute withValue: 1000 min: 1 max: 10000).
-	self attributeAt: #queueTries put:
-		(SPIntegerConfigurationAttribute withValue: 10 min: 0 max: 1000).
+	self attributeAt: #queueSendAttempts put:
+		(SPIntegerConfigurationAttribute withValue: 10 min: 1 max: 1000).
 	self attributeAt: #queueDelaySeconds put:
 		(SPIntegerConfigurationAttribute withValue: 120 min: 60 max: 3600).
 
@@ -3236,7 +3236,7 @@ path
 	^ '<', localPart, '@', domain, '>'.! !
 
 Object subclass: #SPMailHandler
-	instanceVariableNames: 'process message state retries finished tries'
+	instanceVariableNames: 'process message state attempts sent'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
@@ -3251,28 +3251,37 @@ withMessage: aSPMailMessage
 		message: aSPMailMessage;
 		yourself.! !
 
+!SPMailHandler methodsFor: 'processing' stamp: 'as 2/28/2007 21:57'!
+attempting
+
+	attempts _ attempts + 1.! !
+
+!SPMailHandler methodsFor: 'access' stamp: 'as 2/28/2007 22:18'!
+attempts
+
+	^ attempts.! !
+
+!SPMailHandler methodsFor: 'configuration' stamp: 'as 2/28/2007 22:20'!
+config
+
+	^ SPKernel instance configurator.! !
+
 !SPMailHandler methodsFor: 'processing' stamp: 'as 2/21/2007 11:00'!
 delay
 
 	(Delay forSeconds: self queueDelaySeconds) wait.! !
 
-!SPMailHandler methodsFor: 'processing' stamp: 'as 2/26/2007 17:20'!
-finished
-
-	finished _ true.! !
-
-!SPMailHandler methodsFor: 'initialize-release' stamp: 'as 2/26/2007 17:54'!
+!SPMailHandler methodsFor: 'initialize-release' stamp: 'as 2/28/2007 22:14'!
 initialize
 
-	finished _ false.
-	tries _ 0.
-	state _ 'new'.
+	sent _ false.
+	attempts _ 0.
 	process _ [ self run. ] newProcess.! !
 
-!SPMailHandler methodsFor: 'processing' stamp: 'as 2/26/2007 17:47'!
+!SPMailHandler methodsFor: 'processing' stamp: 'as 2/28/2007 22:13'!
 isFinished
 
-	^ finished or: [ tries >= self queueTries. ].! !
+	^ sent or: [ attempts >= self queueSendAttempts. ].! !
 
 !SPMailHandler methodsFor: 'access' stamp: 'as 2/23/2007 16:43'!
 message
@@ -3284,53 +3293,45 @@ message: aSPMailMessage
 
 	message _ aSPMailMessage.! !
 
-!SPMailHandler methodsFor: 'processing' stamp: 'as 2/26/2007 18:27'!
-new
-
-	state _ 'new'.! !
-
-!SPMailHandler methodsFor: 'processing' stamp: 'as 2/26/2007 18:26'!
+!SPMailHandler methodsFor: 'processing' stamp: 'as 2/28/2007 22:41'!
 processMessage
 
-	[
-		self tried.
-		self sendMessage.
-		self sent.
-		self finished.
-	] on: Exception do: [
+	[ self sendMessage. ] on: Exception do: [
 		:ex |
 		state _ ex description.
 		ex return.
 	].! !
 
-!SPMailHandler methodsFor: 'configuration' stamp: 'as 2/21/2007 11:01'!
+!SPMailHandler methodsFor: 'configuration' stamp: 'as 2/28/2007 22:20'!
 queueDelaySeconds
 
-	^ SPKernel instance configurator preferenceAt: #queueDelaySeconds.! !
+	^ self config preferenceAt: #queueDelaySeconds.! !
 
-!SPMailHandler methodsFor: 'configuration' stamp: 'as 2/26/2007 17:33'!
+!SPMailHandler methodsFor: 'configuration' stamp: 'as 2/28/2007 21:59'!
+queueSendAttempts
+
+	^ self config preferenceAt: #queueSendAttempts.! !
+
+!SPMailHandler methodsFor: 'configuration' stamp: 'as 2/28/2007 22:20'!
 queueTries
 
-	^ SPKernel instance configurator preferenceAt: #queueTries.! !
+	^ self config preferenceAt: #queueTries.! !
 
-!SPMailHandler methodsFor: 'processing' stamp: 'as 2/26/2007 17:54'!
+!SPMailHandler methodsFor: 'processing' stamp: 'as 2/28/2007 22:38'!
 run
 
 	[
-		[ self isFinished. ] whileFalse: [
-			self processMessage.
-			self delay.
-		].
+		self processMessage.
+		[ self isFinished. ] whileFalse: [ self delay; processMessage. ].
 	] ensure: [ SPKernel instance queue removeHandler: self. ].! !
 
-!SPMailHandler methodsFor: 'processing' stamp: 'as 2/26/2007 13:22'!
+!SPMailHandler methodsFor: 'processing' stamp: 'as 2/28/2007 22:45'!
 sendMessage
 
+	self attempting.
 	message prepareToSend.
-	SPSmtpClient new
-		sendMessage: message mail
-		from: message sender
-		to: message recipients.! !
+	SPSmtpClient new sendMessage: message.
+	self sent.! !
 
 !SPMailHandler methodsFor: 'processing' stamp: 'as 2/26/2007 18:27'!
 sent
@@ -3342,20 +3343,11 @@ start
 
 	process resume.! !
 
-!SPMailHandler methodsFor: 'access' stamp: 'as 2/23/2007 16:41'!
+!SPMailHandler methodsFor: 'processing' stamp: 'as 2/28/2007 22:16'!
 state
 
-	^ state.! !
-
-!SPMailHandler methodsFor: 'processing' stamp: 'as 2/26/2007 18:27'!
-tried
-
-	tries _ tries + 1.! !
-
-!SPMailHandler methodsFor: 'access' stamp: 'as 2/26/2007 17:29'!
-tries
-
-	^ tries.! !
+	sent ifTrue: [ ^ 'sent'. ].
+	state ifNil: [ ^ 'new'. ] ifNotNil: [ ^ state. ].! !
 
 Object subclass: #SPMailListener
 	instanceVariableNames: 'service connections monitor'
@@ -5267,6 +5259,14 @@ reset
 resolverTimeout
 
 	^ self config preferenceAt: #resolverTimeout.! !
+
+!SPSmtpClient methodsFor: 'smtp' stamp: 'as 2/28/2007 22:09'!
+sendMessage: aSPMailMessage
+
+	self
+		sendMessage: aSPMailMessage mail
+		from: aSPMailMessage sender
+		to: aSPMailMessage recipients.! !
 
 !SPSmtpClient methodsFor: 'smtp' stamp: 'as 2/5/2007 11:24'!
 sendMessage: aMailMessage from: aSPMailAddress to: aCollection
