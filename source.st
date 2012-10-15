@@ -3,8 +3,55 @@ SystemOrganization addCategory: #'Stamp-Mail-Server'!
 SystemOrganization addCategory: #'Stamp-Model'!
 SystemOrganization addCategory: #'Stamp-Tests'!
 
+Object subclass: #SPKernel
+	instanceVariableNames: 'listener queue listManager userManager'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Model'!
+
+!SPKernel commentStamp: '<historical>' prior: 0!
+The core of a running Stamp application instance.!
+
+!SPKernel methodsFor: 'initialize-release' stamp: 'as 3/14/2006 14:35'!
+initialize
+
+	listener := SPMailListener withKernel: self onPort: 2525.
+	queue := SPMailQueue withKernel: self.
+	listManager := SPListManager withKernel: self.
+	userManager := SPUserManager withKernel: self.! !
+
+!SPKernel methodsFor: 'accessing' stamp: 'as 3/10/2006 16:19'!
+listener
+
+	^ listener.! !
+
+!SPKernel methodsFor: 'accessing' stamp: 'as 3/10/2006 16:22'!
+listManager
+
+	^ listManager.! !
+
+!SPKernel methodsFor: 'accessing' stamp: 'as 3/10/2006 16:22'!
+queue
+
+	^ queue.! !
+
+!SPKernel methodsFor: 'actions' stamp: 'as 3/14/2006 14:10'!
+start
+
+	listener start.! !
+
+!SPKernel methodsFor: 'actions' stamp: 'as 3/14/2006 14:11'!
+stop
+
+	listener stop.! !
+
+!SPKernel methodsFor: 'accessing' stamp: 'as 3/10/2006 16:23'!
+userManager
+
+	^ userManager.! !
+
 Object subclass: #SPList
-	instanceVariableNames: 'id name users'
+	instanceVariableNames: 'name users'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Model'!
@@ -12,8 +59,89 @@ Object subclass: #SPList
 !SPList commentStamp: '<historical>' prior: 0!
 A Stamp mailing list.!
 
+!SPList methodsFor: 'accessing' stamp: 'as 3/10/2006 15:44'!
+addUser: aSPUser
+
+	users add: aSPUser.! !
+
+!SPList methodsFor: 'comparing' stamp: 'as 3/9/2006 16:50'!
+hash
+
+	^ name hash.! !
+
+!SPList methodsFor: 'initialize-release' stamp: 'as 3/10/2006 15:46'!
+initialize
+
+	users := Set new.! !
+
+!SPList methodsFor: 'accessing' stamp: 'as 3/9/2006 16:53'!
+name
+
+	^ name.! !
+
+!SPList methodsFor: 'accessing' stamp: 'as 3/10/2006 15:44'!
+removeUser: aSPUser
+
+	users remove: aSPUser.! !
+
+!SPList methodsFor: 'comparing' stamp: 'as 3/9/2006 16:48'!
+= aSPList
+
+	^ name = aSPList name.! !
+
+Object subclass: #SPListManager
+	instanceVariableNames: 'kernel'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Model'!
+
+!SPListManager commentStamp: '<historical>' prior: 0!
+List manager for Stamp.!
+
+!SPListManager class methodsFor: 'instance creation' stamp: 'as 3/14/2006 14:42'!
+withKernel: aSPKernel
+
+	^ self new kernel: aSPKernel.! !
+
+!SPListManager methodsFor: 'accessing' stamp: 'as 3/14/2006 14:42'!
+kernel: aSPKernel
+
+	kernel := aSPKernel.! !
+
+Object subclass: #SPMailQueue
+	instanceVariableNames: 'kernel buffer'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Model'!
+
+!SPMailQueue commentStamp: '<historical>' prior: 0!
+Handles incoming mail, e.g. storing/forwarding/...!
+
+!SPMailQueue class methodsFor: 'instance creation' stamp: 'as 3/14/2006 14:41'!
+withKernel: aSPKernel
+
+	^ self new kernel: aSPKernel.! !
+
+!SPMailQueue methodsFor: 'private' stamp: 'as 3/16/2006 16:00'!
+handle: aMailMessage
+
+	"fix me"
+	(MailDB openOn: 'testing') addNewMessage: aMailMessage.
+	SPMailSender deliverMessage: aMailMessage usingServer: 'ubecx.unibe.ch'.
+	! !
+
+!SPMailQueue methodsFor: 'accessing' stamp: 'as 3/14/2006 14:41'!
+kernel: aSPKernel
+
+	kernel := aSPKernel.! !
+
+!SPMailQueue methodsFor: 'actions' stamp: 'as 3/16/2006 15:42'!
+queue: aMailMessage
+
+	[ self handle: aMailMessage ] newProcess resume.! !
+
 Object subclass: #SPMailReceiver
-	instanceVariableNames: 'state stream message sender recipient dataMode quit'
+	instanceVariableNames: 'state stream message sender recipient dataMode quit kernel'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
@@ -25,11 +153,12 @@ A SPMailReceiver is created on a socket. Mail reception starts with the receive 
 
 The receiver is normally in command mode, where it looks for client SMTP commands. It can switch to data mode, as stored in dataMode, to receive mail data and then switch back.!
 
-!SPMailReceiver class methodsFor: 'instance creation' stamp: 'as 1/31/2006 14:37'!
-on: aSocketStream
+!SPMailReceiver class methodsFor: 'instance creation' stamp: 'as 3/16/2006 15:23'!
+on: aSocketStream withKernel: aSPKernel
 
 	^ self new
 		stream: aSocketStream;
+		kernel: aSPKernel;
 		yourself.! !
 
 !SPMailReceiver methodsFor: 'settings' stamp: 'as 2/6/2006 15:19'!
@@ -39,12 +168,12 @@ dataDelimiter
 
 	^ String crlf, '.', String crlf.! !
 
-!SPMailReceiver methodsFor: 'actions' stamp: 'as 1/14/2006 22:03'!
+!SPMailReceiver methodsFor: 'private' stamp: 'as 1/14/2006 22:03'!
 enterCommandMode
 
 	dataMode := false.! !
 
-!SPMailReceiver methodsFor: 'actions' stamp: 'as 1/14/2006 22:02'!
+!SPMailReceiver methodsFor: 'private' stamp: 'as 1/14/2006 22:02'!
 enterDataMode
 
 	dataMode := true.! !
@@ -61,6 +190,11 @@ initialize
 	self gotoState: (SPReadySmtpState on: self).
 	quit := false.! !
 
+!SPMailReceiver methodsFor: 'accessing' stamp: 'as 3/16/2006 15:24'!
+kernel: aSPKernel
+
+	kernel := aSPKernel.! !
+
 !SPMailReceiver methodsFor: 'accessing' stamp: 'as 1/14/2006 22:14'!
 mailFrom: aString
 
@@ -71,7 +205,12 @@ mailTo: aString
 
 	recipient := aString.! !
 
-!SPMailReceiver methodsFor: 'actions' stamp: 'as 1/31/2006 15:01'!
+!SPMailReceiver methodsFor: 'private' stamp: 'as 3/16/2006 15:25'!
+queueMail
+
+	kernel queue queue: message.! !
+
+!SPMailReceiver methodsFor: 'actions' stamp: 'as 3/10/2006 16:23'!
 receive
 
 	"Receive from client in command or data mode as long as connection is there and
@@ -83,7 +222,9 @@ receive
 			self receiveCommand.
 		] ifTrue: [
 			self receiveData.
-		]
+			self queueMail.
+			self reset.
+		].
 	].
 	stream close.! !
 
@@ -99,15 +240,13 @@ receiveCommand
 		on: SPSmtpCommandException
 		do: [ :ex | ex defaultAction. ex return. ].! !
 
-!SPMailReceiver methodsFor: 'private' stamp: 'as 3/7/2006 12:04'!
+!SPMailReceiver methodsFor: 'private' stamp: 'as 3/10/2006 16:08'!
 receiveData
 
 	"Receive mail data as specified by the DATA SMTP command."
 
 	message from: (stream upToAll: self dataDelimiter) convertToSqueakText.
-	self reply: SPSmtpReply okay.
-	(MailDB openOn: 'stamp') addNewMessage: message.
-	self reset.! !
+	self reply: SPSmtpReply okay.! !
 
 !SPMailReceiver methodsFor: 'actions' stamp: 'as 1/31/2006 15:01'!
 reply: aSPSmtpReply
@@ -594,7 +733,7 @@ transitions
 	self subclassResponsibility.! !
 
 Object subclass: #SPUser
-	instanceVariableNames: 'id address password lists'
+	instanceVariableNames: 'name address lists'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Model'!
@@ -602,21 +741,77 @@ Object subclass: #SPUser
 !SPUser commentStamp: '<historical>' prior: 0!
 A Stamp user.!
 
-TcpService subclass: #SPMailListener
-	instanceVariableNames: ''
+!SPUser class methodsFor: 'instance creation' stamp: 'as 3/9/2006 16:49'!
+withName: nameString address: addressString list: aSPList
+
+	^ SPUser new
+		name: nameString;
+		address: addressString;
+		addList: aSPList.! !
+
+!SPUser methodsFor: 'accessing' stamp: 'as 3/9/2006 16:33'!
+addList: aSPList
+
+	lists add: aSPList.! !
+
+!SPUser methodsFor: 'accessing' stamp: 'as 3/9/2006 16:54'!
+address
+
+	^ address.! !
+
+!SPUser methodsFor: 'accessing' stamp: 'as 3/9/2006 16:14'!
+address: aString
+
+	address := aString.! !
+
+!SPUser methodsFor: 'comparing' stamp: 'as 3/9/2006 16:52'!
+hash
+
+	^ name hash.! !
+
+!SPUser methodsFor: 'initialize-release' stamp: 'as 3/10/2006 15:41'!
+initialize
+
+	lists := Set new.! !
+
+!SPUser methodsFor: 'accessing' stamp: 'as 3/9/2006 16:54'!
+name
+
+	^ name.! !
+
+!SPUser methodsFor: 'accessing' stamp: 'as 3/9/2006 16:48'!
+name: aString
+
+	name := aString.! !
+
+!SPUser methodsFor: 'accessing' stamp: 'as 3/9/2006 16:54'!
+removeList: aSPList
+
+	lists remove: aSPList.! !
+
+!SPUser methodsFor: 'comparing' stamp: 'as 3/9/2006 16:51'!
+= aSPUser
+
+	^ name = aSPUser name.! !
+
+Object subclass: #SPUserManager
+	instanceVariableNames: 'kernel'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail-Server'!
+	category: 'Stamp-Model'!
 
-!SPMailListener commentStamp: '<historical>' prior: 0!
-A TCP service accepting SMTP connections.!
+!SPUserManager commentStamp: '<historical>' prior: 0!
+User manager for Stamp.!
 
-!SPMailListener methodsFor: 'conversation' stamp: 'as 3/6/2006 16:33'!
-serve: aSocket
+!SPUserManager class methodsFor: 'instance creation' stamp: 'as 3/14/2006 14:43'!
+withKernel: aSPKernel
 
-	| server |
-	server := SPMailReceiver on: (SocketStream on: aSocket).
-	server receive.! !
+	^ self new kernel: aSPKernel.! !
+
+!SPUserManager methodsFor: 'accessing' stamp: 'as 3/14/2006 14:43'!
+kernel: aSPKernel
+
+	kernel := aSPKernel.! !
 
 String subclass: #SPSmtpReply
 	instanceVariableNames: ''
@@ -686,6 +881,32 @@ convertToSqueakText
 	convertedString := convertedString copyReplaceAll: lf with: cr.
 	^ convertedString.! !
 
+TcpService subclass: #SPMailListener
+	instanceVariableNames: 'kernel'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPMailListener commentStamp: '<historical>' prior: 0!
+A TCP service accepting SMTP connections.!
+
+!SPMailListener class methodsFor: 'instance creation' stamp: 'as 3/14/2006 14:35'!
+withKernel: aSPKernel onPort: aNumber
+
+	^ (self on: aNumber) kernel: aSPKernel.! !
+
+!SPMailListener methodsFor: 'accessing' stamp: 'as 3/14/2006 14:36'!
+kernel: aSPKernel
+
+	kernel := aSPKernel.! !
+
+!SPMailListener methodsFor: 'conversation' stamp: 'as 3/16/2006 15:23'!
+serve: aSocket
+
+	| server |
+	server := SPMailReceiver on: (SocketStream on: aSocket) withKernel: kernel.
+	server receive.! !
+
 SMTPClient subclass: #SPMailSender
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -694,6 +915,15 @@ SMTPClient subclass: #SPMailSender
 
 !SPMailSender commentStamp: '<historical>' prior: 0!
 Some changes to SMTPClient.!
+
+!SPMailSender class methodsFor: 'sending mail' stamp: 'as 3/16/2006 15:58'!
+deliverMessage: aMailMessage usingServer: aString
+
+	self
+		deliverMailFrom: aMailMessage from
+		to: aMailMessage recipients
+		text: aMailMessage text
+		usingServer: aString.! !
 
 !SPMailSender class methodsFor: 'instance creation' stamp: 'as 2/22/2006 15:08'!
 openOnHost: hostIP port: portNumber
