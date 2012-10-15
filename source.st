@@ -1,4 +1,5 @@
 SystemOrganization addCategory: #'Stamp-Tests'!
+SystemOrganization addCategory: #'Stamp-Exceptions'!
 SystemOrganization addCategory: #'Stamp-Mail'!
 
 String subclass: #SPSmtpReply
@@ -38,6 +39,32 @@ okay
 ready
 
 	^ '220 anonymous.xx'.! !
+
+Exception subclass: #SPSmtpCommandFailed
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Exceptions'!
+
+Exception subclass: #SPSmtpCommandNotAllowed
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Exceptions'!
+
+SPSmtpCommandNotAllowed class
+	instanceVariableNames: 'test'!
+
+!SPSmtpCommandNotAllowed class methodsFor: 'as yet unclassified' stamp: 'as 1/12/2006 17:01'!
+initialize
+
+	self halt.! !
+
+Exception subclass: #SPSmtpCommandNotFound
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Exceptions'!
 
 TestCase subclass: #CodeTest
 	instanceVariableNames: ''
@@ -108,27 +135,26 @@ from: aString
 
 	message from: aString.! !
 
-!SPMailReceiver methodsFor: 'state' stamp: 'as 1/11/2006 14:29'!
-inState: aSymbol
+!SPMailReceiver methodsFor: 'state' stamp: 'as 1/12/2006 16:49'!
+gotoState: aSPMailReceiverState
 
-	"Am I in the given state?"
-
-	^ aSymbol = state.! !
+	state := aSPMailReceiverState.
+	state owner: self.! !
 
 !SPMailReceiver methodsFor: 'accessing' stamp: 'as 1/11/2006 16:20'!
 message: aMailMessage
 
 	message := aMailMessage.! !
 
-!SPMailReceiver methodsFor: 'private' stamp: 'as 1/11/2006 14:35'!
+!SPMailReceiver methodsFor: 'private' stamp: 'as 1/12/2006 15:52'!
 processLine: aString
 
 	"Find the apropriate command for a string line from the client and execute it."
 
 	| command |
-	command := SPSmtpCommand fromLine: aString receiver: self.
+	command := SPSmtpCommand fromString: aString.
 	command notNil ifTrue: [
-		command execute.
+		state execute: command.
 	] ifFalse: [
 		self reply: SPSmtpReply commandUnrecognized.
 	].! !
@@ -157,25 +183,74 @@ state
 
 	^ state.! !
 
-!SPMailReceiver methodsFor: 'state' stamp: 'as 1/11/2006 14:34'!
-state: aSymbol
-
-	state := aSymbol.! !
-
 !SPMailReceiver methodsFor: 'accessing' stamp: 'as 1/10/2006 21:36'!
 stream: aStream
 
 	stream := aStream.! !
 
+Object subclass: #SPMailReceiverState
+	instanceVariableNames: 'owner'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail'!
+
+!SPMailReceiverState class methodsFor: 'commands' stamp: 'as 1/12/2006 16:42'!
+allowedCommands
+
+	^ self transitions keys.! !
+
+!SPMailReceiverState class methodsFor: 'commands' stamp: 'as 1/12/2006 16:43'!
+nextStateFor: aSPSmtpCommand
+
+	^ self transitions at: aSPSmtpCommand class.! !
+
+!SPMailReceiverState class methodsFor: 'commands' stamp: 'as 1/12/2006 16:47'!
+transitions
+
+	"must return a dictionary with mappings: 'command class' -> 'state class'
+	 means: 'command class' is allowed command and has next state 'state class'"
+
+	self subclassResponsibility.! !
+
+!SPMailReceiverState methodsFor: 'commands' stamp: 'as 1/12/2006 16:06'!
+allowedCommands
+
+	^ self class allowedCommands.! !
+
+!SPMailReceiverState methodsFor: 'commands' stamp: 'as 1/12/2006 16:23'!
+commandAllowed: aSPSmtpCommand
+
+	^ self allowedCommands includes: aSPSmtpCommand class.! !
+
+!SPMailReceiverState methodsFor: 'commands' stamp: 'as 1/12/2006 16:48'!
+execute: aSPSmtpCommand
+
+	(self commandAllowed: aSPSmtpCommand) ifTrue: [
+		aSPSmtpCommand executeOn: owner.
+		owner gotoState: (self nextStateFor: aSPSmtpCommand) new.
+	] ifFalse: [
+		"throw exception"
+	].! !
+
+!SPMailReceiverState methodsFor: 'commands' stamp: 'as 1/12/2006 16:09'!
+nextStateFor: aSPSmtpCommand
+
+	^ self class nextStateFor: aSPSmtpCommand.! !
+
+!SPMailReceiverState methodsFor: 'accessing' stamp: 'as 1/12/2006 15:57'!
+owner: aSPMailReceiver
+
+	owner := aSPMailReceiver.! !
+
 Object subclass: #SPSmtpCommand
-	instanceVariableNames: 'receiver reply outState argument'
+	instanceVariableNames: 'argument failed target'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail'!
 
 !SPSmtpCommand commentStamp: '<historical>' prior: 0!
 SMTP commands are received by the server from the client.
-Concrete subclasses implement the doExecute method that actually executes the command.!
+I'm abstract, don't instantiate me.!
 
 SPSmtpCommand subclass: #SPEhloSmtpCommand
 	instanceVariableNames: ''
@@ -266,35 +341,27 @@ argumentFor: aString verb: verbString
 
 	^ aString copyFrom: (verbString size + 1) to: aString size.! !
 
-!SPSmtpCommand class methodsFor: 'private' stamp: 'as 1/11/2006 15:38'!
-commandFor: aString
+!SPSmtpCommand class methodsFor: 'private' stamp: 'as 1/12/2006 15:31'!
+commandClassFor: aString
 
-	"Extract command and return appropriate command class. The verb string for a SMTP command ist case insensitive."
+	"Extract command and return appropriate command class. The verb string for a SMTP command is case insensitive."
 
 	^ self allSubclasses detect: [ :each | aString asLowercase beginsWith: each verb asLowercase ] ifNone: [ ^ nil ].! !
 
-!SPSmtpCommand class methodsFor: 'instance creation' stamp: 'as 1/11/2006 15:05'!
-fromLine: aString receiver: aSPSmtpReceiver
+!SPSmtpCommand class methodsFor: 'instance creation' stamp: 'as 1/12/2006 15:33'!
+fromString: aString
 
-	"Return new command created from a given string line, or nil if no related command is found."
+	"Return new command created from a given string, or nil if no related command is found."
 
 	| commandClass command argument |
 	commandClass := self commandFor: aString.
 	commandClass notNil ifTrue: [
 		argument := self argumentFor: aString verb: commandClass verb.
 		command := commandClass new
-			receiver: aSPSmtpReceiver;
 			argument: argument;
 			yourself.
 	].
 	^ command.! !
-
-!SPSmtpCommand class methodsFor: 'state' stamp: 'as 1/11/2006 15:03'!
-inStates
-
-	"A collection of receiver states this command is allowed to execute in."
-
-	self subclassResponsibility.! !
 
 !SPSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/11/2006 15:38'!
 verb
@@ -315,34 +382,33 @@ doExecute
 
 	self subclassResponsibility.! !
 
-!SPSmtpCommand methodsFor: 'executing' stamp: 'as 1/11/2006 15:14'!
-execute
+!SPSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 15:54'!
+executeOn: aSPMailReceiver
 
-	"Execute command on receiver, reply to client and set new state of receiver."
+	target := aSPMailReceiver.
+	self doExecute.
+	target reply: self reply.
+	! !
 
-	(self class inStates includes: receiver state)
-	ifTrue: [
-		self doExecute.
-		receiver reply: reply.
-		receiver state: outState.
-	] ifFalse: [
-		receiver reply: SPSmtpReply badSequence.
-	]! !
+!SPSmtpCommand methodsFor: 'private' stamp: 'as 1/12/2006 15:26'!
+fail
 
-!SPSmtpCommand methodsFor: 'executing' stamp: 'as 1/9/2006 08:33'!
-outState
+	failed := true.! !
 
-	^ outState.! !
+!SPSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 15:26'!
+failed
 
-!SPSmtpCommand methodsFor: 'accessing' stamp: 'as 1/5/2006 16:49'!
-receiver: aSPSmtpReceiver
+	^ failed.! !
 
-	receiver := aSPSmtpReceiver.! !
+!SPSmtpCommand methodsFor: 'initialize-release' stamp: 'as 1/12/2006 15:35'!
+initialize
 
-!SPSmtpCommand methodsFor: 'executing' stamp: 'as 1/11/2006 15:17'!
+	failed := false.! !
+
+!SPSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 15:18'!
 reply
 
-	^ reply.! !
+	self subclassResponsibility.! !
 
 SPSmtpCommand subclass: #SPVerifySmtpCommand
 	instanceVariableNames: ''
@@ -371,15 +437,6 @@ doExecute
 	outState := receiver state.
 	reply := SPSmtpReply cannotVerify.! !
 
-Object subclass: #SPSmtpStates
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail'!
-
-!SPSmtpStates commentStamp: '<historical>' prior: 0!
-Defines states (symbols) a!
-
 TcpService subclass: #SPMailListener
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -395,3 +452,4 @@ serve: aSocket
 	| receiver message |
 	receiver := SPMailReceiver on: (SocketStream on: aSocket).
 	message := receiver receive.! !
+SPSmtpCommandNotAllowed initialize!
