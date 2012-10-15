@@ -1556,10 +1556,10 @@ doExecute
 		reset.
 	self state: SPResetSmtpState.! !
 
-!SPDataSmtpCommand methodsFor: 'execute' stamp: 'as 11/8/2006 12:30'!
+!SPDataSmtpCommand methodsFor: 'execute' stamp: 'as 11/13/2006 16:35'!
 doValidate
 
-	self checkEmptyArgument.! !
+	"nothing to do"! !
 
 SPSmtpCommand subclass: #SPEhloSmtpCommand
 	instanceVariableNames: ''
@@ -1569,6 +1569,11 @@ SPSmtpCommand subclass: #SPEhloSmtpCommand
 
 !SPEhloSmtpCommand commentStamp: '<historical>' prior: 0!
 The EHLO command is unimplemented since no service extension are needed/implemented.!
+
+!SPEhloSmtpCommand class methodsFor: 'smtp' stamp: 'as 11/13/2006 16:37'!
+hasArgument
+
+	^ true.! !
 
 !SPEhloSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:12'!
 initStates
@@ -1603,6 +1608,11 @@ SPSmtpCommand subclass: #SPHeloSmtpCommand
 !SPHeloSmtpCommand commentStamp: '<historical>' prior: 0!
 HELO command is used by the client to initiate a new session with the server.!
 
+!SPHeloSmtpCommand class methodsFor: 'smtp' stamp: 'as 11/13/2006 16:38'!
+hasArgument
+
+	^ true.! !
+
 !SPHeloSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:12'!
 initStates
 
@@ -1635,6 +1645,11 @@ SPSmtpCommand subclass: #SPMailSmtpCommand
 
 !SPMailSmtpCommand commentStamp: '<historical>' prior: 0!
 The MAIL command specifies the sender address.!
+
+!SPMailSmtpCommand class methodsFor: 'smtp' stamp: 'as 11/13/2006 16:38'!
+hasArgument
+
+	^ true.! !
 
 !SPMailSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:21'!
 initStates
@@ -1692,10 +1707,10 @@ doExecute
 
 	"nothing to do"! !
 
-!SPNoopSmtpCommand methodsFor: 'execute' stamp: 'as 11/8/2006 12:30'!
+!SPNoopSmtpCommand methodsFor: 'execute' stamp: 'as 11/13/2006 16:36'!
 doValidate
 
-	self checkEmptyArgument.! !
+	"nothing to do"! !
 
 SPSmtpCommand subclass: #SPQuitSmtpCommand
 	instanceVariableNames: ''
@@ -1725,10 +1740,10 @@ doExecute
 
 	target requestQuit.! !
 
-!SPQuitSmtpCommand methodsFor: 'execute' stamp: 'as 11/8/2006 12:31'!
+!SPQuitSmtpCommand methodsFor: 'execute' stamp: 'as 11/13/2006 16:36'!
 doValidate
 
-	self checkEmptyArgument.! !
+	"nothing to do"! !
 
 SPSmtpCommand subclass: #SPRecipientSmtpCommand
 	instanceVariableNames: 'recipient'
@@ -1738,6 +1753,11 @@ SPSmtpCommand subclass: #SPRecipientSmtpCommand
 
 !SPRecipientSmtpCommand commentStamp: '<historical>' prior: 0!
 The client specifies a recipient address.!
+
+!SPRecipientSmtpCommand class methodsFor: 'smtp' stamp: 'as 11/13/2006 16:38'!
+hasArgument
+
+	^ true.! !
 
 !SPRecipientSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:12'!
 initStates
@@ -1804,10 +1824,10 @@ doExecute
 	target reset.
 	self state: SPResetSmtpState.! !
 
-!SPResetSmtpCommand methodsFor: 'execute' stamp: 'as 11/8/2006 12:31'!
+!SPResetSmtpCommand methodsFor: 'execute' stamp: 'as 11/13/2006 16:36'!
 doValidate
 
-	self checkEmptyArgument.! !
+	"nothing to do"! !
 
 !SPSmtpCommand class methodsFor: 'state' stamp: 'as 4/20/2006 15:56'!
 allStates
@@ -1853,6 +1873,11 @@ fromString: aString target: aSPMailReceiver
 		argument: argument;
 		target: aSPMailReceiver.
 	^ command.! !
+
+!SPSmtpCommand class methodsFor: 'smtp' stamp: 'as 11/13/2006 16:31'!
+hasArgument
+
+	^ false.! !
 
 !SPSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/15/2006 16:12'!
 initialize
@@ -1910,7 +1935,7 @@ doExecute
 
 	self subclassResponsibility.! !
 
-!SPSmtpCommand methodsFor: 'execute' stamp: 'as 9/14/2006 13:50'!
+!SPSmtpCommand methodsFor: 'validate' stamp: 'as 9/14/2006 13:50'!
 doValidate
 
 	"Validate whatever is necessary for the command to be executed successfully.
@@ -1918,28 +1943,34 @@ doValidate
 
 	self subclassResponsibility.! !
 
-!SPSmtpCommand methodsFor: 'execute' stamp: 'as 9/14/2006 13:50'!
+!SPSmtpCommand methodsFor: 'execute' stamp: 'as 11/13/2006 16:31'!
 execute
 
 	self
 		validateState;
+		validateArgument;
 		doValidate;
 		doExecute;
 		gotoNextState;
 		sendReply.! !
 
-!SPSmtpCommand methodsFor: 'private' stamp: 'as 4/21/2006 11:00'!
+!SPSmtpCommand methodsFor: 'state' stamp: 'as 4/21/2006 11:00'!
 gotoNextState
 
 	state isNil ifTrue: [ state := self defaultNextState. ].
 	target state: state.! !
+
+!SPSmtpCommand methodsFor: 'smtp' stamp: 'as 11/13/2006 16:37'!
+hasArgument
+
+	^ self class hasArgument.! !
 
 !SPSmtpCommand methodsFor: 'access' stamp: 'as 4/20/2006 17:41'!
 reply: aSPSmtpReply
 
 	reply := aSPSmtpReply.! !
 
-!SPSmtpCommand methodsFor: 'private' stamp: 'as 4/18/2006 11:29'!
+!SPSmtpCommand methodsFor: 'reply' stamp: 'as 4/18/2006 11:29'!
 sendReply
 
 	reply isNil ifTrue: [ reply := self defaultReply. ].
@@ -1960,7 +1991,14 @@ target: aSPMailReceiver
 
 	target := aSPMailReceiver.! !
 
-!SPSmtpCommand methodsFor: 'state' stamp: 'as 10/18/2006 19:32'!
+!SPSmtpCommand methodsFor: 'validate' stamp: 'as 11/13/2006 16:35'!
+validateArgument
+
+	self hasArgument ifFalse: [
+		self checkEmptyArgument.
+	].! !
+
+!SPSmtpCommand methodsFor: 'validate' stamp: 'as 10/18/2006 19:32'!
 validateState
 
 	(self states includes: target state) ifFalse: [
@@ -1980,6 +2018,11 @@ SPSmtpCommand subclass: #SPVerifySmtpCommand
 
 !SPVerifySmtpCommand commentStamp: '<historical>' prior: 0!
 VRFY allows clients to verify addresses. This is disabled for security reasons.!
+
+!SPVerifySmtpCommand class methodsFor: 'smtp' stamp: 'as 11/13/2006 16:38'!
+hasArgument
+
+	^ true.! !
 
 !SPVerifySmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:33'!
 initStates
