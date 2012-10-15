@@ -1234,6 +1234,11 @@ withUser: aSPUser
 		user: aSPUser;
 		yourself.! !
 
+!SPWebListSubscription methodsFor: 'initialize-release' stamp: 'as 3/7/2007 18:08'!
+initialize
+
+	"clear initialization of super class".! !
+
 !SPWebListSubscription methodsFor: 'subscription' stamp: 'as 2/28/2007 18:38'!
 subscribe: aSPList
 
@@ -1250,6 +1255,11 @@ tableColumns
 user: aSPUser
 
 	user _ aSPUser.
+	self initTable.! !
+
+!SPWebListView methodsFor: 'initialize-release' stamp: 'as 3/7/2007 18:07'!
+initialize
+
 	self initTable.! !
 
 !SPWebListView methodsFor: 'rendering' stamp: 'as 2/28/2007 17:35'!
@@ -3755,14 +3765,6 @@ from: fromString to: toString mail: mailString
 		to: (Array with: toString)
 		mail: mailString.! !
 
-!SPMailPosting class methodsFor: 'instance creation' stamp: 'as 2/26/2007 11:00'!
-from: fromString to: toString mailFrom: mailString
-
-	^ self
-		from: fromString
-		to: (Array with: toString)
-		mailFrom: mailString.! !
-
 !SPMailPosting methodsFor: 'post' stamp: 'as 2/26/2007 11:23'!
 admin
 
@@ -3774,11 +3776,6 @@ checkIsAllowed
 	self isAllowed ifFalse: [
 		^ SPPostingNotAllowedException signal.
 	].! !
-
-!SPMailPosting methodsFor: 'insert' stamp: 'as 2/26/2007 10:03'!
-insertListName
-
-	mail subject: '[', self recipientList name, '] ', mail subject.! !
 
 !SPMailPosting methodsFor: 'test' stamp: 'as 2/26/2007 11:54'!
 isAllowed
@@ -4091,16 +4088,16 @@ config
 
 	^ SPKernel instance configurator.! !
 
-!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 2/26/2007 10:32'!
-initMessage
+!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 3/7/2007 18:13'!
+initRecipients
 
 	recipients _ IdentitySet new.! !
 
-!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 1/30/2007 10:16'!
+!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 3/7/2007 18:13'!
 initialize
 
 	quit _ false.
-	self initMessage.
+	self initRecipients.
 	self state: SPReadySmtpState.! !
 
 !SPMailReceiver methodsFor: 'message' stamp: 'as 2/26/2007 11:42'!
@@ -4325,10 +4322,10 @@ replyClosing: aString
 
 	self reply: (SPSmtpReply closing: self serverName reason: aString).! !
 
-!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 1/30/2007 10:16'!
+!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 3/7/2007 18:13'!
 reset
 
-	self initMessage.
+	self initRecipients.
 	self state: SPResetSmtpState.! !
 
 !SPMailReceiver methodsFor: 'configuration' stamp: 'as 1/15/2007 17:36'!
