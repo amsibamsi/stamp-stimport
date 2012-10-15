@@ -204,7 +204,7 @@ stop
 	listener stop.! !
 
 Object subclass: #SPList
-	instanceVariableNames: 'name moderated active'
+	instanceVariableNames: 'name moderated active address'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-ListManager'!
@@ -212,17 +212,27 @@ Object subclass: #SPList
 !SPList commentStamp: '<historical>' prior: 0!
 A mailing list.!
 
-!SPList class methodsFor: 'instance creation' stamp: 'as 3/20/2006 16:12'!
-withName: aString
+!SPList class methodsFor: 'instance creation' stamp: 'as 9/26/2006 17:11'!
+withAddress: aSPMailAddress
 
 	^ self new
-		name: aString;
+		address: aSPMailAddress;
 		yourself.! !
 
 !SPList methodsFor: 'operations' stamp: 'as 9/5/2006 14:14'!
 activate
 
 	active := true.! !
+
+!SPList methodsFor: 'accessing' stamp: 'as 9/26/2006 17:10'!
+address
+
+	^ address.! !
+
+!SPList methodsFor: 'accessing' stamp: 'as 9/26/2006 17:10'!
+address: aSPMailAddress
+
+	address := aSPMailAddress.! !
 
 !SPList methodsFor: 'operations' stamp: 'as 9/5/2006 14:14'!
 deactivate
@@ -255,25 +265,15 @@ moderate
 
 	moderated := true.! !
 
-!SPList methodsFor: 'accessing' stamp: 'as 3/9/2006 16:53'!
-name
-
-	^ name.! !
-
-!SPList methodsFor: 'accessing' stamp: 'as 3/20/2006 16:13'!
-name: aString
-
-	name := aString.! !
-
 !SPList methodsFor: 'operations' stamp: 'as 9/5/2006 13:05'!
 unmoderate
 
 	moderated := false.! !
 
-!SPList methodsFor: 'comparing' stamp: 'as 3/9/2006 16:48'!
+!SPList methodsFor: 'comparing' stamp: 'as 9/26/2006 17:10'!
 = aSPList
 
-	^ name = aSPList name.! !
+	^ address = aSPList address.! !
 
 Object subclass: #SPListManager
 	instanceVariableNames: 'kernel users lists subscriptions monitor'
@@ -326,10 +326,16 @@ allUsers
 
 	^ users.! !
 
-!SPListManager methodsFor: 'testing' stamp: 'as 9/8/2006 10:06'!
-hasList: nameString
+!SPListManager methodsFor: 'operations' stamp: 'as 9/26/2006 16:55'!
+contactWithAddress: aSPMailAddress
 
-	^ (lists detect: [ :each | each name = nameString. ] ifNone: [ nil. ]) notNil.! !
+	| contact |
+	users do: [
+		:user |
+		contact := user contacts detect: [ :each | each address = aSPMailAddress. ] ifNone: [ nil. ].
+		contact ifNotNil: [ ^ contact. ].
+	].
+	^ nil.! !
 
 !SPListManager methodsFor: 'initialize-release' stamp: 'as 9/12/2006 16:36'!
 initialize
@@ -344,11 +350,18 @@ kernel: aSPKernel
 
 	kernel := aSPKernel.! !
 
-!SPListManager methodsFor: 'operations' stamp: 'as 9/11/2006 15:41'!
-list: nameString
+!SPListManager methodsFor: 'operations' stamp: 'as 9/26/2006 17:03'!
+listWithAddress: aSPMailAddress
 
 	^ lists
-		detect: [ :each | each name = nameString. ]
+		detect: [ :each | each address = aSPMailAddress. ]
+		ifNone: [ nil. ].! !
+
+!SPListManager methodsFor: 'operations' stamp: 'as 9/26/2006 16:50'!
+listWithName: aString
+
+	^ lists
+		detect: [ :each | each name = aString. ]
 		ifNone: [ nil. ].! !
 
 !SPListManager methodsFor: 'operations' stamp: 'as 9/5/2006 13:11'!
@@ -375,11 +388,18 @@ unsubscribe: aSPSubscription
 
 	subscriptions remove: aSPSubscription ifAbsent: [ SPSubscriptionNotFoundException signal. ].! !
 
-!SPListManager methodsFor: 'operations' stamp: 'as 9/11/2006 15:41'!
-user: nameString
+!SPListManager methodsFor: 'operations' stamp: 'as 9/26/2006 17:02'!
+userWithAddress: aSPMailAddress
 
 	^ users
-		detect: [ :each | each name = nameString. ]
+		detect: [ :each | each contacts includes: aSPMailAddress. ]
+		ifNone: [ nil. ].! !
+
+!SPListManager methodsFor: 'operations' stamp: 'as 9/26/2006 16:50'!
+userWithName: aString
+
+	^ users
+		detect: [ :each | each name = aString. ]
 		ifNone: [ nil. ].! !
 
 Object subclass: #SPMailAddress
@@ -410,10 +430,10 @@ fromPath: aString
 	on: Exception
 	do: [ :e | SPInvalidMailAddressException signal. ].! !
 
-!SPMailAddress methodsFor: 'accessing' stamp: 'as 9/25/2006 11:38'!
+!SPMailAddress methodsFor: 'printing' stamp: 'as 9/26/2006 16:58'!
 address
 
-	^ '<', localPart, '@', domain, '>'.! !
+	^ localPart, '@', domain.! !
 
 !SPMailAddress methodsFor: 'accessing' stamp: 'as 6/8/2006 16:51'!
 domain
@@ -440,6 +460,11 @@ localPart: aString
 
 	localPart := aString.! !
 
+!SPMailAddress methodsFor: 'printing' stamp: 'as 9/26/2006 16:57'!
+path
+
+	^ '<', localPart, '@', domain, '>'.! !
+
 !SPMailAddress methodsFor: 'comparing' stamp: 'as 9/12/2006 16:30'!
 = aSPMailAddress
 
@@ -452,11 +477,8 @@ Object subclass: #SPMailMessage
 	category: 'Stamp-Mail-Server'!
 
 !SPMailMessage commentStamp: '<historical>' prior: 0!
-A mail message that contains some attributes specific to mail reception besides the normal mail data.
-
-When relaying mail, SMTP servers specify a separate sender and recipients that are not necessarily equal to the ones of the mail message. This makes it possible to relay mail for different users without modifying the actual mail message, but sometimes this can also be a bit confusing.
-
-In addition to the normal mail message this implementation contains sender and recipients as they were specified by the relaying server.!
+The SMTP protocol defines commands for specifying a sender and one or multiple recipient addresses apart from the ones in the header of a mail message (from:, to:, cc:, ...).
+This class is a wrapper around MailMessage that stores these addresses as well, since they are important when relaying mail. The addresses are not stored directly. The sender is stored as a sender address and the possible corresponding user. The recipients are stored as mailing lists.!
 
 !SPMailMessage methodsFor: 'accessing' stamp: 'as 9/26/2006 13:45'!
 addList: aSPList
@@ -633,11 +655,6 @@ initialize
 	inProcess := [ self handleInbox. ] newProcess.
 	outProcess := [ self handleOutbox. ] newProcess.! !
 
-!SPMailQueue methodsFor: 'private' stamp: 'as 9/25/2006 11:38'!
-insertReturnPath
-
-	message mail returnPath: message mail sender address.! !
-
 !SPMailQueue methodsFor: 'operations' stamp: 'as 9/26/2006 16:31'!
 outgoing: aSPMailMessage
 
@@ -696,10 +713,10 @@ initialize
 	message := SPMailMessage new.
 	self state: SPReadySmtpState.! !
 
-!SPMailReceiver methodsFor: 'private' stamp: 'as 9/25/2006 11:41'!
+!SPMailReceiver methodsFor: 'private' stamp: 'as 9/26/2006 17:00'!
 insertReturnPath
 
-	self mail returnPath: self sender address.! !
+	self mail returnPath: self sender path.! !
 
 !SPMailReceiver methodsFor: 'private' stamp: 'as 9/25/2006 11:41'!
 insertTrace
@@ -1078,11 +1095,11 @@ verb
 
 	^ 'mail from:'.! !
 
-!SPMailSmtpCommand methodsFor: 'executing' stamp: 'as 9/26/2006 16:17'!
+!SPMailSmtpCommand methodsFor: 'executing' stamp: 'as 9/26/2006 17:02'!
 doExecute
 
 	target sender: sender.
-	target user: (target kernel manager user: sender).
+	target user: (target kernel manager userWithAddress: sender).
 	self state: SPMailSmtpState.! !
 
 !SPMailSmtpCommand methodsFor: 'executing' stamp: 'as 9/26/2006 15:27'!
@@ -1182,11 +1199,11 @@ verb
 
 	^ 'rcpt to:'.! !
 
-!SPRecipientSmtpCommand methodsFor: 'executing' stamp: 'as 9/26/2006 15:25'!
+!SPRecipientSmtpCommand methodsFor: 'executing' stamp: 'as 9/26/2006 17:03'!
 doExecute
 
 	| list |
-	list := target kernel manager list: recipient.
+	list := target kernel manager listWithAddress: recipient.
 	list isNil ifTrue: [
 		self reply: SPSmtpReply noSuchUser.
 	] ifFalse: [
