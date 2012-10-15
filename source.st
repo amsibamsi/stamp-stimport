@@ -1299,21 +1299,29 @@ queueSendAttempts
 
 	^ self config preferenceAt: #queueSendAttempts.! !
 
+!SPWebQueue methodsFor: 'queue' stamp: 'as 3/7/2007 17:23'!
+remove: aSPMailHandler
+
+	aSPMailHandler kill.
+	self updateTable.! !
+
 !SPWebQueue methodsFor: 'rendering' stamp: 'as 2/28/2007 18:27'!
 renderContentOn: html
 
 	self renderTitle: 'Message Queue' renderer: html.
 	super renderContentOn: html.! !
 
-!SPWebQueue methodsFor: 'rendering' stamp: 'as 3/5/2007 13:53'!
+!SPWebQueue methodsFor: 'rendering' stamp: 'as 3/7/2007 17:16'!
 tableColumns
 
 	^ OrderedCollection new
 		add: (WAReportColumn new title: 'Subject'; valueBlock: [ :item | item message subject. ]; yourself);
 		add: (WAReportColumn new title: 'Sender'; valueBlock: [ :item | item message sender asString. ]; yourself);
-		add: (WAReportColumn new title: 'Date'; valueBlock: [ :item | item message date asString. ]; yourself);
+		add: (WAReportColumn new title: 'Recipients (1 shown)'; valueBlock: [ :item | item message recipients atRandom asString. ]; yourself);
+		add: (WAReportColumn new title: 'Date'; valueBlock: [ :item | item message date asTimeStamp asString. ]; yourself);
 		add: (WAReportColumn selector: #state title: 'State');
 		add: (WAReportColumn new title: 'Attempts'; valueBlock: [ :item | item attempts asString, '/', self queueSendAttempts asString. ]; yourself);
+		add: (WAReportColumn new title: 'Remove'; valueBlock: [ :item | 'remove'. ]; clickBlock: [ :item | self remove: item. ]; sortBlock: nil; yourself);
 		yourself.! !
 
 !SPWebQueue methodsFor: 'rendering' stamp: 'as 3/5/2007 10:28'!
@@ -2214,20 +2222,20 @@ withUser: aSPUser
 		user: aSPUser;
 		yourself.! !
 
-!SPWebUnregister methodsFor: 'rendering' stamp: 'as 2/28/2007 19:04'!
+!SPWebUnregister methodsFor: 'rendering' stamp: 'as 3/7/2007 16:12'!
 confirmUnregister
 
-	^ self confirm: 'Do you really want to remove the user ', user name, ' with its ', self numberOfContacts asString, ' contact(s) and ', self numberOfSubscriptions asString, ' subscription(s)?'.! !
+	^ self confirm: 'Do you really want to remove the user ', user name, ' with its ', self numberOfContacts, ' contact(s) and ', self numberOfSubscriptions, ' subscription(s)?'.! !
 
-!SPWebUnregister methodsFor: 'user' stamp: 'as 2/28/2007 18:10'!
+!SPWebUnregister methodsFor: 'user' stamp: 'as 3/7/2007 16:11'!
 numberOfContacts
 
-	^ SPKernel instance manager numberOfContactsForUser: user.! !
+	^ (SPKernel instance manager numberOfContactsForUser: user) asString.! !
 
-!SPWebUnregister methodsFor: 'user' stamp: 'as 2/28/2007 18:10'!
+!SPWebUnregister methodsFor: 'user' stamp: 'as 3/7/2007 16:12'!
 numberOfSubscriptions
 
-	^ SPKernel instance manager numberOfSubscriptionsForUser: user.! !
+	^ (SPKernel instance manager numberOfSubscriptionsForUser: user) asString.! !
 
 !SPWebUnregister methodsFor: 'rendering' stamp: 'as 2/28/2007 18:07'!
 renderContentOn: html
@@ -3404,7 +3412,7 @@ path
 	^ '<', localPart, '@', domain, '>'.! !
 
 Object subclass: #SPMailHandler
-	instanceVariableNames: 'process message state attempts sent'
+	instanceVariableNames: 'process message state attempts sent monitor'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
@@ -3439,17 +3447,25 @@ delay
 
 	(Delay forSeconds: self queueDelaySeconds) wait.! !
 
-!SPMailHandler methodsFor: 'initialize-release' stamp: 'as 2/28/2007 22:14'!
+!SPMailHandler methodsFor: 'initialize-release' stamp: 'as 3/7/2007 17:18'!
 initialize
 
 	sent _ false.
 	attempts _ 0.
+	monitor _ Monitor new.
 	process _ [ self run. ] newProcess.! !
 
 !SPMailHandler methodsFor: 'processing' stamp: 'as 2/28/2007 22:13'!
 isFinished
 
 	^ sent or: [ attempts >= self queueSendAttempts. ].! !
+
+!SPMailHandler methodsFor: 'processing' stamp: 'as 3/7/2007 17:19'!
+kill
+
+	monitor critical: [
+		process terminate.
+	].! !
 
 !SPMailHandler methodsFor: 'access' stamp: 'as 2/23/2007 16:43'!
 message
@@ -3493,13 +3509,15 @@ run
 		[ self isFinished. ] whileFalse: [ self delay; processMessage. ].
 	] ensure: [ SPKernel instance queue removeHandler: self. ].! !
 
-!SPMailHandler methodsFor: 'processing' stamp: 'as 2/28/2007 22:45'!
+!SPMailHandler methodsFor: 'processing' stamp: 'as 3/7/2007 17:18'!
 sendMessage
 
-	self attempting.
-	message prepareToSend.
-	SPSmtpClient new sendMessage: message.
-	self sent.! !
+	monitor critical: [
+		self attempting.
+		message prepareToSend.
+		SPSmtpClient new sendMessage: message.
+		self sent.
+	].! !
 
 !SPMailHandler methodsFor: 'processing' stamp: 'as 3/5/2007 14:20'!
 sent
