@@ -165,12 +165,12 @@ SPObject subclass: #SPMailArchive
 !SPMailArchive commentStamp: '<historical>' prior: 0!
 Mail archive that basically wraps around MailDB.!
 
-!SPMailArchive methodsFor: 'store' stamp: 'as 10/16/2006 19:17'!
+!SPMailArchive methodsFor: 'store' stamp: 'as 10/21/2006 12:11'!
 addMessage: aSPMailMessage
 
 		| dir |
 		aSPMailMessage insertReturnPath.
-		dir := self archiveDir, '/', aSPMailMessage list address addressString.
+		dir := self archiveDir, '/', aSPMailMessage list address asString.
 		(MailDB openOn: dir) addNewMessage: aSPMailMessage mail.! !
 
 !SPMailArchive methodsFor: 'preferences' stamp: 'as 10/16/2006 19:17'!
@@ -198,14 +198,14 @@ initialize
 	queue := SPQueue withProcessBlock: self processBlock.
 	hold := OrderedCollection new.! !
 
-!SPMailFilter methodsFor: 'filtering' stamp: 'as 10/12/2006 18:26'!
+!SPMailFilter methodsFor: 'filtering' stamp: 'as 10/19/2006 11:29'!
 isAllowedPost: aSPMailMessage
 
 	| list user |
 	list := aSPMailMessage list.
 	user := aSPMailMessage user.
 	^ list isModerated not and: [
-		list hasOpenPosting or: [
+		list isOpen or: [
 			user notNil and: [
 				kernel manager isSubscribed: user to: list.
 			].
@@ -259,10 +259,10 @@ destroy
 
 	service unregister.! !
 
-!SPMailListener methodsFor: 'initialize-release' stamp: 'as 10/11/2006 18:42'!
+!SPMailListener methodsFor: 'initialize-release' stamp: 'as 10/17/2006 17:40'!
 initialize
 
-	service := SPMailService withListener: self onPort: (self preferenceAt: #receiverPort).! !
+	service := SPMailService withListener: self onPort: (self listenerPort).! !
 
 !SPMailListener methodsFor: 'start-stop' stamp: 'as 10/13/2006 12:06'!
 isStarted
@@ -273,6 +273,11 @@ isStarted
 isStopped
 
 	^ service isStopped.! !
+
+!SPMailListener methodsFor: 'preferences' stamp: 'as 10/17/2006 17:40'!
+listenerPort
+
+	^ self preferenceAt: #listenPort.! !
 
 !SPMailListener methodsFor: 'initialize-release' stamp: 'as 10/12/2006 16:02'!
 reinitialize
@@ -320,12 +325,12 @@ withKernel: aSPKernel stream: aSocketStream
 		stream: aSocketStream;
 		yourself.! !
 
-!SPMailReceiver methodsFor: 'receive' stamp: 'as 2/6/2006 15:19'!
-dataDelimiter
+!SPMailReceiver methodsFor: 'check' stamp: 'as 10/18/2006 20:37'!
+checkNumberOfRecipients
 
-	"The delimiter string that will end mail data input."
-
-	^ String crlf, '.', String crlf.! !
+	messages size >= self receiverMaxRecipients ifTrue: [
+		(SPTooManyRecipientsSmtpException withReceiver: self) signal.
+	].! !
 
 !SPMailReceiver methodsFor: 'message' stamp: 'as 10/5/2006 14:44'!
 filterMessages
@@ -348,18 +353,27 @@ initMessages
 	messages := OrderedCollection new.
 	messages add: SPMailMessage new.! !
 
-!SPMailReceiver methodsFor: 'message' stamp: 'as 10/5/2006 15:02'!
+!SPMailReceiver methodsFor: 'message' stamp: 'as 10/18/2006 14:09'!
 insertTrace
 
+	| local remote |
+	local := self localName ifNil: [ self localAddress. ].
+	remote := self remoteName ifNil: [ self remoteAddress. ].
 	messages do: [
 		:message |
-		message mail received: 'from ', self remoteName, ' by ', self localName, '; ', MailMessage dateStampNow.
+		message mail received: 'from ', remote, ' by ', local, '; ', MailMessage dateStampNow.
 	].! !
 
-!SPMailReceiver methodsFor: 'message' stamp: 'as 10/5/2006 15:11'!
+!SPMailReceiver methodsFor: 'receive' stamp: 'as 10/17/2006 22:30'!
+lineDelimiter
+
+	^ String crlf.! !
+
+!SPMailReceiver methodsFor: 'message' stamp: 'as 10/18/2006 20:25'!
 list: aSPList
 
 	| last new |
+	self checkNumberOfLists.
 	last := messages last.
 	last list ifNil: [
 		last list: aSPList.
@@ -384,49 +398,132 @@ localPort
 
 	^ stream socket localPort.! !
 
+!SPMailReceiver methodsFor: 'receive' stamp: 'as 10/18/2006 18:07'!
+mailDelimiter
+
+	^ String crlf, '.', String crlf.! !
+
 !SPMailReceiver methodsFor: 'message' stamp: 'as 10/5/2006 14:12'!
 mail: aString
 
 	messages do: [ :message | message mail: aString. ].! !
 
-!SPMailReceiver methodsFor: 'private' stamp: 'as 9/25/2006 11:42'!
+!SPMailReceiver methodsFor: 'limits' stamp: 'as 10/18/2006 17:30'!
+maxCommandLineLength
+
+	^ 512.! !
+
+!SPMailReceiver methodsFor: 'limits' stamp: 'as 10/18/2006 17:30'!
+maxLineLength
+
+	^ 1000.! !
+
+!SPMailReceiver methodsFor: 'limits' stamp: 'as 10/18/2006 21:35'!
+maxReplyLength
+
+	^ 512.! !
+
+!SPMailReceiver methodsFor: 'socket' stamp: 'as 10/18/2006 14:02'!
 nameForAddress: addressString
 
-	| name |
-	name := NetNameResolver nameForAddress: addressString timeout: (self preferenceAt: #resolverTimeout).
-	name ifNil: [ name := 'UNRESOLVED'. ].
-	^ name.! !
+	^ NetNameResolver nameForAddress: addressString timeout: self resolverTimeout.! !
 
-!SPMailReceiver methodsFor: 'receive' stamp: 'as 10/14/2006 13:44'!
+!SPMailReceiver methodsFor: 'receive' stamp: 'as 10/17/2006 20:52'!
 receive
 
 	"Receive commands from client as long as connection is there and
 	 quit is not requested."
 	"In case of an error the connection is closed."
 
-	self reply: (SPSmtpReply ready: (self preferenceAt: #serverName)).
+	self reply: (SPSmtpReply ready: self serverName).
 	[
 		[
 			[ quit not and: [ stream isConnected. ] ] whileTrue: [ self receiveCommand. ].
-		] on: Exception do: [ self reply: (SPSmtpReply closing: (self preferenceAt: #serverName)). ].
+		] on: Exception do: [ self reply: (SPSmtpReply closing: self serverName). ].
 	] ensure: [ stream close. ].! !
 
-!SPMailReceiver methodsFor: 'receive' stamp: 'as 4/18/2006 16:50'!
+!SPMailReceiver methodsFor: 'receive' stamp: 'as 11/7/2006 16:43'!
 receiveCommand
 
-	"Find the apropriate command for a string line from the client and execute it."
+	"Find the appropriate command for a string line from the client and execute it."
 
 	| line command |
-	line := stream nextLineCrLf.
+	line := self receiveCommandLine.
 	[ command := SPSmtpCommand fromString: line target: self.
 	  command execute. ]
-		on: SPSmtpCommandException
+		on: SPReceiverException
 		do: [ :ex | ex defaultAction. ex return. ].! !
 
-!SPMailReceiver methodsFor: 'receive' stamp: 'as 10/17/2006 14:52'!
-receiveData
+!SPMailReceiver methodsFor: 'receive' stamp: 'as 10/18/2006 20:08'!
+receiveCommandLine
 
-	^ (stream upToAll: self dataDelimiter) convertSmtpToSqueakText.! !
+	[ ^ self receiveUpTo: self lineDelimiter maxSize: self maxCommandLineLength. ]
+		on: SPTooMuchDataException
+		do: [ (SPLineTooLongSmtpException withReceiver: self) signal. ].! !
+
+!SPMailReceiver methodsFor: 'receive' stamp: 'as 10/18/2006 20:10'!
+receiveLine
+
+	[ ^ self receiveTo: self lineDelimiter maxSize: self maxLineLength. ]
+		on: SPTooMuchDataException
+		do: [ (SPLineTooLongSmtpException withReceiver: self) signal. ].! !
+
+!SPMailReceiver methodsFor: 'receive' stamp: 'as 10/18/2006 20:21'!
+receiveMail
+
+	| mail line overflow |
+	mail := line := ''.
+	overflow := false.
+	[ line = self mailDelimiter. ] whileFalse: [
+		overflow ifFalse: [
+			mail := mail, line.
+			overflow := mail size > self receiverMaxMailSize.
+		].
+		line := self receiveLine.
+	].
+	overflow ifTrue: [
+		(SPTooMuchMailDataSmtpException withReceiver: self) signal.
+	] ifFalse: [
+		^ mail convertSmtpToSqueakText.
+	].! !
+
+!SPMailReceiver methodsFor: 'receive' stamp: 'as 10/18/2006 19:38'!
+receiveNext
+
+	^ stream next ifNil: [ (SPConnectionClosedException withReceiver: self) signal. ].! !
+
+!SPMailReceiver methodsFor: 'preferences' stamp: 'as 10/18/2006 17:29'!
+receiverMaxMailSize
+
+	^ self preferenceAt: #receiverMaxMailSize.! !
+
+!SPMailReceiver methodsFor: 'receive' stamp: 'as 10/18/2006 20:15'!
+receiveTo: aString maxSize: aNumber
+
+	"Receives all data up to and including aString. After receiving if the data exceedes
+	 aNumber an exception is thrown, otherwise the data is returned.
+	 Receives but avoids storing data if aNumber is exceeded to prevent overflow."
+
+	| data buffer overflow |
+	data := buffer := ''.
+	overflow := false.
+	[ data endsWith: aString. ] whileFalse: [
+		overflow ifFalse: [
+			data := data, buffer.
+			overflow := data size > aNumber.
+		].
+		buffer := self receiveNext.
+	].
+	overflow ifTrue: [ SPTooMuchDataException signal. ] ifFalse: [ ^ data. ].! !
+
+!SPMailReceiver methodsFor: 'receive' stamp: 'as 10/18/2006 21:37'!
+receiveUpTo: aString maxSize: aNumber
+
+	"Same as receiveTo:maxSize, but exclude aString in return."
+
+	| data |
+	data := self receiveTo: aString maxSize: aNumber.
+	^ data first: (data size - aString size).! !
 
 !SPMailReceiver methodsFor: 'socket' stamp: 'as 9/20/2006 14:40'!
 remoteAddress
@@ -443,14 +540,15 @@ remotePort
 
 	^ stream socket remotePort.! !
 
-!SPMailReceiver methodsFor: 'reply' stamp: 'as 4/18/2006 16:37'!
+!SPMailReceiver methodsFor: 'reply' stamp: 'as 10/18/2006 21:38'!
 reply: aSPSmtpReply
 
-	"Reply a message to the client."
+	| reply |
+	reply := aSPSmtpReply replyString, String cr, String lf.
+	reply size > self maxReplyLength ifTrue: [ reply := reply first: self maxReplyLength. ].
+	stream nextPutAll: reply; flush.! !
 
-	stream nextPutAll: aSPSmtpReply replyString; crlf; flush.! !
-
-!SPMailReceiver methodsFor: 'receive' stamp: 'as 1/18/2006 17:10'!
+!SPMailReceiver methodsFor: 'receive' stamp: 'as 10/18/2006 13:51'!
 requestQuit
 
 	quit := true.! !
@@ -461,10 +559,20 @@ reset
 	self initMessages.
 	self state: SPResetSmtpState.! !
 
+!SPMailReceiver methodsFor: 'preferences' stamp: 'as 10/18/2006 14:03'!
+resolverTimeout
+
+	^ self preferenceAt: #resolverTimeout.! !
+
 !SPMailReceiver methodsFor: 'message' stamp: 'as 10/5/2006 14:09'!
 sender: aSPMailAddress
 
 	messages do: [ :message | message sender: aSPMailAddress. ].! !
+
+!SPMailReceiver methodsFor: 'preferences' stamp: 'as 10/17/2006 20:52'!
+serverName
+
+	^ self preferenceAt: #serverName.! !
 
 !SPMailReceiver methodsFor: 'state' stamp: 'as 1/11/2006 14:34'!
 state
@@ -758,7 +866,7 @@ stop
 	listener stop.! !
 
 Object subclass: #SPList
-	instanceVariableNames: 'address name moderated active closedPosting'
+	instanceVariableNames: 'address name moderated active closed visible'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-ListManager'!
@@ -789,47 +897,63 @@ address: aSPMailAddress
 
 	address := aSPMailAddress.! !
 
-!SPList methodsFor: 'state' stamp: 'as 10/5/2006 11:21'!
-closedPosting
+!SPList methodsFor: 'state' stamp: 'as 10/19/2006 11:28'!
+close
 
-	^ closedPosting := true.! !
+	closed := true.! !
 
 !SPList methodsFor: 'state' stamp: 'as 9/5/2006 14:14'!
 deactivate
 
 	active := false.! !
 
-!SPList methodsFor: 'test' stamp: 'as 10/5/2006 11:20'!
-hasClosedPosting
-
-	^ closedPosting.! !
-
 !SPList methodsFor: 'compare' stamp: 'as 3/9/2006 16:50'!
 hash
 
 	^ name hash.! !
 
-!SPList methodsFor: 'test' stamp: 'as 10/5/2006 11:22'!
-hasOpenPosting
+!SPList methodsFor: 'state' stamp: 'as 10/19/2006 11:33'!
+hide
 
-	^ closedPosting not.! !
+	visible := false.! !
 
-!SPList methodsFor: 'initialize-release' stamp: 'as 10/5/2006 11:20'!
+!SPList methodsFor: 'initialize-release' stamp: 'as 10/19/2006 11:33'!
 initialize
 
 	self unmoderate.
 	self activate.
-	self closedPosting.! !
+	self close.
+	self hide.! !
 
 !SPList methodsFor: 'test' stamp: 'as 9/5/2006 14:14'!
 isActive
 
 	^ active.! !
 
+!SPList methodsFor: 'test' stamp: 'as 10/19/2006 11:29'!
+isClosed
+
+	^ closed.! !
+
+!SPList methodsFor: 'test' stamp: 'as 10/19/2006 11:31'!
+isHidden
+
+	^ visible not.! !
+
 !SPList methodsFor: 'test' stamp: 'as 9/5/2006 13:03'!
 isModerated
 
 	^ moderated.! !
+
+!SPList methodsFor: 'test' stamp: 'as 10/19/2006 11:29'!
+isOpen
+
+	^ closed not.! !
+
+!SPList methodsFor: 'test' stamp: 'as 10/19/2006 11:30'!
+isVisible
+
+	^ visible.! !
 
 !SPList methodsFor: 'state' stamp: 'as 9/5/2006 13:05'!
 moderate
@@ -846,10 +970,15 @@ name: aString
 
 	name := aString.! !
 
-!SPList methodsFor: 'state' stamp: 'as 10/5/2006 11:21'!
-openPosting
+!SPList methodsFor: 'state' stamp: 'as 10/19/2006 11:28'!
+open
 
-	^ closedPosting := false.! !
+	closed := false.! !
+
+!SPList methodsFor: 'state' stamp: 'as 10/19/2006 11:33'!
+show
+
+	visible := true.! !
 
 !SPList methodsFor: 'state' stamp: 'as 9/5/2006 13:05'!
 unmoderate
@@ -1013,29 +1142,34 @@ Object subclass: #SPMailAddress
 	category: 'Stamp-ListManager'!
 
 !SPMailAddress commentStamp: '<historical>' prior: 0!
-An address as used in electronic mails.!
+An electronic mail address.
+Consists of a local part (part before '@') which is case sensitive and a domain (part after '@') that is case insensitive.!
 
-!SPMailAddress class methodsFor: 'instance creation' stamp: 'as 9/11/2006 18:13'!
-delimiter
-
-	^ $@.! !
-
-!SPMailAddress class methodsFor: 'instance creation' stamp: 'as 9/14/2006 09:38'!
+!SPMailAddress class methodsFor: 'instance creation' stamp: 'as 11/7/2006 16:26'!
 fromPath: aString
 
-	| addressStrings address |
-	[
-		addressStrings := MailAddressParser addressesIn: aString.
-		address := addressStrings first.
-		^ self new
-			localPart: (address copyUpTo: self delimiter);
-			domain: (address copyAfter: self delimiter).
-	]
-	on: Exception
-	do: [ :e | SPInvalidMailAddressException signal. ].! !
+	| address localPart domain |
+	address := self mailPathToAddress: aString.
+	localPart := address copyUpTo: $@.
+	domain := (address copyAfter: $@) asLowercase.
+	(localPart isNil or: [ domain isNil. ])
+		ifTrue: [ SPInvalidMailAddressException signal. ].
+	^ self new
+		localPart: localPart;
+		domain: domain.! !
 
-!SPMailAddress methodsFor: 'print' stamp: 'as 9/27/2006 13:14'!
-addressString
+!SPMailAddress class methodsFor: 'instance creation' stamp: 'as 11/7/2006 16:22'!
+mailPathToAddress: aString
+
+	| address |
+	(SPSyntax isMailPath: aString)
+		ifFalse: [ SPInvalidMailAddressException signal. ].
+	address := aString copyFrom: 2 to: aString size - 1.
+	(address includes: $:) ifTrue: [ address := address copyAfterLast: $:. ].
+	^ address.! !
+
+!SPMailAddress methodsFor: 'print' stamp: 'as 10/21/2006 12:10'!
+asString
 
 	^ localPart, '@', domain.! !
 
@@ -1044,15 +1178,15 @@ domain
 
 	^ domain.! !
 
-!SPMailAddress methodsFor: 'access' stamp: 'as 6/8/2006 16:51'!
+!SPMailAddress methodsFor: 'access' stamp: 'as 10/19/2006 19:01'!
 domain: aString
 
-	domain := aString.! !
+	domain := aString asLowercase.! !
 
-!SPMailAddress methodsFor: 'compare' stamp: 'as 9/27/2006 13:15'!
+!SPMailAddress methodsFor: 'compare' stamp: 'as 10/21/2006 12:10'!
 hash
 
-	^ self addressString hash.! !
+	^ self asString hash.! !
 
 !SPMailAddress methodsFor: 'access' stamp: 'as 6/8/2006 17:32'!
 localPart
@@ -1069,10 +1203,10 @@ path
 
 	^ '<', localPart, '@', domain, '>'.! !
 
-!SPMailAddress methodsFor: 'compare' stamp: 'as 9/27/2006 13:15'!
+!SPMailAddress methodsFor: 'compare' stamp: 'as 10/21/2006 12:10'!
 = aSPMailAddress
 
-	^ self addressString = aSPMailAddress addressString.! !
+	^ self asString = aSPMailAddress asString.! !
 
 Object subclass: #SPMailMessage
 	instanceVariableNames: 'mail user sender list'
@@ -1237,12 +1371,12 @@ verb
 
 	^ 'data'.! !
 
-!SPDataSmtpCommand methodsFor: 'execute' stamp: 'as 10/5/2006 15:02'!
+!SPDataSmtpCommand methodsFor: 'execute' stamp: 'as 10/18/2006 20:22'!
 doExecute
 
 	target
 		reply: SPSmtpReply mailInput;
-		mail: target receiveData;
+		mail: target receiveMail;
 		insertTrace;
 		filterMessages;
 		reset.
@@ -1271,10 +1405,10 @@ initStates
 		add: SPReadySmtpState;
 		yourself.! !
 
-!SPEhloSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/11/2006 16:00'!
+!SPEhloSmtpCommand class methodsFor: 'smtp' stamp: 'as 11/7/2006 16:51'!
 verb
 
-	^ 'ehlo'.! !
+	^ 'ehlo '.! !
 
 !SPEhloSmtpCommand methodsFor: 'execute' stamp: 'as 4/21/2006 10:47'!
 doExecute
@@ -1304,10 +1438,10 @@ initStates
 		add: SPReadySmtpState;
 		yourself.! !
 
-!SPHeloSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/10/2006 21:46'!
+!SPHeloSmtpCommand class methodsFor: 'smtp' stamp: 'as 11/7/2006 16:50'!
 verb
 
-	^ 'helo'.! !
+	^ 'helo '.! !
 
 !SPHeloSmtpCommand methodsFor: 'execute' stamp: 'as 6/8/2006 18:34'!
 doExecute
@@ -1337,10 +1471,10 @@ initStates
 		add: SPResetSmtpState;
 		yourself.! !
 
-!SPMailSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/11/2006 16:08'!
+!SPMailSmtpCommand class methodsFor: 'smtp' stamp: 'as 11/7/2006 16:51'!
 verb
 
-	^ 'mail from:'.! !
+	^ 'mail from: '.! !
 
 !SPMailSmtpCommand methodsFor: 'execute' stamp: 'as 9/26/2006 17:02'!
 doExecute
@@ -1349,12 +1483,12 @@ doExecute
 	target user: (target kernel manager userWithAddress: sender).
 	self state: SPMailSmtpState.! !
 
-!SPMailSmtpCommand methodsFor: 'execute' stamp: 'as 10/3/2006 15:52'!
+!SPMailSmtpCommand methodsFor: 'execute' stamp: 'as 10/18/2006 19:33'!
 doValidate
 
 	[ sender := SPMailAddress fromPath: argument. ]
 		on: SPInvalidMailAddressException
-		do: [ (SPWrongSmtpCommandException withReceiver: target) signal. ].! !
+		do: [ (SPWrongCommandSmtpException withReceiver: target) signal. ].! !
 
 SPSmtpCommand subclass: #SPNoopSmtpCommand
 	instanceVariableNames: ''
@@ -1441,10 +1575,10 @@ initStates
 		add: SPRecipientSmtpState;
 		yourself.! !
 
-!SPRecipientSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/14/2006 22:32'!
+!SPRecipientSmtpCommand class methodsFor: 'smtp' stamp: 'as 11/7/2006 16:51'!
 verb
 
-	^ 'rcpt to:'.! !
+	^ 'rcpt to: '.! !
 
 !SPRecipientSmtpCommand methodsFor: 'execute' stamp: 'as 10/5/2006 15:03'!
 doExecute
@@ -1458,12 +1592,12 @@ doExecute
 		self state: SPRecipientSmtpState.
 	].! !
 
-!SPRecipientSmtpCommand methodsFor: 'execute' stamp: 'as 10/3/2006 15:52'!
+!SPRecipientSmtpCommand methodsFor: 'execute' stamp: 'as 10/18/2006 19:33'!
 doValidate
 
 	[ recipient := SPMailAddress fromPath: argument. ]
 		on: SPInvalidMailAddressException
-		do: [ (SPWrongSmtpCommandException withReceiver: target) signal. ].! !
+		do: [ (SPWrongCommandSmtpException withReceiver: target) signal. ].! !
 
 SPSmtpCommand subclass: #SPResetSmtpCommand
 	instanceVariableNames: ''
@@ -1506,14 +1640,14 @@ allStates
 
 	^ SPSmtpState allSubclasses.! !
 
-!SPSmtpCommand class methodsFor: 'private' stamp: 'as 1/12/2006 17:18'!
+!SPSmtpCommand class methodsFor: 'private' stamp: 'as 11/7/2006 16:47'!
 argumentFor: aString command: aSmtpCommand
 
 	"Find arguments in a line assuming the given verb for the command."
 
-	^ aString copyFrom: (aSmtpCommand verb size + 1) to: aString size.! !
+	^ aString copyFrom: (aSmtpCommand verb size) to: aString size.! !
 
-!SPSmtpCommand class methodsFor: 'private' stamp: 'as 10/3/2006 15:51'!
+!SPSmtpCommand class methodsFor: 'private' stamp: 'as 10/21/2006 13:04'!
 commandFor: aString target: aSPMailReceiver
 
 	"Extract command and return an instance of the appropriate command class.
@@ -1522,11 +1656,11 @@ commandFor: aString target: aSPMailReceiver
 	| class |
 	class := self allSubclasses detect: [
 		:each |
-		aString asLowercase beginsWith: each verb asLowercase
+		aString asLowercase beginsWith: each verb asLowercase.
 	] ifNone: [
 		nil	
 	].
-	class isNil ifTrue: [ (SPNotFoundSmtpCommandException withReceiver: aSPMailReceiver) signal. ].
+	class isNil ifTrue: [ (SPCommandNotFoundSmtpException withReceiver: aSPMailReceiver) signal. ].
 	^ class new.! !
 
 !SPSmtpCommand class methodsFor: 'instance creation' stamp: 'as 1/18/2006 15:55'!
@@ -1563,10 +1697,10 @@ states
 
 	^ states.! !
 
-!SPSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/11/2006 15:38'!
+!SPSmtpCommand class methodsFor: 'smtp' stamp: 'as 11/7/2006 16:54'!
 verb
 
-	"The string representation for this command in SMTP (case insensitive)."
+	"The string representation for this command in SMTP (must be treated case insensitive)."
 
 	self subclassResponsibility.! !
 
@@ -1643,11 +1777,11 @@ target: aSPMailReceiver
 
 	target := aSPMailReceiver.! !
 
-!SPSmtpCommand methodsFor: 'state' stamp: 'as 10/3/2006 15:51'!
+!SPSmtpCommand methodsFor: 'state' stamp: 'as 10/18/2006 19:32'!
 validateState
 
 	(self states includes: target state) ifFalse: [
-		(SPNotAllowedSmtpCommandException withReceiver: target) signal.
+		(SPCommandNotAllowedSmtpException withReceiver: target) signal.
 	].! !
 
 !SPSmtpCommand methodsFor: 'smtp' stamp: 'as 4/20/2006 19:34'!
@@ -1729,6 +1863,14 @@ commandUnrecognized
 		message: 'Syntax error or command unrecognized';
 		yourself.! !
 
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 10/17/2006 22:41'!
+lineTooLong
+
+	^ self new
+		code: 500;
+		message: 'Line too long';
+		yourself.! !
+
 !SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 4/20/2006 16:17'!
 mailInput
 
@@ -1737,12 +1879,12 @@ mailInput
 		message: 'Start mail input; end with <CRLF>.<CRLF>';
 		yourself.! !
 
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 9/12/2006 17:19'!
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 10/17/2006 22:40'!
 noSuchUser
 
 	^ self new
 		code: 550;
-		message: 'Requested action not taken: mailbox unavailable';
+		message: 'Mailbox unavailable';
 		yourself.! !
 
 !SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 4/20/2006 16:17'!
@@ -1767,6 +1909,22 @@ ready: hostnameString
 	^ self new
 		code: 220;
 		message: hostnameString;
+		yourself.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 10/18/2006 20:40'!
+tooManyRecipients
+
+	^ self new
+		code: 452;
+		message: 'Too many recipients';
+		yourself.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 10/18/2006 17:46'!
+tooMuchMailData
+
+	^ self new
+		code: 552;
+		message: 'Too much mail data';
 		yourself.! !
 
 !SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 9/11/2006 17:02'!
@@ -1797,7 +1955,7 @@ message: aString
 
 	message := aString.! !
 
-!SPSmtpReply methodsFor: 'print' stamp: 'as 4/20/2006 17:47'!
+!SPSmtpReply methodsFor: 'print' stamp: 'as 10/18/2006 21:35'!
 replyString
 
 	^ code asString , ' ' , message.! !
@@ -1884,10 +2042,10 @@ deactivate
 
 	active := false.! !
 
-!SPSubscription methodsFor: 'compare' stamp: 'as 10/11/2006 12:41'!
+!SPSubscription methodsFor: 'compare' stamp: 'as 10/21/2006 12:11'!
 hash
 
-	^ (list name, contact address addressString) hash.! !
+	^ (list name, contact address asString) hash.! !
 
 !SPSubscription methodsFor: 'initialize-release' stamp: 'as 10/11/2006 12:39'!
 initialize
@@ -1913,6 +2071,134 @@ list: aSPList
 = aSPSubscription
 
 	^ (list = aSPSubscription list) and: [ contact = aSPSubscription contact].! !
+
+Object subclass: #SPSyntax
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Core'!
+
+!SPSyntax commentStamp: '<historical>' prior: 0!
+Implements some regular expressions to test strings. They are minimal versions of those used in RFC 2821 and 2822. IPv6 and general address literals are not implemented.
+Everything is done on the class side.!
+
+!SPSyntax class methodsFor: 'check' stamp: 'as 10/20/2006 17:17'!
+checkDomainLength: aString
+
+	aString size > self maxDomainLength
+		ifTrue: [ SPSyntaxException signal: 'domain length limit is', self maxDomainLength. ].! !
+
+!SPSyntax class methodsFor: 'check' stamp: 'as 10/20/2006 17:24'!
+checkMailPathLength: aString
+
+	aString size > self maxMailPathLength
+		ifTrue: [ SPSyntaxException signal: 'mail path length limit is', self maxMailPathLength. ].! !
+
+!SPSyntax class methodsFor: 'test' stamp: 'as 10/20/2006 17:16'!
+isDomain: aString
+
+	self checkDomainLength: aString.
+	^ aString matchesRegex: self reDomain.! !
+
+!SPSyntax class methodsFor: 'test' stamp: 'as 10/20/2006 17:22'!
+isIPv4Address: aString
+
+	^ aString matchesRegex: self reIPv4AddressLiteral.! !
+
+!SPSyntax class methodsFor: 'test' stamp: 'as 10/20/2006 17:58'!
+isMailPath: aString
+
+	self checkMailPathLength: aString.
+	^ aString matchesRegex: self rePath.! !
+
+!SPSyntax class methodsFor: 'test' stamp: 'as 10/20/2006 17:26'!
+isSmtpMailFrom: aString
+
+	self checkMailPathLength: aString.
+	^ aString matchesRegex: self reMailFrom.! !
+
+!SPSyntax class methodsFor: 'test' stamp: 'as 10/20/2006 17:26'!
+isSmtpRcptTo: aString
+
+	self checkMailPathLength: aString.
+	^ aString matchesRegex: self reRcptTo.! !
+
+!SPSyntax class methodsFor: 'limits' stamp: 'as 10/19/2006 19:05'!
+maxDomainLength
+
+	^ 255.! !
+
+!SPSyntax class methodsFor: 'limits' stamp: 'as 10/19/2006 19:05'!
+maxMailPathLength
+
+	^ 256.! !
+
+!SPSyntax class methodsFor: 'regex' stamp: 'as 10/20/2006 18:11'!
+re3digit
+
+	^ '(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])'.! !
+
+!SPSyntax class methodsFor: 'regex' stamp: 'as 10/20/2006 11:41'!
+reAddressLiteral
+
+	"IPv6 and general address literals are not implemented."
+
+	^ self reIPv4AddressLiteral.! !
+
+!SPSyntax class methodsFor: 'regex' stamp: 'as 10/19/2006 22:01'!
+reAtDomain
+
+	^ '@', self reDomain.! !
+
+!SPSyntax class methodsFor: 'regex' stamp: 'as 10/19/2006 23:01'!
+reAtom
+
+	^ '[[:alnum:]!!#\$%&''\*\+-/=\?\^_`{\|}~]'! !
+
+!SPSyntax class methodsFor: 'regex' stamp: 'as 10/20/2006 11:23'!
+reDomain
+
+	^ '(', self reSubDomain, '(.', self reSubDomain, ')+)|(', self reAddressLiteral , ')'.! !
+
+!SPSyntax class methodsFor: 'regex' stamp: 'as 10/20/2006 11:50'!
+reIPv4AddressLiteral
+
+	^ self reSnum, '\.', self reSnum, '\.', self reSnum, '\.', self reSnum.! !
+
+!SPSyntax class methodsFor: 'regex' stamp: 'as 10/20/2006 17:11'!
+reLdhStr
+
+	^ '([[:alnum:]]\-)*', self reLetDig.! !
+
+!SPSyntax class methodsFor: 'regex' stamp: 'as 10/20/2006 17:10'!
+reLetDig
+
+	^ '[[:alnum:]]'.! !
+
+!SPSyntax class methodsFor: 'regex' stamp: 'as 10/20/2006 17:07'!
+reMailFrom
+
+	^ '(<>)|(', self rePath, ')'.! !
+
+!SPSyntax class methodsFor: 'regex' stamp: 'as 10/20/2006 17:07'!
+rePath
+
+	^ '<.*@.*>'.! !
+
+!SPSyntax class methodsFor: 'regex' stamp: 'as 10/20/2006 17:07'!
+reRcptTo
+
+	^ '(<Postmaster>)|(', self rePath, ')'.! !
+
+!SPSyntax class methodsFor: 'regex' stamp: 'as 10/20/2006 11:51'!
+reSnum
+
+	^ self re3digit.! !
+
+!SPSyntax class methodsFor: 'regex' stamp: 'as 10/20/2006 11:26'!
+reSubDomain
+
+	^ self reLetDig, '(', self reLdhStr, ')?'.! !
 
 Object subclass: #SPUser
 	instanceVariableNames: 'name password contacts active monitor'
@@ -2239,16 +2525,54 @@ SPConfiguration subclass: #SPMailListenerConfiguration
 !SPMailListenerConfiguration commentStamp: '<historical>' prior: 0!
 Mail listener configuration.!
 
-!SPMailListenerConfiguration methodsFor: 'configuration' stamp: 'as 10/11/2006 18:41'!
+!SPMailListenerConfiguration methodsFor: 'configuration' stamp: 'as 10/17/2006 17:40'!
 attributes
 
 	^ Array
-		with: (WANumberAttribute key: #receiverPort).! !
+		with: (WANumberAttribute key: #listenerPort);
+		with: (WANumberAttribute key: #listenerMaxConnections).! !
 
-!SPMailListenerConfiguration methodsFor: 'preferences' stamp: 'as 10/11/2006 19:26'!
-receiverPort
+!SPMailListenerConfiguration methodsFor: 'preferences' stamp: 'as 10/17/2006 17:40'!
+listenerMaxConnections
+
+	^ 10.! !
+
+!SPMailListenerConfiguration methodsFor: 'preferences' stamp: 'as 10/17/2006 17:40'!
+listenerPort
 
 	^ 2525.! !
+
+SPConfiguration subclass: #SPMailReceiverConfiguration
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration'!
+
+!SPMailReceiverConfiguration commentStamp: '<historical>' prior: 0!
+Stamp mail receiver configuration.!
+
+!SPMailReceiverConfiguration methodsFor: 'configuration' stamp: 'as 10/18/2006 17:26'!
+attributes
+
+	^ Array	
+		with: (WANumberAttribute key: #receiverMaxMessages);
+		with: (WANumberAttribute key: #receiverMaxRecipients);
+		with: (WANumberAttribute key: #receiverMaxMailSize).! !
+
+!SPMailReceiverConfiguration methodsFor: 'preferences' stamp: 'as 10/18/2006 17:28'!
+receiverMaxMailSize
+
+	^ 4000000.! !
+
+!SPMailReceiverConfiguration methodsFor: 'preferences' stamp: 'as 10/17/2006 17:40'!
+receiverMaxMessages
+
+	^ 10.! !
+
+!SPMailReceiverConfiguration methodsFor: 'preferences' stamp: 'as 10/17/2006 17:41'!
+receiverMaxRecipients
+
+	^ 10.! !
 
 SPConfiguration subclass: #SPMailSenderConfiguration
 	instanceVariableNames: ''
@@ -2259,7 +2583,7 @@ SPConfiguration subclass: #SPMailSenderConfiguration
 !SPMailSenderConfiguration commentStamp: '<historical>' prior: 0!
 Mail sender configuration.!
 
-!SPMailSenderConfiguration methodsFor: 'configuration' stamp: 'as 10/11/2006 18:35'!
+!SPMailSenderConfiguration methodsFor: 'configuration' stamp: 'as 10/17/2006 17:42'!
 attributes
 
 	^ Array
@@ -2355,77 +2679,133 @@ SPException subclass: #SPQueueFullException
 !SPQueueFullException commentStamp: '<historical>' prior: 0!
 The queue is full, no further objects can be queued.!
 
-SPException subclass: #SPSmtpCommandException
+SPException subclass: #SPReceiverException
 	instanceVariableNames: 'receiver'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
 
-!SPSmtpCommandException commentStamp: '<historical>' prior: 0!
-An SMTP command from the client has failed on the server.!
+!SPReceiverException commentStamp: '<historical>' prior: 0!
+Stamp receiver exception.!
 
-SPSmtpCommandException subclass: #SPNotAllowedSmtpCommandException
+SPReceiverException subclass: #SPConnectionClosedException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
 
-!SPNotAllowedSmtpCommandException commentStamp: '<historical>' prior: 0!
-The command is not allowed in the current state of the server.!
+!SPConnectionClosedException commentStamp: '<historical>' prior: 0!
+The connection was unexpectedly closed.!
 
-!SPNotAllowedSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:04'!
-reply
+!SPConnectionClosedException methodsFor: 'priv handling' stamp: 'as 10/18/2006 13:51'!
+defaultaction
 
-	^ SPSmtpReply badSequence.! !
+	receiver requestQuit.! !
 
-SPSmtpCommandException subclass: #SPNotFoundSmtpCommandException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server'!
-
-!SPNotFoundSmtpCommandException commentStamp: '<historical>' prior: 0!
-The specified command was not found.!
-
-!SPNotFoundSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:06'!
-reply
-
-	^ SPSmtpReply commandUnrecognized.! !
-
-!SPSmtpCommandException class methodsFor: 'instance creation' stamp: 'as 10/3/2006 15:50'!
+!SPReceiverException class methodsFor: 'instance creation' stamp: 'as 10/18/2006 13:41'!
 withReceiver: aSPMailReceiver
 
 	^ self new
 		receiver: aSPMailReceiver;
 		yourself.! !
 
-!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 10/3/2006 15:50'!
-defaultAction
-
-	receiver reply: self reply.! !
-
-!SPSmtpCommandException methodsFor: 'access' stamp: 'as 10/3/2006 15:49'!
+!SPReceiverException methodsFor: 'access' stamp: 'as 10/18/2006 13:40'!
 receiver: aSPMailReceiver
 
 	receiver := aSPMailReceiver.! !
 
-!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:05'!
+SPReceiverException subclass: #SPSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Commands'!
+
+!SPSmtpException commentStamp: '<historical>' prior: 0!
+An SMTP command from the client has failed on the server.!
+
+SPSmtpException subclass: #SPCommandNotAllowedSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Commands'!
+
+!SPCommandNotAllowedSmtpException commentStamp: '<historical>' prior: 0!
+The command is not allowed in the current state of the server.!
+
+!SPCommandNotAllowedSmtpException methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:04'!
+reply
+
+	^ SPSmtpReply badSequence.! !
+
+SPSmtpException subclass: #SPCommandNotFoundSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Commands'!
+
+!SPCommandNotFoundSmtpException commentStamp: '<historical>' prior: 0!
+The specified command was not found.!
+
+!SPCommandNotFoundSmtpException methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:06'!
+reply
+
+	^ SPSmtpReply commandUnrecognized.! !
+
+SPSmtpException subclass: #SPLineTooLongSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Commands'!
+
+!SPLineTooLongSmtpException methodsFor: 'priv handling' stamp: 'as 10/17/2006 22:43'!
+reply
+
+	^ SPSmtpReply lineTooLong.! !
+
+!SPSmtpException methodsFor: 'priv handling' stamp: 'as 10/3/2006 15:50'!
+defaultAction
+
+	receiver reply: self reply.! !
+
+!SPSmtpException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:05'!
 reply
 
 	"Every command failure should be replied to the client."
 
 	self subclassResponsibility.! !
 
-SPSmtpCommandException subclass: #SPWrongSmtpCommandException
+SPSmtpException subclass: #SPTooManyRecipientsSmtpException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail-Server'!
+	category: 'Stamp-Mail-Server-Commands'!
 
-!SPWrongSmtpCommandException commentStamp: '<historical>' prior: 0!
+!SPTooManyRecipientsSmtpException methodsFor: 'priv handling' stamp: 'as 10/18/2006 20:40'!
+reply
+
+	^ SPSmtpReply tooManyRecipients.! !
+
+SPSmtpException subclass: #SPTooMuchMailDataSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Commands'!
+
+!SPTooMuchMailDataSmtpException methodsFor: 'priv handling' stamp: 'as 10/18/2006 17:46'!
+reply
+
+	^ SPSmtpReply tooMuchMailData.! !
+
+SPSmtpException subclass: #SPWrongCommandSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Commands'!
+
+!SPWrongCommandSmtpException commentStamp: '<historical>' prior: 0!
 Wrong parameters or arguments. !
 
-!SPWrongSmtpCommandException methodsFor: 'priv handling' stamp: 'as 9/14/2006 13:59'!
+!SPWrongCommandSmtpException methodsFor: 'priv handling' stamp: 'as 9/14/2006 13:59'!
 reply
 
 	^ SPSmtpReply wrongParameterOrArgument.! !
@@ -2438,6 +2818,24 @@ SPException subclass: #SPSubscriptionNotFoundException
 
 !SPSubscriptionNotFoundException commentStamp: '<historical>' prior: 0!
 The subscription was not found in the system.!
+
+SPException subclass: #SPSyntaxException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Core'!
+
+!SPSyntaxException commentStamp: '<historical>' prior: 0!
+Stamp syntax exception.!
+
+SPException subclass: #SPTooMuchDataException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPTooMuchDataException commentStamp: '<historical>' prior: 0!
+The received data exceeds the limits.!
 
 SPException subclass: #SPUserNotFoundException
 	instanceVariableNames: ''
@@ -2933,11 +3331,11 @@ updateSizeAndModTime
 	sizeAtSave := entry fileSize.
 	modTimeAtSave := entry modificationTime.! !
 
-!String methodsFor: '*Stamp' stamp: 'as 10/17/2006 14:37'!
+!String methodsFor: '*Stamp' stamp: 'as 10/18/2006 00:40'!
 convertSmtpToSqueakText
 
 	"Squeak likes CR as end of line character, so CRLF and LF are converted to CR."
-	"CR.CR in SMTP has special meaning and is escaped with CR..CR."
+	"CR.CR in SMTP has a special meaning and is escaped with CR..CR."
 
 	| convertedString cr lf |
 	cr := String cr.
@@ -2947,11 +3345,11 @@ convertSmtpToSqueakText
 	convertedString := convertedString copyReplaceAll: cr, '..', cr with: cr, '.', cr.
 	^ convertedString.! !
 
-!String methodsFor: '*Stamp' stamp: 'as 10/17/2006 14:46'!
+!String methodsFor: '*Stamp' stamp: 'as 10/18/2006 00:39'!
 convertSqueakToSmtpText
 
 	"SMTP likes CRLF as end of line characters, so CR and LF are converted to CRLF."
-	"CR..CR is the escape sequence for CR.CR, since this one has special meaning in SMTP."
+	"CR..CR is the escape sequence for CR.CR, since this one has a special meaning in SMTP."
 
 	| convertedString cr lf |
 	cr := String cr.
