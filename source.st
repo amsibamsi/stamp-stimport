@@ -1,8 +1,51 @@
 SystemOrganization addCategory: #'Stamp-Mail-Client'!
 SystemOrganization addCategory: #'Stamp-Mail-Server'!
 SystemOrganization addCategory: #'Stamp-Model'!
-SystemOrganization addCategory: #'Stamp-Testing'!
 SystemOrganization addCategory: #'Stamp-Tests'!
+
+String subclass: #SPSmtpReply
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPSmtpReply commentStamp: '<historical>' prior: 0!
+SMTP replies are sent from the server to the client and are just strings.!
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:05'!
+badSequence
+
+	^ '503 Bad sequence of commands'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:15'!
+cannotVerify
+
+	^ '252 Verification is disabled'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:16'!
+commandUnrecognized
+
+	^ '500 Syntax error or command unrecognized'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:21'!
+mailInput
+
+	^ '354 Start mail input; end with <CRLF>.<CRLF>'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:22'!
+notImplemented
+
+	^ '502 Command not implemented'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:23'!
+okay
+
+	^ '250 Okay'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/17/2006 16:09'!
+ready
+
+	^ '220 ', NetNameResolver localHostName.! !
 
 Object subclass: #SPList
 	instanceVariableNames: 'id name users'
@@ -603,55 +646,6 @@ Object subclass: #SPUser
 !SPUser commentStamp: '<historical>' prior: 0!
 A Stamp user.!
 
-Object subclass: #TestingSelf
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Testing'!
-
-!TestingSelf commentStamp: '<historical>' prior: 0!
-testing self!
-
-!TestingSelf class methodsFor: 'as yet unclassified' stamp: 'as 1/12/2006 21:40'!
-method
-
-	^ self.! !
-
-!TestingSelf methodsFor: 'as yet unclassified' stamp: 'as 1/12/2006 21:40'!
-method
-
-	^ self.! !
-
-!TestingSelf methodsFor: 'as yet unclassified' stamp: 'as 1/12/2006 21:42'!
-test
-
-	^ self method class == self class method.! !
-
-Object subclass: #TestingSingleton
-	instanceVariableNames: 'var1'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Testing'!
-
-TestingSingleton class
-	instanceVariableNames: 'uniqueInstance'!
-
-!TestingSingleton commentStamp: '<historical>' prior: 0!
-testing singleton!
-
-!TestingSingleton class methodsFor: 'as yet unclassified' stamp: 'as 1/13/2006 09:42'!
-uniqueInstance
-
-	uniqueInstance isNil ifTrue: [
-		uniqueInstance := self new.
-	].
-	^ uniqueInstance.! !
-
-!TestingSingleton methodsFor: 'initialize-release' stamp: 'as 1/13/2006 09:44'!
-initialize
-
-	var1 := 1.! !
-
 TcpService subclass: #SPMailListener
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -667,50 +661,6 @@ serve: aSocket
 	| server |
 	server := SPMailReceiver on: (SocketStream on: aSocket).
 	server receive.! !
-
-String subclass: #SPSmtpReply
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server'!
-
-!SPSmtpReply commentStamp: '<historical>' prior: 0!
-SMTP replies are sent from the server to the client and are just strings.!
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:05'!
-badSequence
-
-	^ '503 Bad sequence of commands'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:15'!
-cannotVerify
-
-	^ '252 Verification is disabled'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:16'!
-commandUnrecognized
-
-	^ '500 Syntax error or command unrecognized'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:21'!
-mailInput
-
-	^ '354 Start mail input; end with <CRLF>.<CRLF>'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:22'!
-notImplemented
-
-	^ '502 Command not implemented'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:23'!
-okay
-
-	^ '250 Okay'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/17/2006 16:09'!
-ready
-
-	^ '220 ', NetNameResolver localHostName.! !
 
 SMTPClient subclass: #SPMailSender
 	instanceVariableNames: ''
@@ -743,6 +693,158 @@ reset
 
 	self sendCommand: 'RSET'.
 	self checkResponse.! !
+
+TestCase subclass: #SPCodeTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Tests'!
+
+!SPCodeTest commentStamp: '<historical>' prior: 0!
+Test different coding style aspects of the implementation.!
+
+!SPCodeTest methodsFor: 'configuration' stamp: 'as 1/11/2006 17:03'!
+packageName
+
+	^ 'Stamp'.! !
+
+!SPCodeTest methodsFor: 'testing' stamp: 'as 1/11/2006 17:03'!
+testClassComment
+
+	"Each class should have a comment."
+
+	(PackageInfo named: self packageName) classes do: [
+		:each |
+		self assert: each hasComment.
+	].! !
+
+TestCase subclass: #SPMailReceivingSendingTest
+	instanceVariableNames: 'server client'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Tests'!
+
+!SPMailReceivingSendingTest commentStamp: '<historical>' prior: 0!
+Test the whole mail receiving subsystem.!
+
+!SPMailReceivingSendingTest methodsFor: 'running' stamp: 'as 2/21/2006 10:15'!
+findPortFor: aSPMailListener
+
+	1024 to: 65536 do: [
+		:port |
+		[ aSPMailListener verifyPortAvailability: port. ^ port. ]
+			on: Error
+			do: [ :ex | ex return.]
+	].! !
+
+!SPMailReceivingSendingTest methodsFor: 'running' stamp: 'as 2/22/2006 16:01'!
+setUp
+
+	| port tries maxTries delay |
+	server := SPMailListener new.
+	port := self findPortFor: server.
+	server startOn: port.
+
+	tries := 0.
+	maxTries := 10.
+	delay := Delay forMilliseconds: 300.
+	[
+		[ client := SPMailSender openOnHostNamed: 'localhost' port: port. ]
+			on: ConnectionTimedOut
+			do: [ :ex | tries := tries + 1. ex return. ].
+		delay wait.
+	] doWhileTrue: [
+		client == nil and: [ tries <= maxTries ].
+	]! !
+
+!SPMailReceivingSendingTest methodsFor: 'running' stamp: 'as 2/22/2006 15:39'!
+tearDown
+
+	client close.
+	server stop.
+	server waitForStopUntil: 2000.
+	server kill.! !
+
+!SPMailReceivingSendingTest methodsFor: 'testing' stamp: 'as 2/22/2006 19:34'!
+testBasic
+
+	self shouldnt: [
+		client
+			reopen;
+			mailFrom: 'user@host.com';
+			recipient: 'user2@host.com';
+			data: 'Subject: test';
+			quit.
+	] raise: TelnetProtocolError.! !
+
+!SPMailReceivingSendingTest methodsFor: 'testing' stamp: 'as 2/22/2006 19:43'!
+testQuit
+
+	self shouldnt: [
+		client
+			reopen;
+			quit;
+			reopen;
+			mailFrom: 'user@host.com';
+			quit;
+			reopen;
+			mailFrom: 'user@host.com';
+			recipient: 'user2@host.com';
+			quit;
+			reopen;
+			mailFrom: 'user@host.com';
+			recipient: 'user2@host.com';
+			data: 'Subject: test';
+			quit.
+		] raise: TelnetProtocolError.! !
+
+!SPMailReceivingSendingTest methodsFor: 'testing' stamp: 'as 2/22/2006 19:44'!
+testRecipient
+
+	self shouldnt: [
+		client
+			reopen;
+			mailFrom: 'user@host.com';
+			recipient: 'user2@host.com';
+			recipient: 'user3@host.com';
+			quit.
+	] raise: TelnetProtocolError.! !
+
+!SPMailReceivingSendingTest methodsFor: 'testing' stamp: 'as 2/22/2006 19:44'!
+testReset
+
+	self shouldnt: [
+		client
+			reopen;
+			reset;
+			mailFrom: 'user@host.com';
+			reset;
+			mailFrom: 'user@host.com';
+			recipient: 'user2@host.com';
+			reset;
+			mailFrom: 'user@host.com';
+			recipient: 'user2@host.com';
+			data: 'Subject: test';
+			reset;
+			quit.
+		] raise: TelnetProtocolError.! !
+
+!SPMailReceivingSendingTest methodsFor: 'testing' stamp: 'as 2/22/2006 19:51'!
+testSender
+
+	self
+		should: [ client reopen; mailFrom: 'me'; mailFrom: 'meAgain'. ]
+		raise: TelnetProtocolError.
+	self assert: (client responseCode = 503).
+	! !
+
+!SPMailReceivingSendingTest methodsFor: 'testing' stamp: 'as 2/22/2006 19:51'!
+testUnrecognized
+
+	self
+		should: [ client reopen; sendCommand: 'unrecognized'; checkResponse. ]
+		raise: TelnetProtocolError.
+	self assert: (client responseCode = 500).! !
 
 Exception subclass: #SPSmtpCommandException
 	instanceVariableNames: 'server'
@@ -809,103 +911,3 @@ The specified command was not found.!
 reply
 
 	^ SPSmtpReply commandUnrecognized.! !
-
-TestCase subclass: #SPCodeTest
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Tests'!
-
-!SPCodeTest commentStamp: '<historical>' prior: 0!
-Test different coding style aspects of the implementation.!
-
-!SPCodeTest methodsFor: 'configuration' stamp: 'as 1/11/2006 17:03'!
-packageName
-
-	^ 'Stamp'.! !
-
-!SPCodeTest methodsFor: 'testing' stamp: 'as 1/11/2006 17:03'!
-testClassComment
-
-	"Each class should have a comment."
-
-	(PackageInfo named: self packageName) classes do: [
-		:each |
-		self assert: each hasComment.
-	].! !
-
-TestCase subclass: #SPMailReceivingTest
-	instanceVariableNames: 'server client'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Tests'!
-
-!SPMailReceivingTest commentStamp: '<historical>' prior: 0!
-Test the whole mail receiving subsystem.!
-
-!SPMailReceivingTest methodsFor: 'running' stamp: 'as 2/21/2006 10:15'!
-findPortFor: aSPMailListener
-
-	1024 to: 65536 do: [
-		:port |
-		[ aSPMailListener verifyPortAvailability: port. ^ port. ]
-			on: Error
-			do: [ :ex | ex return.]
-	].! !
-
-!SPMailReceivingTest methodsFor: 'running' stamp: 'as 2/22/2006 16:01'!
-setUp
-
-	| port tries maxTries delay |
-	server := SPMailListener new.
-	port := self findPortFor: server.
-	server startOn: port.
-
-	tries := 0.
-	maxTries := 10.
-	delay := Delay forMilliseconds: 300.
-	[
-		[ client := SPMailSender openOnHostNamed: 'localhost' port: port. ]
-			on: ConnectionTimedOut
-			do: [ :ex | tries := tries + 1. ex return. ].
-		delay wait.
-	] doWhileTrue: [
-		client == nil and: [ tries <= maxTries ].
-	]! !
-
-!SPMailReceivingTest methodsFor: 'running' stamp: 'as 2/22/2006 15:39'!
-tearDown
-
-	client close.
-	server stop.
-	server waitForStopUntil: 2000.
-	server kill.! !
-
-!SPMailReceivingTest methodsFor: 'testing' stamp: 'as 2/22/2006 15:19'!
-testBasic
-
-	client
-		reopen;
-		mailFrom: 'user@host.com';
-		recipient: 'user2@host.com';
-		data: 'Subject: test';
-		quit.! !
-
-!SPMailReceivingTest methodsFor: 'testing' stamp: 'as 2/22/2006 15:22'!
-testQuit
-
-	client
-		reopen;
-		quit;
-		reopen;
-		mailFrom: 'user@host.com';
-		quit;
-		reopen;
-		mailFrom: 'user@host.com';
-		recipient: 'user2@host.com';
-		quit;
-		reopen;
-		mailFrom: 'user@host.com';
-		recipient: 'user2@host.com';
-		data: 'Subject: test';
-		quit.! !
