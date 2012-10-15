@@ -165,13 +165,18 @@ SPObject subclass: #SPMailArchive
 !SPMailArchive commentStamp: '<historical>' prior: 0!
 Mail archive that basically wraps around MailDB.!
 
-!SPMailArchive methodsFor: 'store' stamp: 'as 10/13/2006 18:24'!
+!SPMailArchive methodsFor: 'store' stamp: 'as 10/16/2006 19:17'!
 addMessage: aSPMailMessage
 
 		| dir |
 		aSPMailMessage insertReturnPath.
-		dir := (self preferenceAt: #archiveDir), '/', aSPMailMessage list address addressString.
+		dir := self archiveDir, '/', aSPMailMessage list address addressString.
 		(MailDB openOn: dir) addNewMessage: aSPMailMessage mail.! !
+
+!SPMailArchive methodsFor: 'preferences' stamp: 'as 10/16/2006 19:17'!
+archiveDir
+
+	^ self preferenceAt: #archiveDir.! !
 
 SPObject subclass: #SPMailFilter
 	instanceVariableNames: 'hold queue'
@@ -418,12 +423,10 @@ receiveCommand
 		on: SPSmtpCommandException
 		do: [ :ex | ex defaultAction. ex return. ].! !
 
-!SPMailReceiver methodsFor: 'receive' stamp: 'as 5/24/2006 13:50'!
+!SPMailReceiver methodsFor: 'receive' stamp: 'as 10/17/2006 14:52'!
 receiveData
 
-	"Receive mail data as specified by the DATA SMTP command."
-
-	^ (stream upToAll: self dataDelimiter) convertToSqueakText.! !
+	^ (stream upToAll: self dataDelimiter) convertSmtpToSqueakText.! !
 
 !SPMailReceiver methodsFor: 'socket' stamp: 'as 9/20/2006 14:40'!
 remoteAddress
@@ -1077,9 +1080,33 @@ Object subclass: #SPMailMessage
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
 
+SPMailMessage class
+	instanceVariableNames: 'monitor messageId'!
+
 !SPMailMessage commentStamp: '<historical>' prior: 0!
 The SMTP protocol defines commands for specifying a sender and one or multiple recipient addresses apart from the ones in the header of a mail message (from:, to:, cc:, ...).
 This class is a wrapper around MailMessage that stores these addresses as well, since they are important when relaying mail. The addresses are not stored directly. The sender is stored as a sender address and the possible corresponding user. The recipients are stored as mailing lists.!
+
+!SPMailMessage class methodsFor: 'class initialization' stamp: 'as 10/17/2006 16:18'!
+initialize
+
+	messageId := 0.
+	monitor := Monitor new.! !
+
+!SPMailMessage class methodsFor: 'id' stamp: 'as 10/17/2006 16:20'!
+uniqueMessageId
+
+	monitor critical: [
+		messageId := messageId + 1.
+		^ messageId.
+	].! !
+
+!SPMailMessage methodsFor: 'insert' stamp: 'as 10/17/2006 16:21'!
+ensureMessageId: hostnameString
+
+	mail fieldNamed: 'message-id' ifAbsent: [
+		mail setField: 'message-id' toString: '<', self class uniqueMessageId asString, '@', hostnameString, '>'.
+	].! !
 
 !SPMailMessage methodsFor: 'insert' stamp: 'as 10/13/2006 18:19'!
 insertName
@@ -2264,10 +2291,10 @@ attributes
 	^ Array
 		with: (WANumberAttribute key: #queueSize).! !
 
-!SPQueueConfiguration methodsFor: 'preferences' stamp: 'as 10/13/2006 13:02'!
+!SPQueueConfiguration methodsFor: 'preferences' stamp: 'as 10/17/2006 13:40'!
 queueSize
 
-	^ 100.! !
+	^ 1000.! !
 
 Exception subclass: #SPException
 	instanceVariableNames: ''
@@ -2679,35 +2706,35 @@ setUp
 	cr := String cr.
 	lf := String lf.! !
 
-!SPTextConversionTest methodsFor: 'test' stamp: 'as 9/5/2006 14:41'!
+!SPTextConversionTest methodsFor: 'test' stamp: 'as 10/17/2006 14:28'!
 testSmtpCombined
 
-	self assert: (cr, cr, lf, lf) convertToSmtpText = (cr, lf, cr, lf, cr, lf, cr, lf).! !
+	self assert: (cr, cr, lf, lf) convertSqueakToSmtpText = (cr, lf, cr, lf, cr, lf, cr, lf).! !
 
-!SPTextConversionTest methodsFor: 'test' stamp: 'as 9/5/2006 14:41'!
+!SPTextConversionTest methodsFor: 'test' stamp: 'as 10/17/2006 14:28'!
 testSmtpCrLf
 
-	self assert: cr convertToSmtpText = (cr, lf).! !
+	self assert: cr convertSqueakToSmtpText = (cr, lf).! !
 
-!SPTextConversionTest methodsFor: 'test' stamp: 'as 9/5/2006 14:42'!
+!SPTextConversionTest methodsFor: 'test' stamp: 'as 10/17/2006 14:28'!
 testSmtpLf
 
-	self assert: lf convertToSmtpText = (cr, lf).! !
+	self assert: lf convertSqueakToSmtpText = (cr, lf).! !
 
-!SPTextConversionTest methodsFor: 'test' stamp: 'as 9/5/2006 14:41'!
+!SPTextConversionTest methodsFor: 'test' stamp: 'as 10/17/2006 14:28'!
 testSqueakCombined
 
-	self assert: (lf, cr, cr, lf, lf, cr, lf ) convertToSqueakText = (cr, cr, cr, cr, cr).! !
+	self assert: (lf, cr, cr, lf, lf, cr, lf ) convertSmtpToSqueakText = (cr, cr, cr, cr, cr).! !
 
-!SPTextConversionTest methodsFor: 'test' stamp: 'as 9/5/2006 14:41'!
+!SPTextConversionTest methodsFor: 'test' stamp: 'as 10/17/2006 14:29'!
 testSqueakCrLf
 
-	self assert: (cr, lf) convertToSqueakText = cr.! !
+	self assert: (cr, lf) convertSmtpToSqueakText = cr.! !
 
-!SPTextConversionTest methodsFor: 'test' stamp: 'as 9/5/2006 14:42'!
+!SPTextConversionTest methodsFor: 'test' stamp: 'as 10/17/2006 14:29'!
 testSqueakLf
 
-	self assert: lf convertToSqueakText = cr.! !
+	self assert: lf convertSmtpToSqueakText = cr.! !
 
 TestCase subclass: #SPUserTest
 	instanceVariableNames: 'user contact1 contact2 address'
@@ -2831,15 +2858,15 @@ received: aString
 
 	self addField: 'received' fromString: aString.! !
 
-!MailMessage methodsFor: '*Stamp' stamp: 'as 9/25/2006 11:35'!
+!MailMessage methodsFor: '*Stamp' stamp: 'as 10/17/2006 14:17'!
 returnPath: aString
 
-	self addField: 'return-path' fromString: aString.! !
+	self setField: 'return-path' toString: aString.! !
 
-!MailMessage methodsFor: '*Stamp' stamp: 'as 10/5/2006 14:48'!
+!MailMessage methodsFor: '*Stamp' stamp: 'as 10/17/2006 14:19'!
 subject: aString
 
-	self addField: 'subject' fromString: aString.! !
+	self setField: 'subject' toString: aString.! !
 
 !MailDBFile methodsFor: '*Stamp' stamp: 'as 10/3/2006 17:35'!
 reopen
@@ -2906,28 +2933,32 @@ updateSizeAndModTime
 	sizeAtSave := entry fileSize.
 	modTimeAtSave := entry modificationTime.! !
 
-!String methodsFor: '*Stamp' stamp: 'as 3/7/2006 12:09'!
-convertToSmtpText
-
-	"SMTP likes CRLF as end of line characters, so CR and LF are converted to CRLF."
-
-	| convertedString cr lf |
-	cr := String cr.
-	lf := String lf.
-	convertedString := self copyReplaceAll: lf with: cr.
-	convertedString := convertedString copyReplaceAll: cr with: cr, lf.
-	^ convertedString.! !
-
-!String methodsFor: '*Stamp' stamp: 'as 3/7/2006 11:43'!
-convertToSqueakText
+!String methodsFor: '*Stamp' stamp: 'as 10/17/2006 14:37'!
+convertSmtpToSqueakText
 
 	"Squeak likes CR as end of line character, so CRLF and LF are converted to CR."
+	"CR.CR in SMTP has special meaning and is escaped with CR..CR."
 
 	| convertedString cr lf |
 	cr := String cr.
 	lf := String lf.
 	convertedString := self copyReplaceAll: cr, lf with: cr.
 	convertedString := convertedString copyReplaceAll: lf with: cr.
+	convertedString := convertedString copyReplaceAll: cr, '..', cr with: cr, '.', cr.
+	^ convertedString.! !
+
+!String methodsFor: '*Stamp' stamp: 'as 10/17/2006 14:46'!
+convertSqueakToSmtpText
+
+	"SMTP likes CRLF as end of line characters, so CR and LF are converted to CRLF."
+	"CR..CR is the escape sequence for CR.CR, since this one has special meaning in SMTP."
+
+	| convertedString cr lf |
+	cr := String cr.
+	lf := String lf.
+	convertedString := self copyReplaceAll: lf with: cr.
+	convertedString := convertedString copyReplaceAll: cr with: cr, lf.
+	convertedString := convertedString copyReplaceAll: cr, lf, '.', cr, lf with: cr, lf, '..', cr, lf.
 	^ convertedString.! !
 
 TcpService subclass: #SPMailService
@@ -3011,5 +3042,6 @@ to: aCollection
 		self sendCommand: 'rcpt to: ', aSPMailAddress path.
 		self checkResponse.
 	].! !
+SPMailMessage initialize!
 SPSmtpCommand initialize!
 SPWeb initialize!
