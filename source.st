@@ -1,21 +1,43 @@
 SystemOrganization addCategory: #'Stamp-Tests'!
 SystemOrganization addCategory: #'Stamp-Mail'!
 
-TcpService subclass: #SPMailListener
+String subclass: #SPSmtpReply
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail'!
 
-!SPMailListener commentStamp: '<historical>' prior: 0!
-A TCP service accepting SMTP connections.!
+!SPSmtpReply commentStamp: '<historical>' prior: 0!
+SMTP replies are sent from the server to the client and are just strings.!
 
-!SPMailListener methodsFor: 'conversation' stamp: 'as 1/10/2006 21:53'!
-serve: aSocket
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 22:01'!
+badSequence
 
-	| receiver message |
-	receiver := SPMailReceiver on: (SocketStream on: aSocket).
-	message := receiver receive.! !
+	^ '503'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/12/2006 12:19'!
+cannotVerify
+	^ '252'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:48'!
+commandUnrecognized
+
+	^ '500'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/11/2006 16:03'!
+notImplemented
+
+	^ '502'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:09'!
+okay
+
+	^ '250'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 22:05'!
+ready
+
+	^ '220 anonymous.xx'.! !
 
 TestCase subclass: #CodeTest
 	instanceVariableNames: ''
@@ -41,40 +63,6 @@ testClassComment
 		self assert: each hasComment.
 	].! !
 
-String subclass: #SPSmtpReply
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail'!
-
-!SPSmtpReply commentStamp: '<historical>' prior: 0!
-SMTP replies are sent from the server to the client and are just strings.!
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 22:01'!
-badSequence
-
-	^ '503'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:48'!
-commandUnrecognized
-
-	^ '500'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/11/2006 16:03'!
-notImplemented
-
-	^ '502'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:09'!
-okay
-
-	^ '250'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 22:05'!
-ready
-
-	^ '220 anonymous.xx'.! !
-
 Object subclass: #SPMailReceiver
 	instanceVariableNames: 'state stream message'
 	classVariableNames: ''
@@ -97,7 +85,7 @@ mailState
 
 	^ #mail.! !
 
-!SPMailReceiver class methodsFor: 'instance creation' stamp: 'as 1/11/2006 16:20'!
+!SPMailReceiver class methodsFor: 'instance creation' stamp: 'as 1/12/2006 13:42'!
 on: aSocketStream
 
 	"Return a new instance receiving/sending on the given stream"
@@ -355,3 +343,55 @@ receiver: aSPSmtpReceiver
 reply
 
 	^ reply.! !
+
+SPSmtpCommand subclass: #SPVerifySmtpCommand
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail'!
+
+!SPVerifySmtpCommand commentStamp: '<historical>' prior: 0!
+VRFY allows clients to verify addresses. This is disabled for security reasons.!
+
+!SPVerifySmtpCommand class methodsFor: 'state' stamp: 'as 1/12/2006 13:35'!
+inStates
+
+	^ OrderedCollection new
+		add: SPMailReceiver initialState;
+		yourself.! !
+
+!SPVerifySmtpCommand class methodsFor: 'smtp' stamp: 'as 1/12/2006 12:21'!
+verb
+
+	^ 'vrfy'.! !
+
+!SPVerifySmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 13:39'!
+doExecute
+
+	outState := receiver state.
+	reply := SPSmtpReply cannotVerify.! !
+
+Object subclass: #SPSmtpStates
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail'!
+
+!SPSmtpStates commentStamp: '<historical>' prior: 0!
+Defines states (symbols) a!
+
+TcpService subclass: #SPMailListener
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail'!
+
+!SPMailListener commentStamp: '<historical>' prior: 0!
+A TCP service accepting SMTP connections.!
+
+!SPMailListener methodsFor: 'conversation' stamp: 'as 1/10/2006 21:53'!
+serve: aSocket
+
+	| receiver message |
+	receiver := SPMailReceiver on: (SocketStream on: aSocket).
+	message := receiver receive.! !
