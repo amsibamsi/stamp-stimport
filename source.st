@@ -2544,10 +2544,8 @@ SPSmtpCommand subclass: #SPDataSmtpCommand
 !SPDataSmtpCommand commentStamp: '<historical>' prior: 0!
 The client wants to submit the mail message in data mode.!
 
-!SPDataSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:12'!
-initStates
-
-	"self initialize"
+!SPDataSmtpCommand class methodsFor: 'state' stamp: 'as 2/28/2007 11:13'!
+states
 
 	^ Set new
 		add: SPRecipientSmtpState;
@@ -2588,10 +2586,8 @@ hasArgument
 
 	^ true.! !
 
-!SPEhloSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:12'!
-initStates
-
-	"self initialize"
+!SPEhloSmtpCommand class methodsFor: 'state' stamp: 'as 2/28/2007 11:13'!
+states
 
 	^ Set new
 		add: SPReadySmtpState;
@@ -2626,10 +2622,8 @@ hasArgument
 
 	^ true.! !
 
-!SPHeloSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:12'!
-initStates
-
-	"self initialize"
+!SPHeloSmtpCommand class methodsFor: 'state' stamp: 'as 2/28/2007 11:14'!
+states
 
 	^ Set new
 		add: SPReadySmtpState;
@@ -2664,10 +2658,8 @@ hasArgument
 
 	^ true.! !
 
-!SPMailSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:21'!
-initStates
-
-	"self initialize"
+!SPMailSmtpCommand class methodsFor: 'state' stamp: 'as 2/28/2007 11:14'!
+states
 
 	^ Set new
 		add: SPResetSmtpState;
@@ -2700,10 +2692,8 @@ SPSmtpCommand subclass: #SPNoopSmtpCommand
 !SPNoopSmtpCommand commentStamp: '<historical>' prior: 0!
 NOOP means no operation. This command is recognized but ignored and has no effect on the server.!
 
-!SPNoopSmtpCommand class methodsFor: 'class initialization' stamp: 'as 11/16/2006 17:36'!
-initStates
-
-	"self initialize"
+!SPNoopSmtpCommand class methodsFor: 'state' stamp: 'as 2/28/2007 11:15'!
+states
 
 	^ self allStates.! !
 
@@ -2731,10 +2721,8 @@ SPSmtpCommand subclass: #SPQuitSmtpCommand
 !SPQuitSmtpCommand commentStamp: '<historical>' prior: 0!
 The client wants to quit the session.!
 
-!SPQuitSmtpCommand class methodsFor: 'class initialization' stamp: 'as 11/16/2006 17:36'!
-initStates
-
-	"self initialize"
+!SPQuitSmtpCommand class methodsFor: 'state' stamp: 'as 2/28/2007 11:15'!
+states
 
 	^ self allStates.! !
 
@@ -2768,10 +2756,8 @@ hasArgument
 
 	^ true.! !
 
-!SPRecipientSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:12'!
-initStates
-
-	"self initialize"
+!SPRecipientSmtpCommand class methodsFor: 'state' stamp: 'as 2/28/2007 11:15'!
+states
 
 	^ Set new
 		add: SPMailSmtpState;
@@ -2811,10 +2797,8 @@ SPSmtpCommand subclass: #SPResetSmtpCommand
 !SPResetSmtpCommand commentStamp: '<historical>' prior: 0!
 Resets the current session to start over from beginning.!
 
-!SPResetSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:13'!
-initStates
-
-	"self initialize"
+!SPResetSmtpCommand class methodsFor: 'state' stamp: 'as 2/28/2007 11:16'!
+states
 
 	^ Set new
 		add: SPResetSmtpState;
@@ -2888,26 +2872,10 @@ hasArgument
 
 	^ false.! !
 
-!SPSmtpCommand class methodsFor: 'class initialization' stamp: 'as 9/27/2006 11:53'!
-initStates
-
-	"Returns a collection of states this command is allowed to execute in."
-	
-	"IMPORTANT: changes made here or in called methods do only have effect
-	 after reinitialization of the class!!"
-
-	"self initialize"
-	"self allSubclasses do: [ :each | each initialize. ]"! !
-
-!SPSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/15/2006 16:12'!
-initialize
-
-	states := self initStates.! !
-
-!SPSmtpCommand class methodsFor: 'state' stamp: 'as 4/15/2006 16:11'!
+!SPSmtpCommand class methodsFor: 'state' stamp: 'as 2/28/2007 11:12'!
 states
 
-	^ states.! !
+	self subclassResponsibility.! !
 
 !SPSmtpCommand class methodsFor: 'smtp' stamp: 'as 11/7/2006 16:54'!
 verb
@@ -3033,10 +3001,8 @@ hasArgument
 
 	^ true.! !
 
-!SPVerifySmtpCommand class methodsFor: 'class initialization' stamp: 'as 11/16/2006 17:36'!
-initStates
-
-	"self initialize"
+!SPVerifySmtpCommand class methodsFor: 'state' stamp: 'as 2/28/2007 11:16'!
+states
 
 	^ self allStates.! !
 
@@ -5124,5 +5090,4 @@ SPException subclass: #SPWrongPasswordException
 !SPWrongPasswordException commentStamp: 'as 2/15/2007 16:55' prior: 0!
 Wrong password.!
 SPMailMessage initialize!
-SPSmtpCommand initialize!
 SPWeb initialize!
