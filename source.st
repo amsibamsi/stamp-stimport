@@ -1580,13 +1580,13 @@ restartListener
 
 	self do: [ self listener restart. ] catchExceptions: SPException.! !
 
-!SPWebSystem methodsFor: 'rendering' stamp: 'as 3/14/2007 17:07'!
+!SPWebSystem methodsFor: 'rendering' stamp: 'as 4/2/2007 10:05'!
 tableColumns
 
 	^ OrderedCollection new 
-		add: (WAReportColumn new title: 'Host name'; valueBlock: [ :item | item remoteName asString. ]; yourself);
-		add: (WAReportColumn new title: 'Host address'; valueBlock: [ :item | item remoteAddress asString. ]; yourself);
-		add: (WAReportColumn new title: 'Port'; valueBlock: [ :item | item remotePort asString. ]; yourself);
+		add: (WAReportColumn selector: #remoteName title: 'Host name');
+		add: (WAReportColumn selector: #remoteAddress title: 'Host address');
+		add: (WAReportColumn selector: #remotePort title: 'Port');
 		yourself.! !
 
 !SPWebSystem methodsFor: 'rendering' stamp: 'as 3/29/2007 10:15'!
@@ -4544,20 +4544,29 @@ listener: aSPListener
 
 	listener _ aSPListener.! !
 
-!SPMailReceiver methodsFor: 'sockets' stamp: 'as 9/20/2006 14:39'!
+!SPMailReceiver methodsFor: 'sockets' stamp: 'as 4/2/2007 10:10'!
 localAddress
 
-	^ stream socket localAddress.! !
+	^ self localIp asIpString.! !
 
-!SPMailReceiver methodsFor: 'sockets' stamp: 'as 9/20/2006 23:31'!
+!SPMailReceiver methodsFor: 'sockets' stamp: 'as 4/2/2007 10:10'!
+localIp
+
+	^ [ stream socket localAddress. ]
+		on: Exception
+		do: [ ByteArray with: 0 with: 0 with: 0 with: 0. ].! !
+
+!SPMailReceiver methodsFor: 'sockets' stamp: 'as 4/2/2007 10:09'!
 localName
 
-	^ self nameForAddress: self localAddress.! !
+	^ self nameForAddress: self localIp.! !
 
-!SPMailReceiver methodsFor: 'sockets' stamp: 'as 9/20/2006 14:40'!
+!SPMailReceiver methodsFor: 'sockets' stamp: 'as 4/2/2007 10:09'!
 localPort
 
-	^ stream socket localPort.! !
+	^ [ stream socket localPort asString. ]
+		on: Exception
+		do: [ '-'. ].! !
 
 !SPMailReceiver methodsFor: 'message' stamp: 'as 2/26/2007 10:33'!
 mail: aString
@@ -4594,10 +4603,12 @@ maxReplyLength
 
 	^ 512.! !
 
-!SPMailReceiver methodsFor: 'sockets' stamp: 'as 10/18/2006 14:02'!
+!SPMailReceiver methodsFor: 'sockets' stamp: 'as 4/2/2007 09:54'!
 nameForAddress: addressString
 
-	^ NetNameResolver nameForAddress: addressString timeout: self resolverTimeout.! !
+	^ [ NetNameResolver nameForAddress: addressString timeout: self resolverTimeout. ]
+		on: Exception
+		do: [ '-'. ].! !
 
 !SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 3/14/2007 14:45'!
 postInit
@@ -4745,20 +4756,29 @@ recipient: aSPMailAddress
 	self checkNumberOfRecipients.
 	recipients add: aSPMailAddress.! !
 
-!SPMailReceiver methodsFor: 'sockets' stamp: 'as 9/20/2006 14:40'!
+!SPMailReceiver methodsFor: 'sockets' stamp: 'as 4/2/2007 09:59'!
 remoteAddress
 
-	^ stream socket remoteAddress.! !
+	^ self remoteIp asIpString.! !
 
-!SPMailReceiver methodsFor: 'sockets' stamp: 'as 9/20/2006 23:31'!
+!SPMailReceiver methodsFor: 'sockets' stamp: 'as 4/2/2007 09:59'!
+remoteIp
+
+	^ [ stream socket remoteAddress. ]
+		on: Exception
+		do: [ ByteArray with: 0 with: 0 with: 0 with: 0. ].! !
+
+!SPMailReceiver methodsFor: 'sockets' stamp: 'as 4/2/2007 10:06'!
 remoteName
 
-	^ self nameForAddress: self remoteAddress.! !
+	^ self nameForAddress: self remoteIp.! !
 
-!SPMailReceiver methodsFor: 'sockets' stamp: 'as 9/20/2006 14:40'!
+!SPMailReceiver methodsFor: 'sockets' stamp: 'as 4/2/2007 10:03'!
 remotePort
 
-	^ stream socket remotePort.! !
+	^ [ stream socket remotePort asString. ]
+		on: Exception
+		do: [ '-'. ].! !
 
 !SPMailReceiver methodsFor: 'replying' stamp: 'as 11/8/2006 21:53'!
 reply: aSPSmtpReply
