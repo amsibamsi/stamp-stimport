@@ -1070,12 +1070,13 @@ withUser: aSPUser
 	^ self new
 		user: aSPUser.! !
 
-!SPWebContacts methodsFor: 'contacts' stamp: 'as 2/21/2007 13:49'!
+!SPWebContacts methodsFor: 'contacts' stamp: 'as 2/27/2007 12:27'!
 add
 
-	self
-		do: [ SPKernel instance manager addContact: address user: user. ]
-		catchExceptions: Exception.! !
+	self do: [
+		SPMailNotifier verifyContact:
+			(SPKernel instance manager addContact: address user: user).
+	] catchExceptions: SPException.! !
 
 !SPWebContacts methodsFor: 'contacts' stamp: 'as 2/22/2007 16:14'!
 invertActivation: aSPContact
@@ -1437,11 +1438,10 @@ callSystem
 
 	body call: (SPWebSystem new).! !
 
-!SPWebMain methodsFor: 'call/answer' stamp: 'as 2/22/2007 15:24'!
+!SPWebMain methodsFor: 'call/answer' stamp: 'as 2/27/2007 12:54'!
 callUnregister
 
-	body call: (SPWebUnregister withUser: user).
-	self logout.! !
+	(body call: (SPWebUnregister withUser: user)) ifTrue: [ self logout. ].! !
 
 !SPWebMain methodsFor: 'call/answer' stamp: 'as 2/23/2007 15:01'!
 callUserAdmin
@@ -3362,10 +3362,33 @@ config
 
 	^ SPKernel instance configurator.! !
 
-!SPMailNotifier class methodsFor: 'text' stamp: 'as 2/26/2007 17:49'!
-messageFrom: fromString to: toString subject: subjectString
+!SPMailNotifier class methodsFor: 'text' stamp: 'as 2/27/2007 12:49'!
+greetingText
 
-	^
+^
+'Hi, this is Stamp, the mailing list manager at ', self serverName, '.'.! !
+
+!SPMailNotifier class methodsFor: 'send' stamp: 'as 2/26/2007 13:40'!
+send: aSPMailMessage
+
+	SPKernel instance queue addMessage: aSPMailMessage.! !
+
+!SPMailNotifier class methodsFor: 'configuration' stamp: 'as 2/27/2007 12:42'!
+serverName
+
+	^ self config preferenceAt: #serverName.! !
+
+!SPMailNotifier class methodsFor: 'text' stamp: 'as 2/27/2007 12:48'!
+textFooter
+
+^
+'Sincerly,
+Stamp Mailing List Manager'.! !
+
+!SPMailNotifier class methodsFor: 'text' stamp: 'as 2/27/2007 12:49'!
+textFrom: fromString to: toString subject: subjectString
+
+^
 'From: ', fromString, '
 To: ', toString, '
 Subject: ', subjectString, '
@@ -3373,34 +3396,38 @@ Date: ', MailMessage dateStampNow, ' ', self timezone, '
 
 '.! !
 
-!SPMailNotifier class methodsFor: 'send' stamp: 'as 2/26/2007 13:40'!
-send: aSPMailMessage
+!SPMailNotifier class methodsFor: 'text' stamp: 'as 2/27/2007 12:52'!
+textVerifyContact: aSPContact
 
-	SPKernel instance queue addMessage: aSPMailMessage.! !
+^ (self
+	textFrom: self adminAddress asString
+	to: aSPContact address asString
+	subject: 'Contact Verification'),
+self greetingText, '
+
+Your email address was registered and this is the code to verify it in your user profile:
+
+', aSPContact verification, '
+
+If you have received this message by mistake, ignore it.
+
+
+', self textFooter.! !
 
 !SPMailNotifier class methodsFor: 'configuration' stamp: 'as 2/26/2007 13:59'!
 timezone
 
 	^ self config preferenceAt: #timezone.! !
 
-!SPMailNotifier class methodsFor: 'notifications' stamp: 'as 2/26/2007 15:35'!
+!SPMailNotifier class methodsFor: 'notifications' stamp: 'as 2/27/2007 12:49'!
 verifyContact: aSPContact
 
 	self send: (
 		SPMailMessage
 			from: self adminAddress asString
 			to: aSPContact address asString
-			mail: (self verifyContactText: aSPContact)
+			mail: (self textVerifyContact: aSPContact)
 	).! !
-
-!SPMailNotifier class methodsFor: 'text' stamp: 'as 2/26/2007 17:49'!
-verifyContactText: aSPContact
-
-	^ (self
-		messageFrom: self adminAddress asString
-		to: aSPContact address asString
-		subject: 'contact verification'),
-	  aSPContact verification.! !
 
 Object subclass: #SPMailQueue
 	instanceVariableNames: 'queue monitor'
