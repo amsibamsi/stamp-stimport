@@ -52,36 +52,6 @@ withoutBlanks
 		
 	"' a  bcd  ' withoutBlanks"! !
 
-!MailMessage methodsFor: '*Stamp' stamp: 'as 9/19/2006 18:11'!
-addField: nameString fromString: valueString
-
-	"Add a field. If any field of the specified name exists, it will not be overwritten."
-
-	| field key value |
-	key := nameString asLowercase.
-	field := fields at: key ifAbsent: [
-		fields at: key put: OrderedCollection new.
-	].
-	value := MIMEHeaderValue forField: nameString fromString: valueString.
-	field add: value.
-	text := nil.
-	tokens := nil.! !
-
-!MailMessage methodsFor: '*Stamp' stamp: 'as 9/19/2006 18:25'!
-received: aString
-
-	self addField: 'received' fromString: aString.! !
-
-!MailMessage methodsFor: '*Stamp' stamp: 'as 10/17/2006 14:17'!
-returnPath: aString
-
-	self setField: 'return-path' toString: aString.! !
-
-!MailMessage methodsFor: '*Stamp' stamp: 'as 10/17/2006 14:19'!
-subject: aString
-
-	self setField: 'subject' toString: aString.! !
-
 TcpService subclass: #SPMailService
 	instanceVariableNames: 'listener'
 	classVariableNames: ''
@@ -111,6 +81,36 @@ serve: aSocket
 	]
 		on: SPTooManyConnectionsException
 		do: [ :ex | ex defaultAction; return. ].! !
+
+!MailMessage methodsFor: '*Stamp' stamp: 'as 9/19/2006 18:11'!
+addField: nameString fromString: valueString
+
+	"Add a field. If any field of the specified name exists, it will not be overwritten."
+
+	| field key value |
+	key := nameString asLowercase.
+	field := fields at: key ifAbsent: [
+		fields at: key put: OrderedCollection new.
+	].
+	value := MIMEHeaderValue forField: nameString fromString: valueString.
+	field add: value.
+	text := nil.
+	tokens := nil.! !
+
+!MailMessage methodsFor: '*Stamp' stamp: 'as 9/19/2006 18:25'!
+received: aString
+
+	self addField: 'received' fromString: aString.! !
+
+!MailMessage methodsFor: '*Stamp' stamp: 'as 10/17/2006 14:17'!
+returnPath: aString
+
+	self setField: 'return-path' toString: aString.! !
+
+!MailMessage methodsFor: '*Stamp' stamp: 'as 10/17/2006 14:19'!
+subject: aString
+
+	self setField: 'subject' toString: aString.! !
 
 TestCase subclass: #SPCodeTest
 	instanceVariableNames: ''
@@ -1888,6 +1888,21 @@ user: aSPUser
 
 	user _ aSPUser.! !
 
+WATask subclass: #SPWebTask
+	instanceVariableNames: 'user'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebTask commentStamp: 'as 2/22/2007 13:55' prior: 0!
+Models the main web application.!
+
+!SPWebTask methodsFor: 'rendering' stamp: 'as 3/5/2007 10:27'!
+go
+
+	user _ self call: SPWebMain new.
+	self isolate: [ self call: (SPWebMain withUser: user). ].! !
+
 Object subclass: #SPConfiguration
 	instanceVariableNames: 'attributes'
 	classVariableNames: ''
@@ -1948,7 +1963,7 @@ SPConfiguration subclass: #SPStampConfiguration
 !SPStampConfiguration commentStamp: 'as 3/11/2007 16:52' prior: 0!
 Default configuration for Stamp.!
 
-!SPStampConfiguration methodsFor: 'initialize-release' stamp: 'as 3/11/2007 17:23'!
+!SPStampConfiguration methodsFor: 'initialize-release' stamp: 'as 3/13/2007 13:08'!
 initialize
 
 	super initialize.
@@ -1961,15 +1976,15 @@ initialize
 			min: 1
 			max: 100).
 	self attributeAt: #serverName put:
-		(SPStringConfigurationAttribute
+		(SPHostAddressConfigurationAttribute
 			withValue: NetNameResolver localHostName
-			description: 'Hostname of the local server.').
+			description: 'Hostname or address of the local server.').
 	self attributeAt: #timezone put:
 		(SPStringConfigurationAttribute
 			withValue: '+0100'
 			description: 'Local timezone formatted as +/-XXXX.').
 	self attributeAt: #adminAddress put:
-		(SPAddressConfigurationAttribute
+		(SPMailAddressConfigurationAttribute
 			withValue: (SPMailAddress fromString: 'postmaster@localhost')
 			description: 'Email address used as default sender for all outgoing mail that has no specific sender specified.').
 
@@ -2009,9 +2024,9 @@ initialize
 			min: 1
 			max: 65536).
 	self attributeAt: #senderServer put:
-		(SPStringConfigurationAttribute
+		(SPHostAddressConfigurationAttribute
 			withValue: 'localhost'
-			description: 'Destination server where outgoing mail is sent to.').
+			description: 'Destination server name or address where outgoing mail is sent to.').
 		
 	"queue"
 	self attributeAt: #queueSize put:
@@ -2049,25 +2064,6 @@ Object subclass: #SPConfigurationAttribute
 
 !SPConfigurationAttribute commentStamp: 'as 1/23/2007 14:57' prior: 0!
 A configuration attribute stores one value of any type that can be set/get. A new value is checked against the configured type and checkValue: is called which is intended to be overwritten in subclasses. There is also some code for mutability: setting a new value will fail if the instance is not mutable. As for now, mutability isn't really used, that means it is checked but by default set to true (=mutable).!
-
-SPConfigurationAttribute subclass: #SPAddressConfigurationAttribute
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Configuration-Attributes'!
-
-!SPAddressConfigurationAttribute commentStamp: 'as 2/8/2007 16:21' prior: 0!
-Address configuration attribute.!
-
-!SPAddressConfigurationAttribute methodsFor: 'configuration' stamp: 'as 2/28/2007 12:42'!
-fromString: aString
-
-	^ SPMailAddress fromString: aString.! !
-
-!SPAddressConfigurationAttribute methodsFor: 'configuration' stamp: 'as 2/8/2007 16:22'!
-type
-
-	^ SPMailAddress.! !
 
 !SPConfigurationAttribute class methodsFor: 'instance creation' stamp: 'as 3/11/2007 17:03'!
 withValue: anObject description: aString
@@ -2145,14 +2141,33 @@ valueFromString: aString
 
 	self value: (self fromString: aString).! !
 
+SPConfigurationAttribute subclass: #SPMailAddressConfigurationAttribute
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration-Attributes'!
+
+!SPMailAddressConfigurationAttribute commentStamp: 'as 3/13/2007 12:51' prior: 0!
+Electronic mail address.!
+
+!SPMailAddressConfigurationAttribute methodsFor: 'configuration' stamp: 'as 2/28/2007 12:42'!
+fromString: aString
+
+	^ SPMailAddress fromString: aString.! !
+
+!SPMailAddressConfigurationAttribute methodsFor: 'configuration' stamp: 'as 2/8/2007 16:22'!
+type
+
+	^ SPMailAddress.! !
+
 SPConfigurationAttribute subclass: #SPNumberConfigurationAttribute
 	instanceVariableNames: 'min max'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Configuration-Attributes'!
 
-!SPNumberConfigurationAttribute commentStamp: 'as 1/16/2007 11:27' prior: 0!
-Number configuration attribute.!
+!SPNumberConfigurationAttribute commentStamp: 'as 3/13/2007 12:51' prior: 0!
+Number with a upper and lower boundry.!
 
 SPNumberConfigurationAttribute subclass: #SPIntegerConfigurationAttribute
 	instanceVariableNames: ''
@@ -2220,8 +2235,25 @@ SPConfigurationAttribute subclass: #SPStringConfigurationAttribute
 	poolDictionaries: ''
 	category: 'Stamp-Configuration-Attributes'!
 
-!SPStringConfigurationAttribute commentStamp: 'as 1/8/2007 15:38' prior: 0!
-Stamp string configuration attribute.!
+!SPStringConfigurationAttribute commentStamp: 'as 3/13/2007 12:51' prior: 0!
+String configuration attribute.!
+
+SPStringConfigurationAttribute subclass: #SPHostAddressConfigurationAttribute
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration-Attributes'!
+
+!SPHostAddressConfigurationAttribute commentStamp: 'as 3/13/2007 12:51' prior: 0!
+Hostname or IP address.!
+
+!SPHostAddressConfigurationAttribute methodsFor: 'checking' stamp: 'as 3/13/2007 13:06'!
+checkValue: anObject
+
+	super checkValue: anObject.
+	((SPSyntax isDomain: anObject) or: [ SPSyntax isIPv4Address: anObject. ]) ifFalse: [
+		SPInvalidConfigurationAttributeValueException signal: anObject, ' is wheter a hostname nor an IP address.'.
+	].! !
 
 !SPStringConfigurationAttribute methodsFor: 'configuration' stamp: 'as 2/28/2007 12:41'!
 fromString: aString
@@ -4895,11 +4927,11 @@ Object subclass: #SPSyntax
 Implements some regular expressions to test strings. They are minimal versions of those used in RFC 2821 and 2822. IPv6 and general address literals are not implemented.
 Everything is done on the class side.!
 
-!SPSyntax class methodsFor: 'checking' stamp: 'as 3/12/2007 16:52'!
+!SPSyntax class methodsFor: 'checking' stamp: 'as 3/13/2007 10:09'!
 checkDomainLength: aString
 
 	aString size > self maxDomainLength
-		ifTrue: [ SPSyntaxException signal: 'Domain length limit is ', self maxDomainLength, ' characters'. ].! !
+		ifTrue: [ SPSyntaxException signal: 'Domain length limit is ', self maxDomainLength asString, ' characters'. ].! !
 
 !SPSyntax class methodsFor: 'checking' stamp: 'as 3/12/2007 16:52'!
 checkMailAddressLength: aString
@@ -4963,10 +4995,10 @@ re3digit
 
 	^ '(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])'.! !
 
-!SPSyntax class methodsFor: 'regex' stamp: 'as 10/20/2006 11:41'!
+!SPSyntax class methodsFor: 'regex' stamp: 'as 3/13/2007 10:00'!
 reAddressLiteral
 
-	"IPv6 and general address literals are not implemented."
+	"IPv6 and general address literals are not supported."
 
 	^ self reIPv4AddressLiteral.! !
 
@@ -4980,20 +5012,20 @@ reAtom
 
 	^ '[[:alnum:]!!#\$%&''\*\+-/=\?\^_`{\|}~]'! !
 
-!SPSyntax class methodsFor: 'regex' stamp: 'as 10/20/2006 11:23'!
+!SPSyntax class methodsFor: 'regex' stamp: 'as 3/13/2007 10:13'!
 reDomain
 
-	^ '(', self reSubDomain, '(.', self reSubDomain, ')+)|(', self reAddressLiteral , ')'.! !
+	^ '(', self reAddressLiteral , ')|(', self reSubDomain, '(.', self reSubDomain, ')+)'.! !
 
 !SPSyntax class methodsFor: 'regex' stamp: 'as 10/20/2006 11:50'!
 reIPv4AddressLiteral
 
 	^ self reSnum, '\.', self reSnum, '\.', self reSnum, '\.', self reSnum.! !
 
-!SPSyntax class methodsFor: 'regex' stamp: 'as 10/20/2006 17:11'!
+!SPSyntax class methodsFor: 'regex' stamp: 'as 3/13/2007 10:42'!
 reLdhStr
 
-	^ '([[:alnum:]]\-)*', self reLetDig.! !
+	^ '(([[:alnum:]])|(\-))*', self reLetDig.! !
 
 !SPSyntax class methodsFor: 'regex' stamp: 'as 10/20/2006 17:10'!
 reLetDig
@@ -5089,21 +5121,6 @@ password: aString
 verifyPassword: aString
 
 	^ password check: aString.! !
-
-WATask subclass: #SPWebTask
-	instanceVariableNames: 'user'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebTask commentStamp: 'as 2/22/2007 13:55' prior: 0!
-Models the main web application.!
-
-!SPWebTask methodsFor: 'rendering' stamp: 'as 3/5/2007 10:27'!
-go
-
-	user _ self call: SPWebMain new.
-	self isolate: [ self call: (SPWebMain withUser: user). ].! !
 
 Exception subclass: #SPException
 	instanceVariableNames: ''
@@ -5600,10 +5617,10 @@ initialize
 		host: hostIP;
 		port: self senderPort.! !
 
-!SPSmtpClient methodsFor: 'smtp' stamp: 'as 1/18/2007 02:40'!
+!SPSmtpClient methodsFor: 'smtp' stamp: 'as 3/13/2007 09:50'!
 login
 
-	self sendCommand: 'helo me'.
+	self sendCommand: 'helo ', self serverName.
 	self checkResponse.! !
 
 !SPSmtpClient methodsFor: 'open-close' stamp: 'as 10/10/2006 14:34'!
