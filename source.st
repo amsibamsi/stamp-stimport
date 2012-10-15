@@ -1258,7 +1258,7 @@ SPWATable subclass: #SPWebQueue
 !SPWebQueue commentStamp: 'as 2/23/2007 16:38' prior: 0!
 Mail queue view.!
 
-!SPWebQueue methodsFor: 'rendering' stamp: 'as 2/28/2007 22:02'!
+!SPWebQueue methodsFor: 'rendering' stamp: 'as 2/28/2007 23:17'!
 columns
 
 	^ OrderedCollection new
@@ -1266,8 +1266,18 @@ columns
 		add: (WAReportColumn new title: 'Sender'; valueBlock: [ :item | item message sender. ]; yourself);
 		add: (WAReportColumn new title: 'Date'; valueBlock: [ :item | item message date. ]; yourself);
 		add: (WAReportColumn selector: #state title: 'State');
-		add: (WAReportColumn selector: #attempts title: 'Send Attempts');
+		add: (WAReportColumn new title: 'Attempts'; valueBlock: [ :item | item attempts asString, '/', self queueSendAttempts asString. ]; yourself);
 		yourself.! !
+
+!SPWebQueue methodsFor: 'configuration' stamp: 'as 2/28/2007 23:10'!
+config
+
+	^ SPKernel instance configurator.! !
+
+!SPWebQueue methodsFor: 'configuration' stamp: 'as 2/28/2007 23:11'!
+queueSendAttempts
+
+	^ self config preferenceAt: #queueSendAttempts.! !
 
 !SPWebQueue methodsFor: 'rendering' stamp: 'as 2/28/2007 18:27'!
 renderContentOn: html
