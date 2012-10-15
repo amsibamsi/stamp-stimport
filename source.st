@@ -1,24 +1,32 @@
 SystemOrganization addCategory: #'Stamp-Configuration'!
+SystemOrganization addCategory: #'Stamp-Lists'!
+SystemOrganization addCategory: #'Stamp-Mail-Message'!
 SystemOrganization addCategory: #'Stamp-Mail-Client'!
-SystemOrganization addCategory: #'Stamp-Mail-Sever-States'!
-SystemOrganization addCategory: #'Stamp-Mail-Server-Commands'!
 SystemOrganization addCategory: #'Stamp-Mail-Server'!
-SystemOrganization addCategory: #'Stamp-Model'!
+SystemOrganization addCategory: #'Stamp-Mail-Server-Commands'!
+SystemOrganization addCategory: #'Stamp-Mail-Server-States'!
+SystemOrganization addCategory: #'Stamp-Core'!
 SystemOrganization addCategory: #'Stamp-Tests'!
+SystemOrganization addCategory: #'Stamp-Users'!
 
 Object subclass: #SPKernel
-	instanceVariableNames: 'listener queue listManager userManager'
+	instanceVariableNames: 'config listener queue listManager userManager'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Model'!
+	category: 'Stamp-Core'!
 
 !SPKernel commentStamp: '<historical>' prior: 0!
 The core of a running Stamp application instance.!
 
-!SPKernel methodsFor: 'initialize-release' stamp: 'as 3/14/2006 14:35'!
+!SPKernel methodsFor: 'accessing' stamp: 'as 5/15/2006 11:25'!
+configuration
+
+	^ config.! !
+
+!SPKernel methodsFor: 'initialize-release' stamp: 'as 5/17/2006 13:09'!
 initialize
 
-	listener := SPMailListener withKernel: self onPort: 2525.
+	listener := SPMailListener withKernel: self onPort: (config valueAt: #port).
 	queue := SPMailQueue withKernel: self.
 	listManager := SPListManager withKernel: self.
 	userManager := SPUserManager withKernel: self.! !
@@ -57,7 +65,7 @@ Object subclass: #SPList
 	instanceVariableNames: 'name users'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Model'!
+	category: 'Stamp-Lists'!
 
 !SPList commentStamp: '<historical>' prior: 0!
 A Stamp mailing list.!
@@ -139,7 +147,7 @@ Object subclass: #SPListManager
 	instanceVariableNames: 'kernel lists'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Model'!
+	category: 'Stamp-Lists'!
 
 !SPListManager commentStamp: '<historical>' prior: 0!
 List manager for Stamp.!
@@ -197,11 +205,57 @@ removeList: nameString
 
 	lists remove: (self listShouldExist: nameString).! !
 
+Object subclass: #SPMailMessage
+	instanceVariableNames: 'sender receiver clientId mail'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Message'!
+
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 5/24/2006 14:14'!
+clientId
+
+	^ clientId.! !
+
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 5/24/2006 14:14'!
+clientId: aString
+
+	clientId := aString.! !
+
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 5/24/2006 12:42'!
+mail
+
+	^ mail.! !
+
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 5/24/2006 12:41'!
+mail: aMailMessage
+
+	mail := aMailMessage.! !
+
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 5/23/2006 13:30'!
+receiver
+
+	^ receiver.! !
+
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 5/23/2006 13:36'!
+receiver: aString
+
+	receiver := aString.! !
+
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 5/23/2006 13:36'!
+sender
+
+	^ sender.! !
+
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 5/23/2006 13:37'!
+sender: aString
+
+	sender := aString.! !
+
 Object subclass: #SPMailQueue
 	instanceVariableNames: 'kernel buffer'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Model'!
+	category: 'Stamp-Core'!
 
 !SPMailQueue commentStamp: '<historical>' prior: 0!
 Handles incoming mail, e.g. storing/forwarding/...!
@@ -237,7 +291,7 @@ queue: aMailMessage
 	[ self handle: aMailMessage ] newProcess resume.! !
 
 Object subclass: #SPMailReceiver
-	instanceVariableNames: 'state stream message sender recipient dataMode quit kernel'
+	instanceVariableNames: 'state stream message quit kernel'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
@@ -257,6 +311,11 @@ on: aSocketStream withKernel: aSPKernel
 		kernel: aSPKernel;
 		yourself.! !
 
+!SPMailReceiver methodsFor: 'accessing' stamp: 'as 5/24/2006 14:15'!
+clientId: aString
+
+	message clientId: aString.! !
+
 !SPMailReceiver methodsFor: 'settings' stamp: 'as 2/6/2006 15:19'!
 dataDelimiter
 
@@ -264,58 +323,50 @@ dataDelimiter
 
 	^ String crlf, '.', String crlf.! !
 
-!SPMailReceiver methodsFor: 'private' stamp: 'as 1/14/2006 22:03'!
-enterCommandMode
-
-	dataMode := false.! !
-
-!SPMailReceiver methodsFor: 'private' stamp: 'as 1/14/2006 22:02'!
-enterDataMode
-
-	dataMode := true.! !
-
-!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 4/20/2006 17:45'!
+!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 5/24/2006 13:55'!
 initialize
 
-	self reset.
+	message := SPMailMessage new.
 	self state: SPReadySmtpState.
 	quit := false.! !
+
+!SPMailReceiver methodsFor: 'private' stamp: 'as 5/24/2006 14:16'!
+insertTrace! !
 
 !SPMailReceiver methodsFor: 'accessing' stamp: 'as 3/16/2006 15:24'!
 kernel: aSPKernel
 
 	kernel := aSPKernel.! !
 
-!SPMailReceiver methodsFor: 'accessing' stamp: 'as 1/14/2006 22:14'!
+!SPMailReceiver methodsFor: 'accessing' stamp: 'as 5/24/2006 11:44'!
 mailFrom: aString
 
-	sender := aString.! !
+	message sender: aString.! !
 
-!SPMailReceiver methodsFor: 'accessing' stamp: 'as 1/14/2006 22:14'!
+!SPMailReceiver methodsFor: 'accessing' stamp: 'as 5/24/2006 11:44'!
 mailTo: aString
 
-	recipient := aString.! !
+	message receiver: aString.! !
 
-!SPMailReceiver methodsFor: 'private' stamp: 'as 3/16/2006 15:25'!
+!SPMailReceiver methodsFor: 'accessing' stamp: 'as 5/24/2006 11:46'!
+mail: aString
+
+	message mail: aString.! !
+
+!SPMailReceiver methodsFor: 'actions' stamp: 'as 4/21/2006 11:57'!
 queueMail
 
 	kernel queue queue: message.! !
 
-!SPMailReceiver methodsFor: 'actions' stamp: 'as 3/10/2006 16:23'!
+!SPMailReceiver methodsFor: 'actions' stamp: 'as 5/4/2006 15:42'!
 receive
 
-	"Receive from client in command or data mode as long as connection is there and
+	"Receive commands from client as long as connection is there and
 	 quit is not requested."
 
 	self reply: SPSmtpReply ready.
 	[ quit not and: [ stream isConnected ] ] whileTrue: [
-		dataMode ifFalse: [
-			self receiveCommand.
-		] ifTrue: [
-			self receiveData.
-			self queueMail.
-			self reset.
-		].
+		self receiveCommand.
 	].
 	stream close.! !
 
@@ -331,13 +382,12 @@ receiveCommand
 		on: SPSmtpCommandException
 		do: [ :ex | ex defaultAction. ex return. ].! !
 
-!SPMailReceiver methodsFor: 'private' stamp: 'as 3/10/2006 16:08'!
+!SPMailReceiver methodsFor: 'private' stamp: 'as 5/24/2006 13:50'!
 receiveData
 
 	"Receive mail data as specified by the DATA SMTP command."
 
-	message from: (stream upToAll: self dataDelimiter) convertToSqueakText.
-	self reply: SPSmtpReply okay.! !
+	^ (stream upToAll: self dataDelimiter) convertToSqueakText.! !
 
 !SPMailReceiver methodsFor: 'actions' stamp: 'as 4/18/2006 16:37'!
 reply: aSPSmtpReply
@@ -351,13 +401,10 @@ requestQuit
 
 	quit := true.! !
 
-!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 1/18/2006 17:18'!
+!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 5/24/2006 13:54'!
 reset
 
-	message := MailMessage new.
-	sender := nil.
-	recipient := nil.
-	self enterCommandMode.! !
+	message mailFrom: nil; mailTo: nil; mail: nil.! !
 
 !SPMailReceiver methodsFor: 'state' stamp: 'as 1/11/2006 14:34'!
 state
@@ -374,8 +421,29 @@ stream: aStream
 
 	stream := aStream.! !
 
+Object subclass: #SPModel
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Core'!
+
+!SPModel methodsFor: 'configuration' stamp: 'as 5/17/2006 13:20'!
+configuration
+
+	^ (self class name, self defaultConfigurationSuffix) instance.! !
+
+!SPModel methodsFor: 'settings' stamp: 'as 5/17/2006 13:21'!
+defaultConfigurationSuffix
+
+	^ 'Configuration'.! !
+
+!SPModel methodsFor: 'configuration' stamp: 'as 5/17/2006 13:14'!
+preferenceAt: aSymbol
+
+	self configuration valueAt: aSymbol.! !
+
 Object subclass: #SPSmtpCommand
-	instanceVariableNames: 'argument target reply nextState'
+	instanceVariableNames: 'argument target reply state'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server-Commands'!
@@ -397,20 +465,35 @@ SPSmtpCommand subclass: #SPDataSmtpCommand
 !SPDataSmtpCommand commentStamp: '<historical>' prior: 0!
 The client wants to submit the mail message in data mode.!
 
+!SPDataSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:12'!
+initStates
+
+	"self initialize"
+
+	^ Set new
+		add: SPRecipientSmtpState;
+		yourself.! !
+
 !SPDataSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/14/2006 21:40'!
 verb
 
 	^ 'data'.! !
 
-!SPDataSmtpCommand methodsFor: 'executing' stamp: 'as 1/14/2006 22:17'!
+!SPDataSmtpCommand methodsFor: 'executing' stamp: 'as 5/24/2006 14:16'!
 doExecute
 
-	target enterDataMode.! !
+	target
+		reply: SPSmtpReply mailInput;
+		mail: target receiveData;
+		insertTrace;
+		queueMail;
+		reset.
+	self state: SPResetSmtpState.! !
 
-!SPDataSmtpCommand methodsFor: 'executing' stamp: 'as 1/14/2006 22:18'!
-reply
+!SPDataSmtpCommand methodsFor: 'executing' stamp: 'as 4/21/2006 10:30'!
+doValidate
 
-	^ SPSmtpReply mailInput.! !
+	"nothing to do"! !
 
 SPSmtpCommand subclass: #SPEhloSmtpCommand
 	instanceVariableNames: ''
@@ -421,20 +504,29 @@ SPSmtpCommand subclass: #SPEhloSmtpCommand
 !SPEhloSmtpCommand commentStamp: 'as 3/6/2006 11:19' prior: 0!
 The EHLO command unimplemented since no service extension are needed/implemented.!
 
+!SPEhloSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:12'!
+initStates
+
+	"self initialize"
+
+	^ Set new
+		add: SPReadySmtpState;
+		yourself.! !
+
 !SPEhloSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/11/2006 16:00'!
 verb
 
 	^ 'ehlo'.! !
 
-!SPEhloSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 22:07'!
+!SPEhloSmtpCommand methodsFor: 'executing' stamp: 'as 4/21/2006 10:47'!
 doExecute
 
+	self reply: SPSmtpReply notImplemented.! !
+
+!SPEhloSmtpCommand methodsFor: 'executing' stamp: 'as 4/21/2006 10:10'!
+doValidate
+
 	"nothing to do"! !
-
-!SPEhloSmtpCommand methodsFor: 'executing' stamp: 'as 3/6/2006 11:19'!
-reply
-
-	^ SPSmtpReply notImplemented.! !
 
 SPSmtpCommand subclass: #SPHeloSmtpCommand
 	instanceVariableNames: ''
@@ -445,12 +537,8 @@ SPSmtpCommand subclass: #SPHeloSmtpCommand
 !SPHeloSmtpCommand commentStamp: '<historical>' prior: 0!
 HELO command is used by the client to initiate a new session with the server.!
 
-!SPHeloSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/20/2006 16:13'!
+!SPHeloSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:12'!
 initStates
-
-	"IMPORTANT: changes made here or in called methods do only have effect
-	 after reinitialization of the class!!
-	 (include this comment in subclasses)"
 
 	"self initialize"
 
@@ -463,10 +551,11 @@ verb
 
 	^ 'helo'.! !
 
-!SPHeloSmtpCommand methodsFor: 'executing' stamp: 'as 4/20/2006 17:41'!
+!SPHeloSmtpCommand methodsFor: 'executing' stamp: 'as 5/24/2006 13:59'!
 doExecute
 
-	self nextState: SPResetSmtpState.! !
+	target clientId: argument.
+	self state: SPResetSmtpState.! !
 
 !SPHeloSmtpCommand methodsFor: 'executing' stamp: 'as 4/20/2006 19:37'!
 doValidate
@@ -482,20 +571,30 @@ SPSmtpCommand subclass: #SPMailSmtpCommand
 !SPMailSmtpCommand commentStamp: '<historical>' prior: 0!
 The MAIL command specifies the sender address.!
 
+!SPMailSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:21'!
+initStates
+
+	"self initialize"
+
+	^ Set new
+		add: SPResetSmtpState;
+		yourself.! !
+
 !SPMailSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/11/2006 16:08'!
 verb
 
 	^ 'mail from:'.! !
 
-!SPMailSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 22:15'!
+!SPMailSmtpCommand methodsFor: 'executing' stamp: 'as 4/21/2006 10:56'!
 doExecute
 
-	target mailFrom: argument.! !
+	target mailFrom: argument.
+	self state: SPMailSmtpState.! !
 
-!SPMailSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 22:18'!
-reply
+!SPMailSmtpCommand methodsFor: 'executing' stamp: 'as 4/21/2006 10:54'!
+doValidate
 
-	^ SPSmtpReply okay.! !
+	"is sender a subscribed user?"! !
 
 SPSmtpCommand subclass: #SPNoopSmtpCommand
 	instanceVariableNames: ''
@@ -506,20 +605,29 @@ SPSmtpCommand subclass: #SPNoopSmtpCommand
 !SPNoopSmtpCommand commentStamp: '<historical>' prior: 0!
 NOOP means no operation. This command is ignored and has no effect on the server.!
 
+!SPNoopSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:12'!
+initStates
+
+	"self initialize"
+
+	^ Set new
+		add: self allStates;
+		yourself.! !
+
 !SPNoopSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/12/2006 22:18'!
 verb
 
 	^ 'noop'.! !
 
-!SPNoopSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 22:19'!
+!SPNoopSmtpCommand methodsFor: 'executing' stamp: 'as 4/21/2006 10:41'!
 doExecute
 
+	"Fully confiding in defaults."! !
+
+!SPNoopSmtpCommand methodsFor: 'executing' stamp: 'as 4/21/2006 10:14'!
+doValidate
+
 	"nothing to do"! !
-
-!SPNoopSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 22:20'!
-reply
-
-	^ SPSmtpReply okay.! !
 
 SPSmtpCommand subclass: #SPQuitSmtpCommand
 	instanceVariableNames: ''
@@ -529,6 +637,15 @@ SPSmtpCommand subclass: #SPQuitSmtpCommand
 
 !SPQuitSmtpCommand commentStamp: '<historical>' prior: 0!
 The client wants to quit the session.!
+
+!SPQuitSmtpCommand class methodsFor: 'class initialization' stamp: 'as 5/11/2006 10:59'!
+initStates
+
+	"self initialize"
+
+	^ Set new
+		addAll: self allStates;
+		yourself.! !
 
 !SPQuitSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/14/2006 22:31'!
 verb
@@ -540,10 +657,10 @@ doExecute
 
 	target requestQuit.! !
 
-!SPQuitSmtpCommand methodsFor: 'executing' stamp: 'as 1/18/2006 17:09'!
-reply
+!SPQuitSmtpCommand methodsFor: 'executing' stamp: 'as 4/21/2006 11:01'!
+doValidate
 
-	^ SPSmtpReply okay.! !
+	"nothing to do"! !
 
 SPSmtpCommand subclass: #SPRecipientSmtpCommand
 	instanceVariableNames: ''
@@ -554,20 +671,31 @@ SPSmtpCommand subclass: #SPRecipientSmtpCommand
 !SPRecipientSmtpCommand commentStamp: '<historical>' prior: 0!
 Spcifies a recipient address.!
 
+!SPRecipientSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:12'!
+initStates
+
+	"self initialize"
+
+	^ Set new
+		add: SPMailSmtpState;
+		add: SPRecipientSmtpState;
+		yourself.! !
+
 !SPRecipientSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/14/2006 22:32'!
 verb
 
 	^ 'rcpt to:'.! !
 
-!SPRecipientSmtpCommand methodsFor: 'executing' stamp: 'as 1/18/2006 16:39'!
+!SPRecipientSmtpCommand methodsFor: 'executing' stamp: 'as 4/21/2006 10:53'!
 doExecute
 
-	target mailTo: argument.! !
+	target mailTo: argument.
+	self state: SPRecipientSmtpState.! !
 
-!SPRecipientSmtpCommand methodsFor: 'executing' stamp: 'as 1/18/2006 16:39'!
-reply
+!SPRecipientSmtpCommand methodsFor: 'executing' stamp: 'as 4/21/2006 10:55'!
+doValidate
 
-	^ SPSmtpReply okay.! !
+	"is address a hosted list?"! !
 
 SPSmtpCommand subclass: #SPResetSmtpCommand
 	instanceVariableNames: ''
@@ -578,20 +706,32 @@ SPSmtpCommand subclass: #SPResetSmtpCommand
 !SPResetSmtpCommand commentStamp: '<historical>' prior: 0!
 Resets the server to start from beginning.!
 
+!SPResetSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:13'!
+initStates
+
+	"self initialize"
+
+	^ Set new
+		add: SPResetSmtpState;
+		add: SPMailSmtpState;
+		add: SPRecipientSmtpState;
+		yourself.! !
+
 !SPResetSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/14/2006 22:32'!
 verb
 
 	^ 'rset'.! !
 
-!SPResetSmtpCommand methodsFor: 'executing' stamp: 'as 1/18/2006 17:59'!
+!SPResetSmtpCommand methodsFor: 'executing' stamp: 'as 4/21/2006 11:27'!
 doExecute
 
-	target reset.! !
+	target reset.
+	self state: SPResetSmtpState.! !
 
-!SPResetSmtpCommand methodsFor: 'executing' stamp: 'as 1/18/2006 17:27'!
-reply
+!SPResetSmtpCommand methodsFor: 'executing' stamp: 'as 4/21/2006 11:08'!
+doValidate
 
-	^ SPSmtpReply okay.! !
+	"nothing to do"! !
 
 !SPSmtpCommand class methodsFor: 'state' stamp: 'as 4/20/2006 15:56'!
 allStates
@@ -639,14 +779,13 @@ initialize
 
 	states := self initStates.! !
 
-!SPSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/18/2006 10:26'!
+!SPSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:13'!
 initStates
 
 	"Returns a collection of states this command is allowed to execute in."
 	
 	"IMPORTANT: changes made here or in called methods do only have effect
-	 after reinitialization of the class!!
-	 (include this comment in subclasses)"
+	 after reinitialization of the class!!"
 
 	"self initialize"
 	"self allSubclasses do: [ :each | each initialize. ]"
@@ -695,7 +834,7 @@ doValidate
 
 	self subclassResponsibility.! !
 
-!SPSmtpCommand methodsFor: 'public' stamp: 'as 4/18/2006 11:23'!
+!SPSmtpCommand methodsFor: 'public' stamp: 'as 5/11/2006 10:59'!
 execute
 
 	self validateState; doValidate.
@@ -703,16 +842,11 @@ execute
 	self gotoNextState; sendReply.
 	! !
 
-!SPSmtpCommand methodsFor: 'private' stamp: 'as 4/20/2006 19:27'!
+!SPSmtpCommand methodsFor: 'private' stamp: 'as 4/21/2006 11:00'!
 gotoNextState
 
-	nextState isNil ifTrue: [ nextState := self defaultNextState. ].
-	target state: nextState.! !
-
-!SPSmtpCommand methodsFor: 'accessing' stamp: 'as 4/20/2006 17:41'!
-nextState: aSPSmtpState
-
-	nextState := aSPSmtpState.! !
+	state isNil ifTrue: [ state := self defaultNextState. ].
+	target state: state.! !
 
 !SPSmtpCommand methodsFor: 'accessing' stamp: 'as 4/20/2006 17:41'!
 reply: aSPSmtpReply
@@ -729,6 +863,11 @@ sendReply
 states
 
 	^ self class states.! !
+
+!SPSmtpCommand methodsFor: 'accessing' stamp: 'as 4/21/2006 10:59'!
+state: aSPSmtpState
+
+	state := aSPSmtpState.! !
 
 !SPSmtpCommand methodsFor: 'accessing' stamp: 'as 1/12/2006 17:37'!
 target: aSPMailReceiver
@@ -756,20 +895,29 @@ SPSmtpCommand subclass: #SPVerifySmtpCommand
 !SPVerifySmtpCommand commentStamp: '<historical>' prior: 0!
 VRFY allows clients to verify addresses. This is disabled for security reasons.!
 
+!SPVerifySmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:33'!
+initStates
+
+	"self initialize"
+
+	^ Set new
+		add: self allStates;
+		yourself.! !
+
 !SPVerifySmtpCommand class methodsFor: 'smtp' stamp: 'as 1/12/2006 12:21'!
 verb
 
 	^ 'vrfy'.! !
 
-!SPVerifySmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 22:13'!
+!SPVerifySmtpCommand methodsFor: 'executing' stamp: 'as 4/21/2006 11:11'!
 doExecute
 
+	self reply: SPSmtpReply cannotVerify.! !
+
+!SPVerifySmtpCommand methodsFor: 'executing' stamp: 'as 4/21/2006 11:11'!
+doValidate
+
 	"nothing to do"! !
-
-!SPVerifySmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 22:14'!
-reply
-
-	^ SPSmtpReply cannotVerify.! !
 
 Object subclass: #SPSmtpReply
 	instanceVariableNames: 'code message'
@@ -865,7 +1013,7 @@ Object subclass: #SPSmtpState
 	instanceVariableNames: 'owner'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail-Sever-States'!
+	category: 'Stamp-Mail-Server-States'!
 
 !SPSmtpState commentStamp: '<historical>' prior: 0!
 The state a SPMailReceiver is in when serving a client.!
@@ -874,7 +1022,7 @@ SPSmtpState subclass: #SPMailSmtpState
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail-Sever-States'!
+	category: 'Stamp-Mail-Server-States'!
 
 !SPMailSmtpState commentStamp: '<historical>' prior: 0!
 The server has received the mail command.!
@@ -883,7 +1031,7 @@ SPSmtpState subclass: #SPReadySmtpState
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail-Sever-States'!
+	category: 'Stamp-Mail-Server-States'!
 
 !SPReadySmtpState commentStamp: '<historical>' prior: 0!
 The server waits for the client helo.!
@@ -892,7 +1040,7 @@ SPSmtpState subclass: #SPRecipientSmtpState
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail-Sever-States'!
+	category: 'Stamp-Mail-Server-States'!
 
 !SPRecipientSmtpState commentStamp: '<historical>' prior: 0!
 The client has received at least one recipient address.!
@@ -901,7 +1049,7 @@ SPSmtpState subclass: #SPResetSmtpState
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail-Sever-States'!
+	category: 'Stamp-Mail-Server-States'!
 
 !SPResetSmtpState commentStamp: '<historical>' prior: 0!
 The server is reset and can receive a new mail.!
@@ -910,7 +1058,7 @@ Object subclass: #SPUser
 	instanceVariableNames: 'name address lists'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Model'!
+	category: 'Stamp-Users'!
 
 !SPUser commentStamp: '<historical>' prior: 0!
 A Stamp user.!
@@ -1003,7 +1151,7 @@ Object subclass: #SPUserManager
 	instanceVariableNames: 'kernel users'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Model'!
+	category: 'Stamp-Users'!
 
 !SPUserManager commentStamp: '<historical>' prior: 0!
 User manager for Stamp.!
@@ -1061,6 +1209,30 @@ user: nameString
 
 	^ self userShouldExist: nameString.! !
 
+!String methodsFor: '*Stamp' stamp: 'as 3/7/2006 12:09'!
+convertToSmtpText
+
+	"SMTP likes CRLF as end of line characters, so CR and LF are converted to CRLF."
+
+	| convertedString cr lf |
+	cr := String cr.
+	lf := String lf.
+	convertedString := self copyReplaceAll: lf with: cr.
+	convertedString := convertedString copyReplaceAll: cr with: cr, lf.
+	^ convertedString.! !
+
+!String methodsFor: '*Stamp' stamp: 'as 3/7/2006 11:43'!
+convertToSqueakText
+
+	"Squeak likes CR as end of line character, so CRLF and LF are converted to CR."
+
+	| convertedString cr lf |
+	cr := String cr.
+	lf := String lf.
+	convertedString := self copyReplaceAll: cr, lf with: cr.
+	convertedString := convertedString copyReplaceAll: lf with: cr.
+	^ convertedString.! !
+
 TcpService subclass: #SPMailListener
 	instanceVariableNames: 'kernel'
 	classVariableNames: ''
@@ -1087,106 +1259,35 @@ serve: aSocket
 	server := SPMailReceiver on: (SocketStream on: aSocket) withKernel: kernel.
 	server receive.! !
 
-WASystemConfiguration subclass: #SPSystemConfiguration
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Configuration'!
-
-!String methodsFor: '*Stamp' stamp: 'as 3/7/2006 12:09'!
-convertToSmtpText
-
-	"SMTP likes CRLF as end of line characters, so CR and LF are converted to CRLF."
-
-	| convertedString cr lf |
-	cr := String cr.
-	lf := String lf.
-	convertedString := self copyReplaceAll: lf with: cr.
-	convertedString := convertedString copyReplaceAll: cr with: cr, lf.
-	^ convertedString.! !
-
-!String methodsFor: '*Stamp' stamp: 'as 3/7/2006 11:43'!
-convertToSqueakText
-
-	"Squeak likes CR as end of line character, so CRLF and LF are converted to CR."
-
-	| convertedString cr lf |
-	cr := String cr.
-	lf := String lf.
-	convertedString := self copyReplaceAll: cr, lf with: cr.
-	convertedString := convertedString copyReplaceAll: lf with: cr.
-	^ convertedString.! !
-
-SMTPClient subclass: #SPMailSender
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Client'!
-
-!SPMailSender commentStamp: '<historical>' prior: 0!
-Some changes to SMTPClient.!
-
-!SPMailSender class methodsFor: 'sending mail' stamp: 'as 3/16/2006 15:58'!
-deliverMessage: aMailMessage usingServer: aString
-
-	self
-		deliverMailFrom: aMailMessage from
-		to: aMailMessage recipients
-		text: aMailMessage text
-		usingServer: aString.! !
-
-!SPMailSender class methodsFor: 'instance creation' stamp: 'as 2/22/2006 15:08'!
-openOnHost: hostIP port: portNumber
-
-	^ self new openOnHost: hostIP port: portNumber! !
-
-!SPMailSender methodsFor: 'private protocol' stamp: 'as 2/22/2006 14:43'!
-login
-
-	"anonymous"
-	self initiateSession.! !
-
-!SPMailSender methodsFor: 'actions' stamp: 'as 2/22/2006 15:48'!
-reopen
-
-	self close.
-	self ensureConnection.! !
-
-!SPMailSender methodsFor: 'private protocol' stamp: 'as 2/22/2006 15:15'!
-reset
-
-	self sendCommand: 'RSET'.
-	self checkResponse.! !
-
 Exception subclass: #SPModelException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Model'!
+	category: 'Stamp-Core'!
 
 SPModelException subclass: #SPListAlreadyExistsException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Model'!
+	category: 'Stamp-Lists'!
 
 SPModelException subclass: #SPListAlreadyIncludedException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Model'!
+	category: 'Stamp-Lists'!
 
 SPModelException subclass: #SPListNotFoundException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Model'!
+	category: 'Stamp-Lists'!
 
 SPModelException subclass: #SPListNotIncludedException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Model'!
+	category: 'Stamp-Lists'!
 
 !SPModelException methodsFor: 'priv handling' stamp: 'as 3/20/2006 15:58'!
 isResumable
@@ -1197,25 +1298,25 @@ SPModelException subclass: #SPUserAlreadyExistsException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Model'!
+	category: 'Stamp-Users'!
 
 SPModelException subclass: #SPUserAlreadyIncludedException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Model'!
+	category: 'Stamp-Users'!
 
 SPModelException subclass: #SPUserNotFoundException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Model'!
+	category: 'Stamp-Users'!
 
 SPModelException subclass: #SPUserNotIncludedException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Model'!
+	category: 'Stamp-Users'!
 
 Exception subclass: #SPSmtpCommandException
 	instanceVariableNames: 'server'
@@ -1492,4 +1593,45 @@ testCrLf
 testLf
 
 	self assert: lf convertToSqueakText = cr.! !
+
+SMTPClient subclass: #SPMailSender
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Client'!
+
+!SPMailSender commentStamp: '<historical>' prior: 0!
+Some changes to SMTPClient.!
+
+!SPMailSender class methodsFor: 'sending mail' stamp: 'as 3/16/2006 15:58'!
+deliverMessage: aMailMessage usingServer: aString
+
+	self
+		deliverMailFrom: aMailMessage from
+		to: aMailMessage recipients
+		text: aMailMessage text
+		usingServer: aString.! !
+
+!SPMailSender class methodsFor: 'instance creation' stamp: 'as 2/22/2006 15:08'!
+openOnHost: hostIP port: portNumber
+
+	^ self new openOnHost: hostIP port: portNumber! !
+
+!SPMailSender methodsFor: 'private protocol' stamp: 'as 2/22/2006 14:43'!
+login
+
+	"anonymous"
+	self initiateSession.! !
+
+!SPMailSender methodsFor: 'actions' stamp: 'as 2/22/2006 15:48'!
+reopen
+
+	self close.
+	self ensureConnection.! !
+
+!SPMailSender methodsFor: 'private protocol' stamp: 'as 2/22/2006 15:15'!
+reset
+
+	self sendCommand: 'RSET'.
+	self checkResponse.! !
 SPSmtpCommand initialize!
