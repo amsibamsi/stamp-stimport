@@ -441,10 +441,10 @@ testInitialization
 	self assert: user isActive.
 	self assert: user contacts isEmpty.! !
 
-!SPUserTest methodsFor: 'test' stamp: 'as 9/18/2006 14:22'!
+!SPUserTest methodsFor: 'test' stamp: 'as 2/15/2007 12:36'!
 testPassword
 
-	user checkPassword: self userPassword.! !
+	user verifyPassword: self userPassword.! !
 
 !SPUserTest methodsFor: 'test' stamp: 'as 9/12/2006 16:32'!
 testRemoveContact
@@ -786,8 +786,8 @@ SPException subclass: #SPSyntaxException
 	poolDictionaries: ''
 	category: 'Stamp-Core'!
 
-!SPSyntaxException commentStamp: '<historical>' prior: 0!
-Stamp syntax exception.!
+!SPSyntaxException commentStamp: 'as 2/15/2007 12:49' prior: 0!
+Invalid syntax.!
 
 SPException subclass: #SPTooMuchDataException
 	instanceVariableNames: ''
@@ -1194,13 +1194,11 @@ verification
 
 	^ verification.! !
 
-!SPContact methodsFor: 'verification' stamp: 'as 2/5/2007 10:32'!
+!SPContact methodsFor: 'verification' stamp: 'as 2/15/2007 14:23'!
 verify: aString
 
-	self isVerified ifFalse: [
-		verification = aString
-			ifTrue: [ verification _ nil. ]
-			ifFalse: [ SPContactVerificationFailedException signal. ].
+	^ self isVerified ifFalse: [
+		verification = aString ifTrue: [ verification _ nil. ].
 	].! !
 
 Object subclass: #SPDummy
@@ -1402,7 +1400,7 @@ show
 	visible := true.! !
 
 Object subclass: #SPListManager
-	instanceVariableNames: 'users lists subscriptions monitor'
+	instanceVariableNames: 'users lists subscriptions monitor contacts newContacts'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-ListManager'!
@@ -1430,28 +1428,37 @@ activeSubscriptionsForList: aSPList
 		].
 	].! !
 
-!SPListManager methodsFor: 'add-remove' stamp: 'as 2/2/2007 14:48'!
-addContact: aSPContact
+!SPListManager methodsFor: 'add-remove' stamp: 'as 2/15/2007 13:43'!
+addContact: addressString user: aSPUser
 
+	| address contact |
+	address _ SPMailAddress fromString: addressString.
+	contact _ SPContact withAddress: address user: aSPUser.
+	self assert: (contact isVerified not).
 	monitor critical: [
-		self assert: (aSPContact isVerified not).
-		aSPContact user addContact: aSPContact.
+		self checkUserExists: aSPUser.
+		newContacts add: contact.
 	].! !
 
-!SPListManager methodsFor: 'add-remove' stamp: 'as 2/13/2007 18:30'!
-addList: aSPList
+!SPListManager methodsFor: 'add-remove' stamp: 'as 2/15/2007 13:13'!
+addList: addressString name: nameString
 
+	| list address |
+	address _ SPMailAddress fromString: addressString.
+	list _ SPList withAddress: address name: nameString.
 	monitor critical: [
-		(lists includes: aSPList) ifTrue: [ SPListAlreadyExistsException signal. ].
-		lists add: aSPList.
+		self checkListExistsNot.
+		lists add: list.
 	].! !
 
-!SPListManager methodsFor: 'add-remove' stamp: 'as 2/13/2007 18:30'!
-addUser: aSPUser
+!SPListManager methodsFor: 'add-remove' stamp: 'as 2/15/2007 12:41'!
+addUser: nameString password: passwordString
 
+	| user |
+	user _ SPUser withName: nameString password: passwordString.
 	monitor critical: [
-		(users includes: aSPUser) ifTrue: [ SPUserAlreadyExistsException signal. ].
-		users add: aSPUser.
+		self checkExistsNot: user.
+		users add: user.
 	].! !
 
 !SPListManager methodsFor: 'configuration' stamp: 'as 2/12/2007 15:49'!
@@ -1459,29 +1466,48 @@ adminAddress
 
 	^ SPKernel instance configurator preferenceAt: #adminAddress.! !
 
-!SPListManager methodsFor: 'get-list' stamp: 'as 2/12/2007 15:51'!
-adminForList: aSPList
-
-	^ monitor critical: [
-		aSPList admin ifNil: [ self adminAddress. ].
-	].! !
-
-!SPListManager methodsFor: 'get-list' stamp: 'as 2/6/2007 15:37'!
+!SPListManager methodsFor: 'get-list' stamp: 'as 2/15/2007 14:18'!
 allLists
 
-	^ monitor critical: [
-		lists.
-	].! !
+	^ lists.! !
 
 !SPListManager methodsFor: 'get-subscription' stamp: 'as 1/24/2007 15:25'!
 allSubscriptions
 
 	^ monitor critical: [ subscriptions. ].! !
 
-!SPListManager methodsFor: 'get-user' stamp: 'as 1/24/2007 15:26'!
+!SPListManager methodsFor: 'get-user' stamp: 'as 2/15/2007 14:18'!
 allUsers
 
-	^ monitor critical: [ users. ].! !
+	^ users.! !
+
+!SPListManager methodsFor: 'check' stamp: 'as 2/15/2007 13:49'!
+checkContactExists: aSPContact
+
+	(self contactExists: aSPContact) ifFalse: [
+		SPContactNotFoundException signal.
+	].! !
+
+!SPListManager methodsFor: 'check' stamp: 'as 2/15/2007 13:56'!
+checkContactVerified: aSPContact
+
+	monitor critical: [
+		aSPContact isVerified ifFalse: [ SPContactNotVerifiedException signal. ].
+	].! !
+
+!SPListManager methodsFor: 'check' stamp: 'as 2/15/2007 13:13'!
+checkListExists: aSPList
+
+	(self listExists: aSPList) ifFalse: [
+		SPListNotFoundException signal.
+	].! !
+
+!SPListManager methodsFor: 'check' stamp: 'as 2/15/2007 13:13'!
+checkListExistsNot: aSPList
+
+	(self listExists: aSPList) ifTrue: [
+		SPListAlreadyExistsException signal.
+	].! !
 
 !SPListManager methodsFor: 'check' stamp: 'as 2/13/2007 17:39'!
 checkNotRootUser: aSPUser
@@ -1490,18 +1516,63 @@ checkNotRootUser: aSPUser
 		SPRootUserException signal.
 	].! !
 
-!SPListManager methodsFor: 'initialize-release' stamp: 'as 2/13/2007 17:24'!
+!SPListManager methodsFor: 'check' stamp: 'as 2/15/2007 14:26'!
+checkSubscriptionExists: aSPSubscription
+
+	(self subscriptionExists: aSPSubscription) ifFalse: [
+		SPSubscriptionNotFoundException signal.
+	].! !
+
+!SPListManager methodsFor: 'check' stamp: 'as 2/15/2007 14:26'!
+checkSubscriptionExistsNot: aSPSubscription
+
+	(self subscriptionExists: aSPSubscription) ifTrue: [
+		SPAlreadySubscribedException signal.
+	].! !
+
+!SPListManager methodsFor: 'check' stamp: 'as 2/14/2007 22:24'!
+checkUserExists: aSPUser
+
+	(self userExists: aSPUser) ifFalse: [
+		SPUserNotFoundException signal.
+	].! !
+
+!SPListManager methodsFor: 'check' stamp: 'as 2/15/2007 12:42'!
+checkUserExistsNot: aSPUser
+
+	(self userExists: aSPUser) ifTrue: [
+		SPUserAlreadyExistsException signal.
+	].! !
+
+!SPListManager methodsFor: 'check' stamp: 'as 2/15/2007 14:33'!
+checkVerifiedContactExistsNot: aSPContact
+
+	monitor critical: [
+		(self verifiedContactExists: aSPContact) ifTrue: [
+			SPContactAlreadyExistsException signal.
+		].
+	].! !
+
+!SPListManager methodsFor: 'test' stamp: 'as 2/15/2007 13:50'!
+contactExists: aSPContact
+
+	^ monitor critical: [
+		(contacts includes: aSPContact) or: [ newContacts includes: aSPContact. ].
+	].! !
+
+!SPListManager methodsFor: 'initialize-release' stamp: 'as 2/15/2007 12:43'!
 initRootUser
 
-	self addUser:
-		(SPUser withName: self rootUsername password: self rootInitialPassword).! !
+	self addUser: self rootUsername password: self rootInitialPassword.! !
 
-!SPListManager methodsFor: 'initialize-release' stamp: 'as 2/13/2007 17:21'!
+!SPListManager methodsFor: 'initialize-release' stamp: 'as 2/15/2007 13:42'!
 initialize
 
 	users _ Set new.
 	lists _ Set new.
 	subscriptions _ Set new.
+	newContacts _ IdentitySet new.
+	contacts _ Set new.
 	monitor _ Monitor new.
 	
 	self initRootUser.! !
@@ -1543,11 +1614,11 @@ isSubscribed: aSPUser to: aSPList
 		] ifNone: [ nil. ]) notNil.
 	].! !
 
-!SPListManager methodsFor: 'add-remove' stamp: 'as 2/6/2007 18:15'!
-list: aSPList admin: aSPMailAddress
+!SPListManager methodsFor: 'test' stamp: 'as 2/14/2007 22:23'!
+listExists: aSPList
 
-	monitor critical: [
-		aSPList admin: aSPMailAddress.
+	^ monitor critical: [
+		lists includes: aSPList.
 	].! !
 
 !SPListManager methodsFor: 'get-list' stamp: 'as 1/24/2007 15:25'!
@@ -1559,29 +1630,32 @@ listWithAddress: aSPMailAddress
 			ifNone: [ nil. ].
 	].! !
 
-!SPListManager methodsFor: 'add-remove' stamp: 'as 1/24/2007 15:24'!
+!SPListManager methodsFor: 'add-remove' stamp: 'as 2/15/2007 13:48'!
 removeContact: aSPContact
 
 	monitor critical: [
-		aSPContact user removeContact: aSPContact.
+		self checkContactExists: aSPContact.
+		contacts remove: aSPContact ifAbsent: [].
+		newContacts remove: aSPContact ifAbsent: [].
 		subscriptions removeAll: (self subscriptionsForContact: aSPContact).
 	].! !
 
-!SPListManager methodsFor: 'add-remove' stamp: 'as 1/24/2007 15:24'!
+!SPListManager methodsFor: 'add-remove' stamp: 'as 2/15/2007 13:52'!
 removeList: aSPList
 
 	monitor critical: [
-		lists remove: aSPList ifAbsent: [ SPListNotFoundException signal. ].
+		self checkListExists: aSPList.
+		lists remove: aSPList.
 		subscriptions removeAll: (self subscriptionsForList: aSPList).
 	].! !
 
-!SPListManager methodsFor: 'add-remove' stamp: 'as 2/13/2007 17:17'!
+!SPListManager methodsFor: 'add-remove' stamp: 'as 2/15/2007 13:53'!
 removeUser: aSPUser
 
 	self checkNotRootUser.
 
 	monitor critical: [
-		users remove: aSPUser ifAbsent: [ SPUserNotFoundException signal. ].
+		self checkUserExists: aSPUser.
 		subscriptions removeAll: (self subscriptionsForUser: aSPUser).
 	].! !
 
@@ -1595,16 +1669,14 @@ rootUsername
 
 	^ 'root'.! !
 
-!SPListManager methodsFor: 'subscription' stamp: 'as 2/2/2007 17:57'!
+!SPListManager methodsFor: 'subscription' stamp: 'as 2/15/2007 13:57'!
 subscribe: aSPContact to: aSPList
 
 	| subscription |
 	monitor critical: [
-		aSPContact isVerified ifFalse: [ SPContactNotVerifiedException signal. ].
+		self checkContactVerified: aSPContact.
 		subscription _ SPSubscription withList: aSPList contact: aSPContact.
-		(subscriptions includes: subscription) ifTrue: [
-			SPAlreadySubscribedException signal.
-		].
+		self checkSubscriptionExistsNot: subscription.
 		subscriptions add: subscription.
 	].! !
 
@@ -1629,11 +1701,19 @@ subscriptionsForUser: aSPUser
 		subscriptions select: [ :each | SPUser contacts includes: each contact. ].
 	].! !
 
-!SPListManager methodsFor: 'subscription' stamp: 'as 1/24/2007 15:28'!
+!SPListManager methodsFor: 'subscription' stamp: 'as 2/15/2007 13:59'!
 unsubscribe: aSPSubscription
 
 	monitor critical: [
-		subscriptions remove: aSPSubscription ifAbsent: [ SPSubscriptionNotFoundException signal. ].
+		self checkSubscriptionExists: aSPSubscription.
+		subscriptions remove: aSPSubscription.
+	].! !
+
+!SPListManager methodsFor: 'test' stamp: 'as 2/14/2007 22:22'!
+userExists: aSPUser
+
+	^ monitor critical: [
+		users includes: aSPUser.
 	].! !
 
 !SPListManager methodsFor: 'get-user' stamp: 'as 2/5/2007 10:46'!
@@ -1654,42 +1734,25 @@ userWithName: aString
 			ifNone: [ nil. ].
 	].! !
 
-!SPListManager methodsFor: 'get-contact' stamp: 'as 2/2/2007 15:07'!
-verifiedContacts
+!SPListManager methodsFor: 'test' stamp: 'as 2/15/2007 14:34'!
+verifiedContactExists: aSPContact
 
-	| contacts |
-	contacts _ IdentitySet new.
-	monitor critical: [
-		users do: [
-			:each |
-			contacts addAll: (each verifiedContacts).
-		].
-	].
-	^ contacts.! !
-
-!SPListManager methodsFor: 'verification' stamp: 'as 2/13/2007 16:51'!
-verifyContact: aSPContact code: aString
-
-	monitor critical: [
-		(self verifiedContacts includes: aSPContact) ifTrue: [
-			SPContactAlreadyExistsException signal.
-		].
-		aSPContact verify: aString.
+	^ monitor critical: [
+		contacts includes: aSPContact.
 	].! !
 
-!SPListManager methodsFor: 'verification' stamp: 'as 2/13/2007 16:54'!
-verifyUser: userString password: passwordString
+!SPListManager methodsFor: 'get-contact' stamp: 'as 2/15/2007 14:17'!
+verifiedContacts
 
-	| user verified |
-	monitor critical: [
-		user _ self userWithName: userString.
-		user ifNil: [
-			verified _ false.
-		] ifNotNil: [
-			verified _ user checkPassword: passwordString.
-		].
-	].
-	^ verified.! !
+	^ contacts.! !
+
+!SPListManager methodsFor: 'verification' stamp: 'as 2/15/2007 14:23'!
+verifyContact: aSPContact code: aString
+
+	^ monitor critical: [
+		self checkVerifiedContactExistsNot: aSPContact.
+		aSPContact verify: aString.
+	].! !
 
 !SPListManager methodsFor: 'get-list' stamp: 'as 2/2/2007 14:52'!
 visibleLists
@@ -1708,28 +1771,31 @@ Object subclass: #SPMailAddress
 An electronic mail address.
 Consists of a local part (part before '@') which is case sensitive and a domain (part after '@') that is case insensitive.!
 
-!SPMailAddress class methodsFor: 'instance creation' stamp: 'as 11/7/2006 16:26'!
+!SPMailAddress class methodsFor: 'instance creation' stamp: 'as 2/15/2007 13:10'!
 fromPath: aString
-
-	| address localPart domain |
-	address := self mailPathToAddress: aString.
-	localPart := address copyUpTo: $@.
-	domain := (address copyAfter: $@) asLowercase.
-	(localPart isNil or: [ domain isNil. ])
-		ifTrue: [ SPInvalidMailAddressException signal. ].
-	^ self new
-		localPart: localPart;
-		domain: domain.! !
-
-!SPMailAddress class methodsFor: 'instance creation' stamp: 'as 11/7/2006 16:22'!
-mailPathToAddress: aString
 
 	| address |
 	(SPSyntax isMailPath: aString)
 		ifFalse: [ SPInvalidMailAddressException signal. ].
-	address := aString copyFrom: 2 to: aString size - 1.
-	(address includes: $:) ifTrue: [ address := address copyAfterLast: $:. ].
-	^ address.! !
+	address _ aString copyFrom: 2 to: aString size - 1.
+	(address includes: $:) ifTrue: [ address _ address copyAfterLast: $:. ].
+	^ self fromString: address.! !
+
+!SPMailAddress class methodsFor: 'instance creation' stamp: 'as 2/15/2007 13:09'!
+fromString: aString
+
+	| localPart domain |
+	(SPSyntax isMailAddress: aString)
+		ifFalse: [ SPInvalidMailAddressException signal. ].
+	localPart _ aString copyUpTo: $@.
+	domain _ (aString copyAfter: $@) asLowercase.
+	(localPart isNil or: [ domain isNil. ])
+		ifTrue: [ SPInvalidMailAddressException signal. ].
+	(localPart isEmpty or: [ domain isEmpty. ])
+		ifTrue: [ SPInvalidMailAddressException signal. ].
+	^ self new
+		localPart: localPart;
+		domain: domain.! !
 
 !SPMailAddress methodsFor: 'compare' stamp: 'as 10/21/2006 12:10'!
 = aSPMailAddress
@@ -3242,6 +3308,12 @@ checkDomainLength: aString
 	aString size > self maxDomainLength
 		ifTrue: [ SPSyntaxException signal: 'domain length limit is', self maxDomainLength. ].! !
 
+!SPSyntax class methodsFor: 'check' stamp: 'as 2/15/2007 13:05'!
+checkMailAddressLength: aString
+
+	aString size > (self maxMailPathLength - 2)
+		ifTrue: [ SPSyntaxException signal: 'mail address length limit is', (self maxMailPathLength - 2). ].! !
+
 !SPSyntax class methodsFor: 'check' stamp: 'as 10/20/2006 17:24'!
 checkMailPathLength: aString
 
@@ -3258,6 +3330,12 @@ isDomain: aString
 isIPv4Address: aString
 
 	^ aString matchesRegex: self reIPv4AddressLiteral.! !
+
+!SPSyntax class methodsFor: 'test' stamp: 'as 2/15/2007 13:04'!
+isMailAddress: aString
+
+	self checkMailAddressLength: aString.
+	^ aString matchesRegex: self reMailAddress.! !
 
 !SPSyntax class methodsFor: 'test' stamp: 'as 10/20/2006 17:58'!
 isMailPath: aString
@@ -3329,6 +3407,11 @@ reLetDig
 
 	^ '[[:alnum:]]'.! !
 
+!SPSyntax class methodsFor: 'regex' stamp: 'as 2/15/2007 13:05'!
+reMailAddress
+
+	^ '.*@.*'.! !
+
 !SPSyntax class methodsFor: 'regex' stamp: 'as 10/20/2006 17:07'!
 reMailFrom
 
@@ -3355,7 +3438,7 @@ reSubDomain
 	^ self reLetDig, '(', self reLdhStr, ')?'.! !
 
 Object subclass: #SPUser
-	instanceVariableNames: 'name password contacts active'
+	instanceVariableNames: 'name password active'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-ListManager'!
@@ -3381,24 +3464,6 @@ activate
 
 	active := true.! !
 
-!SPUser methodsFor: 'contacts' stamp: 'as 2/4/2007 21:56'!
-addContact: aSPContact
-
-	(contacts includes: aSPContact) ifTrue: [
-		SPContactAlreadyExistsException signal.
-	].
-	contacts add: aSPContact.! !
-
-!SPUser methodsFor: 'password' stamp: 'as 9/26/2006 15:02'!
-checkPassword: aString
-
-	^ password check: aString.! !
-
-!SPUser methodsFor: 'access' stamp: 'as 2/2/2007 14:59'!
-contacts
-
-	^ contacts.! !
-
 !SPUser methodsFor: 'state' stamp: 'as 9/5/2006 11:26'!
 deactivate
 
@@ -3409,10 +3474,9 @@ hash
 
 	^ name hash.! !
 
-!SPUser methodsFor: 'initialize-release' stamp: 'as 2/2/2007 18:20'!
+!SPUser methodsFor: 'initialize-release' stamp: 'as 2/15/2007 14:38'!
 initialize
 
-	contacts _ Set new.
 	self activate.! !
 
 !SPUser methodsFor: 'test' stamp: 'as 9/5/2006 11:22'!
@@ -3440,20 +3504,10 @@ password: aString
 
 	password := SPPassword withPassword: aString.! !
 
-!SPUser methodsFor: 'contacts' stamp: 'as 11/17/2006 21:10'!
-removeContact: aSPContact
+!SPUser methodsFor: 'password' stamp: 'as 2/15/2007 12:26'!
+verifyPassword: aString
 
-	contacts remove: aSPContact ifAbsent: [ SPContactNotFoundException signal. ].! !
-
-!SPUser methodsFor: 'contacts' stamp: 'as 2/2/2007 14:36'!
-unverifiedContacts
-
-	^ contacts select: [ :contact | contact isVerified not. ].! !
-
-!SPUser methodsFor: 'contacts' stamp: 'as 2/2/2007 14:36'!
-verifiedContacts
-
-	^ contacts select: [ :contact | contact isVerified. ].! !
+	^ password check: aString.! !
 
 !MailDBFile methodsFor: '*Stamp' stamp: 'as 10/3/2006 17:35'!
 reopen
@@ -3573,7 +3627,7 @@ title
 	^ 'Stamp'.! !
 
 WAComponent subclass: #SPWebContacts
-	instanceVariableNames: ''
+	instanceVariableNames: 'user'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Web'!
@@ -3581,10 +3635,30 @@ WAComponent subclass: #SPWebContacts
 !SPWebContacts commentStamp: 'as 2/14/2007 15:11' prior: 0!
 Contact management.!
 
-!SPWebContacts methodsFor: 'rendering' stamp: 'as 2/14/2007 15:20'!
+!SPWebContacts class methodsFor: 'instance creation' stamp: 'as 2/14/2007 22:11'!
+withUser: aSPUser
+
+	^ self new
+		user: aSPUser.! !
+
+!SPWebContacts methodsFor: 'rendering' stamp: 'as 2/14/2007 22:18'!
 renderContentOn: html
 
-	! !
+	html table: [
+		html tableHeadings: #('Address' 'Verified' 'Active').
+		SPKernel instance manager allLists do: [
+			:each |
+			html tableRow: [
+				html tableData: [ html text: each name ].
+				html tableData: [ html text: each address asString. ].
+			].
+		].
+	].! !
+
+!SPWebContacts methodsFor: 'access' stamp: 'as 2/14/2007 22:12'!
+user: aSPUser
+
+	user _ aSPUser.! !
 
 WAComponent subclass: #SPWebEmpty
 	instanceVariableNames: ''
@@ -3826,12 +3900,11 @@ cancel
 
 	self answer.! !
 
-!SPWebRegister methodsFor: 'register' stamp: 'as 2/14/2007 15:08'!
+!SPWebRegister methodsFor: 'register' stamp: 'as 2/15/2007 12:43'!
 register
 
 	[
-		SPKernel instance manager addUser:
-			(SPUser withName: username password: password).
+		SPKernel instance manager addUser: username password: password.
 	] on: Exception do: [
 		:ex |
 		self call: (SPWebException withException: ex).
