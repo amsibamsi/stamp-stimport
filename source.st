@@ -105,7 +105,7 @@ testClassComment
 	].! !
 
 Object subclass: #SPMailReceiver
-	instanceVariableNames: 'state stream message sender recipient dataMode'
+	instanceVariableNames: 'state stream message sender recipient dataMode quit'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail'!
@@ -137,12 +137,13 @@ gotoState: aSPMailReceiverState
 
 	state := aSPMailReceiverState.! !
 
-!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 1/14/2006 22:03'!
+!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 1/18/2006 17:10'!
 initialize
 
-	message := MailMessage new.
-	state := SPReadySmtpState on: self.
-	self enterCommandMode.! !
+	self reset.
+	self gotoState: (SPReadySmtpState on: self).
+	self enterCommandMode.
+	quit := false.! !
 
 !SPMailReceiver methodsFor: 'receiving' stamp: 'as 1/14/2006 22:14'!
 mailFrom: aString
@@ -154,21 +155,20 @@ mailTo: aString
 
 	recipient := aString.! !
 
-!SPMailReceiver methodsFor: 'actions' stamp: 'as 1/14/2006 22:06'!
+!SPMailReceiver methodsFor: 'actions' stamp: 'as 1/18/2006 17:13'!
 receive
 
 	"Receive mail message(s) from the client, line by line."
 
 	self reply: SPSmtpReply ready.
-	[ stream isConnected ] whileTrue: [
+	[ quit not and: [ stream isConnected ] ] whileTrue: [
 		dataMode ifFalse: [
 			self receiveCommand.
 		] ifTrue: [
 			self receiveData.
 		]
 	].
-	stream close.
-	^ message.! !
+	stream close.! !
 
 !SPMailReceiver methodsFor: 'private' stamp: 'as 1/18/2006 16:27'!
 receiveCommand
@@ -182,12 +182,13 @@ receiveCommand
 		on: SPSmtpCommandException
 		do: [ :ex | ex defaultAction. ex return. ].! !
 
-!SPMailReceiver methodsFor: 'private' stamp: 'as 1/14/2006 22:12'!
+!SPMailReceiver methodsFor: 'private' stamp: 'as 1/18/2006 17:03'!
 receiveData
 
 	message from: (stream upToAll: String crlf, '.', String crlf).
 	self reply: SPSmtpReply okay.
-	self enterCommandMode.! !
+	message inspect.
+	self reset.! !
 
 !SPMailReceiver methodsFor: 'actions' stamp: 'as 1/11/2006 14:31'!
 reply: aString
@@ -195,6 +196,19 @@ reply: aString
 	"Reply a message to the client."
 
 	stream nextPutAll: aString; crlf; flush.! !
+
+!SPMailReceiver methodsFor: 'actions' stamp: 'as 1/18/2006 17:10'!
+requestQuit
+
+	quit := true.! !
+
+!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 1/18/2006 17:18'!
+reset
+
+	message := MailMessage new.
+	sender := nil.
+	recipient := nil.
+	self enterCommandMode.! !
 
 !SPMailReceiver methodsFor: 'state' stamp: 'as 1/11/2006 14:34'!
 state
@@ -341,6 +355,16 @@ verb
 
 	^ 'quit'.! !
 
+!SPQuitSmtpCommand methodsFor: 'executing' stamp: 'as 1/18/2006 17:09'!
+doExecute
+
+	target requestQuit.! !
+
+!SPQuitSmtpCommand methodsFor: 'executing' stamp: 'as 1/18/2006 17:09'!
+reply
+
+	^ SPSmtpReply okay.! !
+
 SPSmtpCommand subclass: #SPRecipientSmtpCommand
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -351,6 +375,16 @@ SPSmtpCommand subclass: #SPRecipientSmtpCommand
 verb
 
 	^ 'rcpt to:'.! !
+
+!SPRecipientSmtpCommand methodsFor: 'executing' stamp: 'as 1/18/2006 16:39'!
+doExecute
+
+	target mailTo: argument.! !
+
+!SPRecipientSmtpCommand methodsFor: 'executing' stamp: 'as 1/18/2006 16:39'!
+reply
+
+	^ SPSmtpReply okay.! !
 
 SPSmtpCommand subclass: #SPResetSmtpCommand
 	instanceVariableNames: ''
