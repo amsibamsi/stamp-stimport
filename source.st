@@ -1423,13 +1423,13 @@ renderContentOn: html
 	self renderTitle: 'Message Queue' on: html.
 	super renderContentOn: html.! !
 
-!SPWebQueue methodsFor: 'rendering' stamp: 'as 3/8/2007 17:47'!
+!SPWebQueue methodsFor: 'rendering' stamp: 'as 3/30/2007 16:50'!
 tableColumns
 
 	^ OrderedCollection new
 		add: (WAReportColumn new title: 'Subject'; valueBlock: [ :item | item message subject. ]; yourself);
 		add: (WAReportColumn new title: 'Sender'; valueBlock: [ :item | item message sender asString. ]; yourself);
-		add: (WAReportColumn new title: 'Recipients (1 shown)'; valueBlock: [ :item | | recipients | recipients _ item message recipients. recipients ifEmpty: [ ''. ] ifNotEmpty: [ recipients atRandom asString. ]. ]; yourself);
+		add: (WAReportColumn new title: 'Recipient'; valueBlock: [ :item | item message originalRecipients atRandom asString. ]; yourself);
 		add: (WAReportColumn new title: 'Date'; valueBlock: [ :item | item message date asTimeStamp asString. ]; yourself);
 		add: (WAReportColumn selector: #state title: 'State');
 		add: (WAReportColumn new title: 'Attempts'; valueBlock: [ :item | item attempts asString, '/', self queueSendAttempts asString. ]; yourself);
@@ -2274,10 +2274,10 @@ renderNavigation: html items: aCollection
 		].
 	].! !
 
-!SPWebMain methodsFor: 'rendering' stamp: 'as 3/26/2007 17:07'!
+!SPWebMain methodsFor: 'rendering' stamp: 'as 3/30/2007 17:56'!
 rootNavigationItems
 
-	^ #('List Administration' 'User Administration' 'Pending Subscriptions' 'Queue' 'System' 'Configuration' 'Logout' 'Change Password').! !
+	^ #('List Administration' 'User Administration' 'Pending Subscriptions' 'Queue' 'System' 'Configuration' 'Change Password' 'Logout').! !
 
 !SPWebMain methodsFor: 'rendering' stamp: 'as 3/30/2007 11:31'!
 style
@@ -2322,10 +2322,10 @@ user: aSPUser
 
 	user _ aSPUser.! !
 
-!SPWebMain methodsFor: 'rendering' stamp: 'as 3/26/2007 17:07'!
+!SPWebMain methodsFor: 'rendering' stamp: 'as 3/30/2007 17:56'!
 userNavigationItems
 
-	^ #('Lists' 'Subscriptions' 'Contacts' 'Logout' 'Change Password' 'Unregister').! !
+	^ #('Lists' 'Subscriptions' 'Contacts' 'Change Password' 'Unregister' 'Logout').! !
 
 SPWAComponent subclass: #SPWebRegister
 	instanceVariableNames: 'username password confirmPassword'
@@ -3462,11 +3462,12 @@ initialize
 	
 	self addUser: self superUserName password: self superUserInitialPassword.! !
 
-!SPListManager methodsFor: 'testing' stamp: 'as 3/8/2007 16:39'!
+!SPListManager methodsFor: 'testing' stamp: 'as 3/30/2007 15:50'!
 isAllowed: aSPUser toPostTo: aSPList
 
 	| subscription |
 	aSPList isLocked ifFalse: [ ^ true. ].
+	aSPUser ifNil: [ ^ false. ].
 	subscription _ self subscriptionFor: aSPUser to: aSPList.
 	subscription ifNotNil: [
 		^ subscription isAccepted.
@@ -4272,6 +4273,14 @@ mail: aMailMessage
 
 	mail _ aMailMessage.! !
 
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 3/30/2007 16:48'!
+originalRecipients
+
+	^ recipients.! !
+
+!SPMailMessage methodsFor: 'sending' stamp: 'as 3/30/2007 14:37'!
+prepareToSend! !
+
 !SPMailMessage methodsFor: 'accessing' stamp: 'as 2/26/2007 10:03'!
 recipients
 
@@ -4350,27 +4359,25 @@ manager: aSPListManager
 
 	manager _ aSPListManager.! !
 
-!SPMailPosting methodsFor: 'posting' stamp: 'as 3/14/2007 14:31'!
+!SPMailPosting methodsFor: 'sending' stamp: 'as 3/30/2007 14:40'!
+prepareToSend
+
+	self checkIsAllowed.! !
+
+!SPMailPosting methodsFor: 'posting' stamp: 'as 3/30/2007 14:47'!
 recipientList
 
-	| list |
-	list _ manager listWithAddress: recipients atRandom.
-	list ifNil: [ SPListNotFoundException signal. ].
-	^ list.! !
+	^ manager listWithAddress: recipients atRandom.! !
 
-!SPMailPosting methodsFor: 'accessing' stamp: 'as 3/8/2007 15:26'!
+!SPMailPosting methodsFor: 'accessing' stamp: 'as 3/30/2007 14:39'!
 recipients
 
-	self checkIsAllowed.
 	^ self listRecipients.! !
 
-!SPMailPosting methodsFor: 'posting' stamp: 'as 3/14/2007 14:31'!
+!SPMailPosting methodsFor: 'posting' stamp: 'as 3/30/2007 14:41'!
 senderUser
 
-	| user |
-	user _ manager userWithAddress: sender.
-	user ifNil: [ SPUserNotFoundException signal. ].
-	^ user.! !
+	^ manager userWithAddress: sender.! !
 
 Object subclass: #SPMailQueue
 	instanceVariableNames: 'queue monitor config'
@@ -5904,13 +5911,18 @@ resolverTimeout
 
 	^ config preferenceAt: #resolverTimeout.! !
 
-!SPSmtpClient methodsFor: 'smtp' stamp: 'as 2/28/2007 22:09'!
+!SPSmtpClient methodsFor: 'smtp' stamp: 'as 3/30/2007 17:52'!
 sendMessage: aSPMailMessage
 
-	self
-		sendMessage: aSPMailMessage mail
-		from: aSPMailMessage sender
-		to: aSPMailMessage recipients.! !
+	| recipients |
+	recipients _ aSPMailMessage recipients.
+	recipients isEmpty ifFalse: [
+		aSPMailMessage prepareToSend.
+		self
+			sendMessage: aSPMailMessage mail
+			from: aSPMailMessage sender
+			to: aSPMailMessage recipients.
+	].! !
 
 !SPSmtpClient methodsFor: 'smtp' stamp: 'as 2/5/2007 11:24'!
 sendMessage: aMailMessage from: aSPMailAddress to: aCollection
