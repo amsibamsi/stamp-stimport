@@ -1043,10 +1043,10 @@ renderContentOn: html
 
 	html render: table.! !
 
-!SPWATable methodsFor: 'rendering' stamp: 'as 3/26/2007 13:06'!
+!SPWATable methodsFor: 'rendering' stamp: 'as 4/2/2007 11:23'!
 rowColors
 
-	^ #('lightgray' 'lightblue').! !
+	^ #('lightblue' 'white').! !
 
 !SPWATable methodsFor: 'rendering' stamp: 'as 3/5/2007 10:25'!
 tableColumns
@@ -1295,7 +1295,7 @@ renderContentOn: html
 	self renderAddList: html.
 	! !
 
-!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 4/1/2007 17:59'!
+!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 4/2/2007 11:14'!
 tableColumns
 
 	^ OrderedCollection new
@@ -1304,7 +1304,7 @@ tableColumns
 		add: (WAReportColumn new title: 'Admin'; valueBlock: [ :item | item admin asString. ]; yourself);
 		add: (WAReportColumn selector: #description title: 'Description');
 		add: (WAReportColumn new title: 'Subscriptions'; valueBlock: [ :item | self numberOfSubscriptions: item. ]; yourself);
-		add: (WAReportColumn selector: #isLocked title: 'Locked' onClick: [ :item | item invertLocking. ]);
+		add: (WAReportColumn new title: 'Locked'; valueBlock: [ :item | item isLocked asString. ]; clickBlock: [ :item | item invertLocking. ]; yourself);
 		add: (WAReportColumn new title: 'Edit'; valueBlock: [ : item | 'edit'. ]; clickBlock: [ :item | self edit: item.]; sortBlock: nil; yourself);
 		add: (WAReportColumn new title: 'Remove'; valueBlock: [ : item | 'remove'. ]; clickBlock: [ :item | self remove: item.]; sortBlock: nil; yourself);
 		yourself.! !
@@ -2422,10 +2422,11 @@ renderContentOn: html
 		html submitButtonOn: #cancel of: self.
 	].! !
 
-!SPWebSubscribe methodsFor: 'call/answer' stamp: 'as 3/26/2007 16:04'!
+!SPWebSubscribe methodsFor: 'call/answer' stamp: 'as 4/2/2007 11:40'!
 subscribe
 
 	self do: [
+		contact ifNil: [ SPContactNotFoundException signal. ].
 		self manager subscribe: contact to: list.
 		self answer.
 	] catchExceptions: SPException.! !
@@ -3503,7 +3504,7 @@ listWithAddress: aSPMailAddress
 			ifNone: [ nil. ].
 	].! !
 
-!SPListManager methodsFor: 'notifications' stamp: 'as 3/14/2007 13:51'!
+!SPListManager methodsFor: 'notifications' stamp: 'as 4/2/2007 11:48'!
 mailAcceptedSubscription: aSPSubscription
 
 ^ MailMessage from:
@@ -3514,7 +3515,7 @@ Date: ', MailMessage dateStampNow, ' ', self timezone, '
 
 Hi, this is Stamp, the mailing list manager at ', self serverName, '.
 
-Your subscription from for the list ', aSPSubscription list address asString,' was accepted.
+Your subscription for the list ', aSPSubscription list address asString,' was accepted.
 
 Sincerly,
 Stamp Mailing List Manager
