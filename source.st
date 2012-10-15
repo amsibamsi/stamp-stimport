@@ -1,41 +1,283 @@
 SystemOrganization addCategory: #'Stamp-Configuration'!
-SystemOrganization addCategory: #'Stamp-Storage'!
 SystemOrganization addCategory: #'Stamp-Core'!
-SystemOrganization addCategory: #'Stamp-Lists'!
+SystemOrganization addCategory: #'Stamp-ListManager'!
 SystemOrganization addCategory: #'Stamp-Mail-Client'!
 SystemOrganization addCategory: #'Stamp-Mail-Message'!
 SystemOrganization addCategory: #'Stamp-Mail-Server'!
 SystemOrganization addCategory: #'Stamp-Mail-Server-Commands'!
 SystemOrganization addCategory: #'Stamp-Mail-Server-States'!
+SystemOrganization addCategory: #'Stamp-Storage'!
 SystemOrganization addCategory: #'Stamp-Tests'!
-SystemOrganization addCategory: #'Stamp-Users'!
+SystemOrganization addCategory: #'Stamp-Web'!
+
+WASystemConfiguration subclass: #SPBaseConfiguration
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration'!
+
+!SPBaseConfiguration commentStamp: '<historical>' prior: 0!
+Basic configuration attributes for Stamp.!
+
+!SPBaseConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 15:28'!
+attributes
+
+	^ Array
+		with: (WAStringAttribute key: #rootDir).! !
+
+!SPBaseConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 15:28'!
+rootDir
+
+	^ 'stamp'.! !
+
+WASystemConfiguration subclass: #SPConfiguration
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration'!
+
+!SPConfiguration commentStamp: '<historical>' prior: 0!
+Configuration for a Stamp model component. Includes a basic configuration as ancestor by default.!
+
+!SPConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 15:32'!
+ancestors
+
+	^ Array
+		with: (SPBaseConfiguration localConfiguration).! !
+
+SPConfiguration subclass: #SPMailArchiveConfiguration
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration'!
+
+!SPMailArchiveConfiguration commentStamp: '<historical>' prior: 0!
+Mail archive configuration.!
+
+!SPMailArchiveConfiguration methodsFor: 'as yet unclassified' stamp: 'as 6/7/2006 17:15'!
+archiveDir
+
+	^ (self valueAt: #rootDir), '/archive'.! !
+
+!SPMailArchiveConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 15:23'!
+attributes
+
+	^ Array
+		with: (WAStringAttribute key: #archiveDir).! !
+
+SPConfiguration subclass: #SPMailListenerConfiguration
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration'!
+
+!SPMailListenerConfiguration commentStamp: '<historical>' prior: 0!
+Mail listener configuration.!
+
+!SPMailListenerConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 09:41'!
+attributes
+
+	^ Array
+		with: (WANumberAttribute key: #port).! !
+
+!SPMailListenerConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 09:42'!
+port
+
+	^ 2525.! !
+
+Object subclass: #SPConfigurable
+	instanceVariableNames: 'configuration'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration'!
+
+!SPConfigurable commentStamp: '<historical>' prior: 0!
+A component of Stamps model. Most likely you want to subclass this.!
+
+!SPConfigurable class methodsFor: 'configuration' stamp: 'as 5/30/2006 16:08'!
+configuration
+
+	| c |
+	c := Smalltalk classNamed: (self name, self defaultConfigurationSuffix).
+	c ifNil: [ c := self defaultConfiguration. ].
+	^ c localConfiguration.! !
+
+!SPConfigurable class methodsFor: 'configuration' stamp: 'as 5/30/2006 16:09'!
+defaultConfiguration
+
+	^ SPBaseConfiguration.! !
+
+!SPConfigurable class methodsFor: 'configuration' stamp: 'as 5/26/2006 10:20'!
+defaultConfigurationSuffix
+
+	^ 'Configuration'.! !
+
+!SPConfigurable methodsFor: 'configuration' stamp: 'as 7/26/2006 11:07'!
+configuration
+
+	^ configuration ifNil: [ configuration := WAUserConfiguration new addAncestor: self class configuration. ].! !
+
+!SPConfigurable methodsFor: 'configuration' stamp: 'as 7/26/2006 10:51'!
+preferenceAt: aSymbol
+
+	^ self configuration valueAt: aSymbol.! !
+
+!SPConfigurable methodsFor: 'configuration' stamp: 'as 7/26/2006 11:06'!
+preferenceAt: aSymbol put: anObject
+
+	self configuration valueAt: aSymbol put: anObject.! !
+
+SPConfigurable subclass: #SPMailArchive
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Storage'!
+
+!SPMailArchive commentStamp: '<historical>' prior: 0!
+Mail archive that basically wraps around MailDB.!
+
+!SPMailArchive methodsFor: 'messages' stamp: 'as 6/12/2006 14:15'!
+addNewMessage: aMailMessage
+
+	(MailDB openOn: 'stamp-archive') addNewMessage: aMailMessage.! !
+
+SPConfigurable subclass: #SPMailListener
+	instanceVariableNames: 'kernel service'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPMailListener commentStamp: '<historical>' prior: 0!
+Listens for incoming SMTP connections and treats them appropriately.!
+
+!SPMailListener class methodsFor: 'instance creation' stamp: 'as 5/30/2006 09:21'!
+withKernel: aSPKernel
+
+	^ self new kernel: aSPKernel.! !
+
+!SPMailListener methodsFor: 'starting and stopping' stamp: 'as 7/24/2006 09:28'!
+destroy
+
+	service unregister.
+	service := nil.! !
+
+!SPMailListener methodsFor: 'initialize-release' stamp: 'as 5/30/2006 09:31'!
+initialize
+
+	service := SPMailService withListener: self onPort: (self preferenceAt: #port).! !
+
+!SPMailListener methodsFor: 'accessing' stamp: 'as 5/30/2006 14:11'!
+kernel
+
+	^ kernel.! !
+
+!SPMailListener methodsFor: 'accessing' stamp: 'as 3/14/2006 14:36'!
+kernel: aSPKernel
+
+	kernel := aSPKernel.! !
+
+!SPMailListener methodsFor: 'starting and stopping' stamp: 'as 5/30/2006 14:06'!
+start
+
+	service start.! !
+
+!SPMailListener methodsFor: 'starting and stopping' stamp: 'as 5/30/2006 14:06'!
+stop
+
+	service stop.! !
+
+Object subclass: #SPContact
+	instanceVariableNames: 'address active'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager'!
+
+!SPContact class methodsFor: 'instance creation' stamp: 'as 8/17/2006 15:15'!
+withAddress: aSPMailAddress
+
+	^ self new
+		address: aSPMailAddress;
+		yourself.! !
+
+!SPContact methodsFor: 'accessing' stamp: 'as 8/18/2006 15:00'!
+active
+
+	^ active.! !
+
+!SPContact methodsFor: 'accessing' stamp: 'as 8/18/2006 15:00'!
+active: aBoolean
+
+	active := aBoolean.! !
+
+!SPContact methodsFor: 'accessing' stamp: 'as 8/17/2006 15:14'!
+address
+
+	^ address.! !
+
+!SPContact methodsFor: 'accessing' stamp: 'as 8/17/2006 15:14'!
+address: aSPMailAddress
+
+	address := aSPMailAddress.! !
+
+!SPContact methodsFor: 'comparing' stamp: 'as 8/17/2006 15:48'!
+hash
+
+	^ address name hash.! !
+
+!SPContact methodsFor: 'initialize-release' stamp: 'as 8/17/2006 15:41'!
+initialize
+
+	active := true.! !
+
+!SPContact methodsFor: 'comparing' stamp: 'as 8/17/2006 15:53'!
+= aSPContact
+
+	^ address name = aSPContact address name.! !
 
 Object subclass: #SPKernel
-	instanceVariableNames: 'config listener queue archive listManager userManager'
+	instanceVariableNames: 'listener queue archive listManager userManager name'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Core'!
 
+SPKernel class
+	instanceVariableNames: 'instance'!
+
 !SPKernel commentStamp: '<historical>' prior: 0!
 The core of a running Stamp application instance.!
+
+!SPKernel class methodsFor: 'instance creation' stamp: 'as 8/8/2006 16:22'!
+instance
+
+	^ instance ifNil: [ instance := self basicNew initialize. ].! !
+
+!SPKernel class methodsFor: 'instance creation' stamp: 'as 8/8/2006 16:20'!
+new
+
+	self shouldNotImplement.! !
 
 !SPKernel methodsFor: 'accessing' stamp: 'as 6/12/2006 14:08'!
 archive
 
 	^ archive.! !
 
-!SPKernel methodsFor: 'accessing' stamp: 'as 5/15/2006 11:25'!
-configuration
+!SPKernel methodsFor: 'actions' stamp: 'as 8/15/2006 17:17'!
+destroy
 
-	^ config.! !
+	listener destroy.
+	listener := nil.
+	queue := nil.
+	archive := nil.
+	listManager := nil.
+	userManager := nil.! !
 
-!SPKernel methodsFor: 'initialize-release' stamp: 'as 6/12/2006 13:28'!
+!SPKernel methodsFor: 'initialize-release' stamp: 'as 8/17/2006 11:05'!
 initialize
 
 	listener := SPMailListener withKernel: self.
 	queue := SPMailQueue withKernel: self.
 	archive := SPMailArchive new.
-	listManager := SPListManager withKernel: self.
+	listManager := SPListManagerOld withKernel: self.
 	userManager := SPUserManager withKernel: self.! !
 
 !SPKernel methodsFor: 'accessing' stamp: 'as 3/10/2006 16:19'!
@@ -47,6 +289,16 @@ listener
 listManager
 
 	^ listManager.! !
+
+!SPKernel methodsFor: 'accessing' stamp: 'as 7/24/2006 10:56'!
+name
+
+	^ name.! !
+
+!SPKernel methodsFor: 'accessing' stamp: 'as 7/24/2006 10:34'!
+name: aString
+
+	name := aString.! !
 
 !SPKernel methodsFor: 'accessing' stamp: 'as 3/10/2006 16:22'!
 queue
@@ -69,10 +321,10 @@ userManager
 	^ userManager.! !
 
 Object subclass: #SPList
-	instanceVariableNames: 'name users'
+	instanceVariableNames: 'name moderated'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Lists'!
+	category: 'Stamp-ListManager'!
 
 !SPList commentStamp: '<historical>' prior: 0!
 A Stamp mailing list.!
@@ -84,32 +336,25 @@ withName: aString
 		name: aString;
 		yourself.! !
 
-!SPList methodsFor: 'private' stamp: 'as 3/21/2006 15:18'!
-addNewUser: aSPUser
-
-	users add: aSPUser.! !
-
-!SPList methodsFor: 'operations' stamp: 'as 3/21/2006 14:54'!
-addUser: aSPUser
-
-	self shouldNotIncludeUser: aSPUser.
-	self addNewUser: aSPUser.
-	aSPUser addNewList: self.! !
-
-!SPList methodsFor: 'accessing' stamp: 'as 3/21/2006 15:03'!
-allUsers
-
-	^ users.! !
-
 !SPList methodsFor: 'comparing' stamp: 'as 3/9/2006 16:50'!
 hash
 
 	^ name hash.! !
 
-!SPList methodsFor: 'initialize-release' stamp: 'as 3/10/2006 15:46'!
+!SPList methodsFor: 'initialize-release' stamp: 'as 8/17/2006 15:52'!
 initialize
 
-	users := Set new.! !
+	moderated := false.! !
+
+!SPList methodsFor: 'accessing' stamp: 'as 8/18/2006 14:59'!
+moderated
+
+	^ moderated.! !
+
+!SPList methodsFor: 'accessing' stamp: 'as 8/18/2006 14:59'!
+moderated: aBoolean
+
+	moderated := aBoolean.! !
 
 !SPList methodsFor: 'accessing' stamp: 'as 3/9/2006 16:53'!
 name
@@ -121,71 +366,79 @@ name: aString
 
 	name := aString.! !
 
-!SPList methodsFor: 'private' stamp: 'as 3/21/2006 15:18'!
-removeExistingUser: aSPUser
-
-	users remove: aSPUser.! !
-
-!SPList methodsFor: 'operations' stamp: 'as 3/21/2006 14:57'!
-removeUser: aSPUser
-
-	self shouldIncludeUser: aSPUser.
-	self removeExistingUser: aSPUser.
-	aSPUser removeExistingList: self.! !
-
-!SPList methodsFor: 'private' stamp: 'as 3/21/2006 14:56'!
-shouldIncludeUser: aSPUser
-
-	(users includes: aSPUser) ifFalse: [ SPUserNotIncludedException signal. ].
-	self assert: (users includes: aSPUser).! !
-
-!SPList methodsFor: 'private' stamp: 'as 3/21/2006 14:56'!
-shouldNotIncludeUser: aSPUser
-
-	(users includes: aSPUser) ifTrue: [ SPUserAlreadyIncludedException signal. ].
-	self assert: (users includes: aSPUser) not.! !
-
 !SPList methodsFor: 'comparing' stamp: 'as 3/9/2006 16:48'!
 = aSPList
 
 	^ name = aSPList name.! !
 
 Object subclass: #SPListManager
-	instanceVariableNames: 'kernel lists'
+	instanceVariableNames: 'kernel users lists subscriptions'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Lists'!
+	category: 'Stamp-ListManager'!
 
-!SPListManager commentStamp: '<historical>' prior: 0!
-List manager for Stamp.!
-
-!SPListManager class methodsFor: 'instance creation' stamp: 'as 3/14/2006 14:42'!
+!SPListManager class methodsFor: 'instance creation' stamp: 'as 8/17/2006 11:07'!
 withKernel: aSPKernel
 
 	^ self new kernel: aSPKernel.! !
 
-!SPListManager methodsFor: 'operations' stamp: 'as 3/22/2006 15:34'!
+!SPListManager methodsFor: 'operations' stamp: 'as 8/18/2006 15:40'!
 addList: nameString
 
 	self listShouldNotExist: nameString.
 	lists add: (SPList withName: nameString).! !
 
-!SPListManager methodsFor: 'initialize-release' stamp: 'as 3/22/2006 15:25'!
+!SPListManager methodsFor: 'operations' stamp: 'as 8/18/2006 15:10'!
+addUser: nameString password: passwordString
+
+	self userShouldNotExist: nameString.
+	self users add: (SPUser withName: nameString withPassword: passwordString).! !
+
+!SPListManager methodsFor: 'operations' stamp: 'as 8/18/2006 15:03'!
+allLists
+
+	^ lists.! !
+
+!SPListManager methodsFor: 'operations' stamp: 'as 8/18/2006 15:03'!
+allSubscriptions
+
+	^ subscriptions.! !
+
+!SPListManager methodsFor: 'operations' stamp: 'as 8/18/2006 15:03'!
+allUsers
+
+	^ users.! !
+
+!SPListManager methodsFor: 'private' stamp: 'as 8/18/2006 15:40'!
+findList: nameString
+
+	^ lists detect: [ :list | list name = nameString. ] ifNone: [ nil. ].! !
+
+!SPListManager methodsFor: 'private' stamp: 'as 8/18/2006 16:24'!
+findSubscription: aSPSubscription
+
+	(subscriptions includes: aSPSubscription)
+		ifTrue: [ ^ aSPSubscription. ]
+		ifFalse: [ ^ nil. ].! !
+
+!SPListManager methodsFor: 'private' stamp: 'as 8/18/2006 15:30'!
+findUser: nameString
+
+	^ users detect: [ :user | user name = nameString. ] ifNone: [ nil. ].! !
+
+!SPListManager methodsFor: 'initialize-release' stamp: 'as 8/17/2006 15:32'!
 initialize
 
-	lists := Set new.! !
+	users := Set new.
+	lists := Set new.
+	subscriptions := Set new.! !
 
-!SPListManager methodsFor: 'accessing' stamp: 'as 3/14/2006 14:42'!
+!SPListManager methodsFor: 'accessing' stamp: 'as 8/17/2006 11:07'!
 kernel: aSPKernel
 
 	kernel := aSPKernel.! !
 
-!SPListManager methodsFor: 'private' stamp: 'as 3/22/2006 15:26'!
-listNamed: nameString
-
-	^ lists detect: [ :list | list name = nameString. ] ifNone: [ nil. ].! !
-
-!SPListManager methodsFor: 'private' stamp: 'as 3/22/2006 15:28'!
+!SPListManager methodsFor: 'private' stamp: 'as 8/18/2006 15:39'!
 listShouldExist: nameString
 
 	| list |
@@ -194,7 +447,7 @@ listShouldExist: nameString
 	self assert: list notNil.
 	^ list.! !
 
-!SPListManager methodsFor: 'private' stamp: 'as 3/22/2006 15:31'!
+!SPListManager methodsFor: 'private' stamp: 'as 8/18/2006 15:39'!
 listShouldNotExist: nameString
 
 	| list |
@@ -202,12 +455,121 @@ listShouldNotExist: nameString
 	list notNil ifTrue: [ SPListAlreadyExistsException signal ].
 	self assert: list isNil.! !
 
-!SPListManager methodsFor: 'operations' stamp: 'as 3/22/2006 15:32'!
+!SPListManager methodsFor: 'operations' stamp: 'as 8/18/2006 15:43'!
 list: nameString
 
 	^ self listShouldExist: nameString.! !
 
-!SPListManager methodsFor: 'operations' stamp: 'as 3/22/2006 15:33'!
+!SPListManager methodsFor: 'operations' stamp: 'as 8/18/2006 15:41'!
+removeList: nameString
+
+	lists remove: (self listShouldExist: nameString).! !
+
+!SPListManager methodsFor: 'operations' stamp: 'as 8/18/2006 15:25'!
+removeUser: nameString
+
+	users remove: (self userShouldExist: nameString).! !
+
+!SPListManager methodsFor: 'operations' stamp: 'as 8/18/2006 16:07'!
+subscribe: aSPContact to: aSPList
+
+	| subscription |
+	subscription := SPSubscription withList: aSPList withContact: aSPContact.
+	self subscriptionsShouldNotExist: subscription.! !
+
+!SPListManager methodsFor: 'private' stamp: 'as 8/18/2006 16:27'!
+subscriptionShouldExist: aSPSubscription
+
+	| subscription |
+	subscription := self findSubscription: aSPSubscription.
+	subscription isNil ifTrue: [ SPSubscriptionNotFoundException signal ].! !
+
+!SPListManager methodsFor: 'private' stamp: 'as 8/18/2006 16:11'!
+subscriptionShouldNotExist: aSPSubscription
+
+	| user |
+	user := self findSubscription: aSPSubscription.
+	user notNil ifTrue: [ SPSubscriptionAlreadyExistsException signal ].! !
+
+!SPListManager methodsFor: 'private' stamp: 'as 8/18/2006 15:39'!
+userShouldExist: nameString
+
+	| user |
+	user := self findUser: nameString.
+	user isNil ifTrue: [ SPUserNotFoundException signal. ].
+	self assert: user notNil.
+	^ user.! !
+
+!SPListManager methodsFor: 'private' stamp: 'as 8/18/2006 15:31'!
+userShouldNotExist: nameString
+
+	| user |
+	user := self findUser: nameString.
+	user notNil ifTrue: [ SPUserAlreadyExistsException signal ].! !
+
+!SPListManager methodsFor: 'operations' stamp: 'as 8/18/2006 15:26'!
+user: nameString
+
+	^ self userShouldExist: nameString.! !
+
+Object subclass: #SPListManagerOld
+	instanceVariableNames: 'kernel lists'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager'!
+
+!SPListManagerOld commentStamp: '<historical>' prior: 0!
+List manager for Stamp.!
+
+!SPListManagerOld class methodsFor: 'instance creation' stamp: 'as 3/14/2006 14:42'!
+withKernel: aSPKernel
+
+	^ self new kernel: aSPKernel.! !
+
+!SPListManagerOld methodsFor: 'operations' stamp: 'as 3/22/2006 15:34'!
+addList: nameString
+
+	self listShouldNotExist: nameString.
+	lists add: (SPList withName: nameString).! !
+
+!SPListManagerOld methodsFor: 'initialize-release' stamp: 'as 3/22/2006 15:25'!
+initialize
+
+	lists := Set new.! !
+
+!SPListManagerOld methodsFor: 'accessing' stamp: 'as 3/14/2006 14:42'!
+kernel: aSPKernel
+
+	kernel := aSPKernel.! !
+
+!SPListManagerOld methodsFor: 'private' stamp: 'as 3/22/2006 15:26'!
+listNamed: nameString
+
+	^ lists detect: [ :list | list name = nameString. ] ifNone: [ nil. ].! !
+
+!SPListManagerOld methodsFor: 'private' stamp: 'as 3/22/2006 15:28'!
+listShouldExist: nameString
+
+	| list |
+	list := self listNamed: nameString.
+	list isNil ifTrue: [ SPListNotFoundException signal. ].
+	self assert: list notNil.
+	^ list.! !
+
+!SPListManagerOld methodsFor: 'private' stamp: 'as 3/22/2006 15:31'!
+listShouldNotExist: nameString
+
+	| list |
+	list := self listNamed: nameString.
+	list notNil ifTrue: [ SPListAlreadyExistsException signal ].
+	self assert: list isNil.! !
+
+!SPListManagerOld methodsFor: 'operations' stamp: 'as 3/22/2006 15:32'!
+list: nameString
+
+	^ self listShouldExist: nameString.! !
+
+!SPListManagerOld methodsFor: 'operations' stamp: 'as 3/22/2006 15:33'!
 removeList: nameString
 
 	lists remove: (self listShouldExist: nameString).! !
@@ -267,6 +629,11 @@ localPart
 localPart: aString
 
 	localPart := aString.! !
+
+!SPMailAddress methodsFor: 'accessing' stamp: 'as 8/17/2006 15:48'!
+name
+
+	^ localPart, '@', domain.! !
 
 Object subclass: #SPMailMessage
 	instanceVariableNames: 'lists mail sender'
@@ -475,96 +842,6 @@ state: aSPSmtpState
 stream: aStream
 
 	stream := aStream.! !
-
-Object subclass: #SPModel
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Core'!
-
-!SPModel commentStamp: '<historical>' prior: 0!
-A component of Stamps model. Most likely you want to subclass this.!
-
-SPModel subclass: #SPMailArchive
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Storage'!
-
-!SPMailArchive commentStamp: '<historical>' prior: 0!
-Mail archive that basically wraps around MailDB.!
-
-!SPMailArchive methodsFor: 'messages' stamp: 'as 6/12/2006 14:15'!
-addNewMessage: aMailMessage
-
-	(MailDB openOn: 'stamp-archive') addNewMessage: aMailMessage.! !
-
-SPModel subclass: #SPMailListener
-	instanceVariableNames: 'kernel service'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server'!
-
-!SPMailListener commentStamp: '<historical>' prior: 0!
-Listens for incoming SMTP connections and treats them appropriately.!
-
-!SPMailListener class methodsFor: 'instance creation' stamp: 'as 5/30/2006 09:21'!
-withKernel: aSPKernel
-
-	^ self new kernel: aSPKernel.! !
-
-!SPMailListener methodsFor: 'initialize-release' stamp: 'as 5/30/2006 09:31'!
-initialize
-
-	service := SPMailService withListener: self onPort: (self preferenceAt: #port).! !
-
-!SPMailListener methodsFor: 'accessing' stamp: 'as 5/30/2006 14:11'!
-kernel
-
-	^ kernel.! !
-
-!SPMailListener methodsFor: 'accessing' stamp: 'as 3/14/2006 14:36'!
-kernel: aSPKernel
-
-	kernel := aSPKernel.! !
-
-!SPMailListener methodsFor: 'starting and stopping' stamp: 'as 5/30/2006 14:06'!
-start
-
-	service start.! !
-
-!SPMailListener methodsFor: 'starting and stopping' stamp: 'as 5/30/2006 14:06'!
-stop
-
-	service stop.! !
-
-!SPModel class methodsFor: 'configuration' stamp: 'as 5/30/2006 16:08'!
-configuration
-
-	| c |
-	c := Smalltalk classNamed: (self name, self defaultConfigurationSuffix).
-	c ifNil: [ c := self defaultConfiguration. ].
-	^ c localConfiguration.! !
-
-!SPModel class methodsFor: 'configuration' stamp: 'as 5/30/2006 16:09'!
-defaultConfiguration
-
-	^ SPBaseConfiguration.! !
-
-!SPModel class methodsFor: 'configuration' stamp: 'as 5/26/2006 10:20'!
-defaultConfigurationSuffix
-
-	^ 'Configuration'.! !
-
-!SPModel class methodsFor: 'configuration' stamp: 'as 5/26/2006 10:21'!
-preferenceAt: aSymbol
-
-	^ self configuration valueAt: aSymbol.! !
-
-!SPModel methodsFor: 'configuration' stamp: 'as 5/26/2006 10:21'!
-preferenceAt: aSymbol
-
-	^ self class preferenceAt: aSymbol.! !
 
 Object subclass: #SPSmtpCommand
 	instanceVariableNames: 'argument target reply state'
@@ -1180,59 +1457,122 @@ SPSmtpState subclass: #SPResetSmtpState
 !SPResetSmtpState commentStamp: '<historical>' prior: 0!
 The server is reset and can receive a new mail.!
 
-Object subclass: #SPUser
-	instanceVariableNames: 'name address lists'
+Object subclass: #SPSubscription
+	instanceVariableNames: 'list contact moderated active'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Users'!
+	category: 'Stamp-ListManager'!
+
+!SPSubscription class methodsFor: 'instance creation' stamp: 'as 8/18/2006 15:44'!
+withList: aSPList withContact: aSPContact
+
+	^ self new
+		list: aSPList;
+		contact: aSPContact;
+		yourself.! !
+
+!SPSubscription methodsFor: 'accessing' stamp: 'as 8/18/2006 14:58'!
+active
+
+	^ active.! !
+
+!SPSubscription methodsFor: 'accessing' stamp: 'as 8/18/2006 14:58'!
+active: aBoolean
+
+	active := aBoolean.! !
+
+!SPSubscription methodsFor: 'accessing' stamp: 'as 8/18/2006 14:58'!
+contact
+
+	^ contact.! !
+
+!SPSubscription methodsFor: 'accessing' stamp: 'as 8/18/2006 14:58'!
+contact: aSPContact
+
+	contact := aSPContact.! !
+
+!SPSubscription methodsFor: 'comparing' stamp: 'as 8/18/2006 15:49'!
+hash
+
+	^ (list name, contact address) hash.! !
+
+!SPSubscription methodsFor: 'initialize-release' stamp: 'as 8/18/2006 14:56'!
+initialize
+
+	moderated := false.
+	active := true.! !
+
+!SPSubscription methodsFor: 'accessing' stamp: 'as 8/18/2006 14:57'!
+list
+
+	^ list.! !
+
+!SPSubscription methodsFor: 'accessing' stamp: 'as 8/18/2006 14:58'!
+list: aSPList
+
+	list := aSPList.! !
+
+!SPSubscription methodsFor: 'accessing' stamp: 'as 8/18/2006 14:58'!
+moderated
+
+	^ moderated.! !
+
+!SPSubscription methodsFor: 'accessing' stamp: 'as 8/18/2006 14:59'!
+moderated: aBoolean
+
+	moderated := aBoolean.! !
+
+!SPSubscription methodsFor: 'comparing' stamp: 'as 8/18/2006 16:00'!
+= aSPSubscription
+
+	^ (list = aSPSubscription list) and: [ contact = aSPSubscription contact].! !
+
+Object subclass: #SPUser
+	instanceVariableNames: 'name password contacts active'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager'!
 
 !SPUser commentStamp: '<historical>' prior: 0!
 A Stamp user.!
 
-!SPUser class methodsFor: 'instance creation' stamp: 'as 3/20/2006 16:13'!
-withName: nameString address: addressString
+!SPUser class methodsFor: 'instance creation' stamp: 'as 8/17/2006 14:55'!
+withName: nameString password: passwordString
 
 	^ self new
 		name: nameString;
-		address: addressString;
+		password: passwordString;
 		yourself.! !
 
-!SPUser methodsFor: 'operations' stamp: 'as 3/21/2006 14:51'!
-addList: aSPList
+!SPUser methodsFor: 'accessing' stamp: 'as 8/18/2006 15:01'!
+active
 
-	self shouldNotIncludeList: aSPList.
-	self addNewList: aSPList.
-	aSPList addNewUser: self.! !
+	^ active.! !
 
-!SPUser methodsFor: 'private' stamp: 'as 3/21/2006 14:43'!
-addNewList: aSPList
+!SPUser methodsFor: 'accessing' stamp: 'as 8/18/2006 15:01'!
+active: aBoolean
 
-	lists add: aSPList.! !
+	active := aBoolean.! !
 
-!SPUser methodsFor: 'accessing' stamp: 'as 3/9/2006 16:54'!
-address
+!SPUser methodsFor: 'accessing' stamp: 'as 8/17/2006 15:11'!
+addContact: aSPContact
 
-	^ address.! !
+	contacts add: aSPContact.! !
 
-!SPUser methodsFor: 'accessing' stamp: 'as 3/9/2006 16:14'!
-address: aString
+!SPUser methodsFor: 'accessing' stamp: 'as 8/17/2006 15:11'!
+contacts
 
-	address := aString.! !
+	^ contacts.! !
 
 !SPUser methodsFor: 'comparing' stamp: 'as 3/9/2006 16:52'!
 hash
 
 	^ name hash.! !
 
-!SPUser methodsFor: 'initialize-release' stamp: 'as 3/10/2006 15:41'!
+!SPUser methodsFor: 'initialize-release' stamp: 'as 8/17/2006 11:20'!
 initialize
 
-	lists := Set new.! !
-
-!SPUser methodsFor: 'accessing' stamp: 'as 3/20/2006 15:47'!
-lists
-
-	^ lists.! !
+	contacts := Set new.! !
 
 !SPUser methodsFor: 'accessing' stamp: 'as 3/9/2006 16:54'!
 name
@@ -1244,29 +1584,20 @@ name: aString
 
 	name := aString.! !
 
-!SPUser methodsFor: 'private' stamp: 'as 3/21/2006 14:43'!
-removeExistingList: aSPList
+!SPUser methodsFor: 'accessing' stamp: 'as 8/17/2006 14:56'!
+password
 
-	lists remove: aSPList.! !
+	^ password.! !
 
-!SPUser methodsFor: 'operations' stamp: 'as 3/21/2006 14:51'!
-removeList: aSPList
+!SPUser methodsFor: 'accessing' stamp: 'as 8/17/2006 14:56'!
+password: aString
 
-	self shouldIncludeList: aSPList.
-	self removeExistingList: aSPList.
-	aSPList removeExistingUser: self.! !
+	password := aString.! !
 
-!SPUser methodsFor: 'private' stamp: 'as 3/21/2006 14:53'!
-shouldIncludeList: aSPList
+!SPUser methodsFor: 'accessing' stamp: 'as 8/17/2006 15:11'!
+removeContact: aSPContact
 
-	(lists includes: aSPList) ifFalse: [ SPListNotIncludedException signal. ].
-	self assert: (lists includes: aSPList).! !
-
-!SPUser methodsFor: 'private' stamp: 'as 3/21/2006 14:53'!
-shouldNotIncludeList: aSPList
-
-	(lists includes: aSPList) ifTrue: [ SPListAlreadyIncludedException signal. ].
-	self assert: (lists includes: aSPList) not.! !
+	contacts remove: aSPContact ifAbsent: [ aSPContact. ].! !
 
 !SPUser methodsFor: 'comparing' stamp: 'as 3/9/2006 16:51'!
 = aSPUser
@@ -1277,7 +1608,7 @@ Object subclass: #SPUserManager
 	instanceVariableNames: 'kernel users'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Users'!
+	category: 'Stamp-ListManager'!
 
 !SPUserManager commentStamp: '<historical>' prior: 0!
 User manager for Stamp.!
@@ -1292,6 +1623,11 @@ addUser: nameString address: addressString
 
 	self userShouldNotExist: nameString.
 	users add: (SPUser withName: nameString address: addressString).! !
+
+!SPUserManager methodsFor: 'operations' stamp: 'as 7/24/2006 11:33'!
+allUsers
+
+	^ users.! !
 
 !SPUserManager methodsFor: 'initialize-release' stamp: 'as 3/17/2006 11:08'!
 initialize
@@ -1335,6 +1671,153 @@ user: nameString
 
 	^ self userShouldExist: nameString.! !
 
+WAComponent subclass: #SPWeb
+	instanceVariableNames: 'kernel body'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWeb commentStamp: '<historical>' prior: 0!
+Stamp web interface.!
+
+!SPWeb class methodsFor: 'class initialization' stamp: 'as 7/19/2006 10:19'!
+initialize
+
+	"self initialize"
+
+	self registerAsApplication: 'stamp'.! !
+
+!SPWeb methodsFor: 'as yet unclassified' stamp: 'as 7/26/2006 09:30'!
+children
+
+	^ Array with: body.! !
+
+!SPWeb methodsFor: 'accessing' stamp: 'as 7/24/2006 10:35'!
+kernel: aSPKernel
+
+	kernel := aSPKernel.! !
+
+!SPWeb methodsFor: 'rendering' stamp: 'as 7/26/2006 09:26'!
+renderContentOn: html
+
+	html heading: 'stamp'.
+	kernel isNil
+		ifTrue: [ self renderKernelSelection: html. ]
+		ifFalse: [ self renderDefault: html. ].
+
+	"html anchorWithAction: [ self call: SPWeb3 new. ] text: 'stamp3'."! !
+
+!SPWeb methodsFor: 'rendering' stamp: 'as 7/26/2006 09:27'!
+renderDefault: html
+
+	html paragraph: 'kernel is: ', kernel name.
+
+	html anchorWithAction: [ body := SPWebUsers withKernel: kernel. ] text: 'users'.
+	html horizontalRule.
+	html render: body.! !
+
+!SPWeb methodsFor: 'rendering' stamp: 'as 7/26/2006 09:38'!
+renderKernelSelection: html
+
+	html paragraph: 'kernels:'.
+	SPKernel allInstances do: [
+		:each |
+		html anchorWithAction: [ self kernel: each. ] text: each name.
+		html text: ' '.
+	].! !
+
+WAComponent subclass: #SPWebAddUser
+	instanceVariableNames: 'kernel name address'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+SPWebAddUser class
+	instanceVariableNames: 'kernel'!
+
+!SPWebAddUser class methodsFor: 'instance creation' stamp: 'as 7/25/2006 15:50'!
+withKernel: aSPKernel
+
+	^ self new kernel: aSPKernel.! !
+
+!SPWebAddUser methodsFor: 'as yet unclassified' stamp: 'as 7/26/2006 11:10'!
+addUser
+
+	kernel userManager addUser: name address: address.
+	self answer.! !
+
+!SPWebAddUser methodsFor: 'accessing' stamp: 'as 7/25/2006 16:15'!
+kernel: aSPKernel
+
+	kernel := aSPKernel.! !
+
+!SPWebAddUser methodsFor: 'rendering' stamp: 'as 7/25/2006 16:17'!
+renderContentOn: html
+
+	html form: [
+		html defaultAction: [ self addUser. ].
+		html textInputWithValue: name callback: [ :n | name := n. ].
+		html textInputWithValue: address callback: [ :a | address := a. ].
+		html submitButtonWithText: 'ok'.
+	].! !
+
+WAComponent subclass: #SPWebUsers
+	instanceVariableNames: 'kernel test'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebUsers class methodsFor: 'instance creation' stamp: 'as 7/24/2006 11:31'!
+withKernel: aSPKernel
+
+	^ self new kernel: aSPKernel.! !
+
+!SPWebUsers methodsFor: 'accessing' stamp: 'as 7/24/2006 11:31'!
+kernel: aSPKernel
+
+	kernel := aSPKernel.! !
+
+!SPWebUsers methodsFor: 'rendering' stamp: 'as 7/26/2006 11:14'!
+renderAllUsers: html
+
+	kernel userManager allUsers do: [
+		:user |
+		html paragraph: [ html text: user name, ' - ', user address. ].
+	].! !
+
+!SPWebUsers methodsFor: 'rendering' stamp: 'as 7/26/2006 09:29'!
+renderContentOn: html
+
+	html heading: 'users' level: 3.
+	self renderAllUsers: html.
+	html horizontalRule.
+	html anchorWithAction: [ self call: (SPWebAddUser withKernel: kernel). ] text: 'add user'.
+	"html anchorWithAction: [ test := 1. ] text: 'test'."! !
+
+!String methodsFor: '*Stamp' stamp: 'as 3/7/2006 12:09'!
+convertToSmtpText
+
+	"SMTP likes CRLF as end of line characters, so CR and LF are converted to CRLF."
+
+	| convertedString cr lf |
+	cr := String cr.
+	lf := String lf.
+	convertedString := self copyReplaceAll: lf with: cr.
+	convertedString := convertedString copyReplaceAll: cr with: cr, lf.
+	^ convertedString.! !
+
+!String methodsFor: '*Stamp' stamp: 'as 3/7/2006 11:43'!
+convertToSqueakText
+
+	"Squeak likes CR as end of line character, so CRLF and LF are converted to CR."
+
+	| convertedString cr lf |
+	cr := String cr.
+	lf := String lf.
+	convertedString := self copyReplaceAll: cr, lf with: cr.
+	convertedString := convertedString copyReplaceAll: lf with: cr.
+	^ convertedString.! !
+
 TcpService subclass: #SPMailService
 	instanceVariableNames: 'listener'
 	classVariableNames: ''
@@ -1361,187 +1844,79 @@ serve: aSocket
 	receiver := SPMailReceiver on: (SocketStream on: aSocket) withKernel: listener kernel.
 	receiver receive.! !
 
-!String methodsFor: '*Stamp' stamp: 'as 3/7/2006 12:09'!
-convertToSmtpText
-
-	"SMTP likes CRLF as end of line characters, so CR and LF are converted to CRLF."
-
-	| convertedString cr lf |
-	cr := String cr.
-	lf := String lf.
-	convertedString := self copyReplaceAll: lf with: cr.
-	convertedString := convertedString copyReplaceAll: cr with: cr, lf.
-	^ convertedString.! !
-
-!String methodsFor: '*Stamp' stamp: 'as 3/7/2006 11:43'!
-convertToSqueakText
-
-	"Squeak likes CR as end of line character, so CRLF and LF are converted to CR."
-
-	| convertedString cr lf |
-	cr := String cr.
-	lf := String lf.
-	convertedString := self copyReplaceAll: cr, lf with: cr.
-	convertedString := convertedString copyReplaceAll: lf with: cr.
-	^ convertedString.! !
-
-WASystemConfiguration subclass: #SPBaseConfiguration
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Configuration'!
-
-!SPBaseConfiguration commentStamp: '<historical>' prior: 0!
-Basic configuration attributes for Stamp.!
-
-!SPBaseConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 15:28'!
-attributes
-
-	^ Array
-		with: (WAStringAttribute key: #rootDir).! !
-
-!SPBaseConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 15:28'!
-rootDir
-
-	^ 'stamp'.! !
-
-WASystemConfiguration subclass: #SPModelConfiguration
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Configuration'!
-
-!SPModelConfiguration commentStamp: '<historical>' prior: 0!
-Configuration for a Stamp model component. Includes a basic configuration as ancestor by default.!
-
-SPModelConfiguration subclass: #SPMailArchiveConfiguration
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Configuration'!
-
-!SPMailArchiveConfiguration commentStamp: '<historical>' prior: 0!
-Mail archive configuration.!
-
-!SPMailArchiveConfiguration methodsFor: 'as yet unclassified' stamp: 'as 6/7/2006 17:15'!
-archiveDir
-
-	^ (self valueAt: #rootDir), '/archive'.! !
-
-!SPMailArchiveConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 15:23'!
-attributes
-
-	^ Array
-		with: (WAStringAttribute key: #archiveDir).! !
-
-SPModelConfiguration subclass: #SPMailListenerConfiguration
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Configuration'!
-
-!SPMailListenerConfiguration commentStamp: '<historical>' prior: 0!
-Mail listener configuration.!
-
-!SPMailListenerConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 09:41'!
-attributes
-
-	^ Array
-		with: (WANumberAttribute key: #port).! !
-
-!SPMailListenerConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 09:42'!
-port
-
-	^ 2525.! !
-
-!SPModelConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 15:32'!
-ancestors
-
-	^ Array
-		with: (SPBaseConfiguration localConfiguration).! !
-
-Exception subclass: #SPModelException
+Exception subclass: #SPException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Core'!
 
-!SPModelException commentStamp: '<historical>' prior: 0!
-Indicates an exception somewhere in the model of Stamp.!
-
-SPModelException subclass: #SPListAlreadyExistsException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Lists'!
-
-!SPListAlreadyExistsException commentStamp: '<historical>' prior: 0!
-Indicates that, against expectations, a mailing list already exists.!
-
-SPModelException subclass: #SPListAlreadyIncludedException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Lists'!
-
-!SPListAlreadyIncludedException commentStamp: '<historical>' prior: 0!
-Indicates that, against expectations, a mailing list is already included by a user.!
-
-SPModelException subclass: #SPListNotFoundException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Lists'!
-
-!SPListNotFoundException commentStamp: '<historical>' prior: 0!
-Indicates that, against expectations, a mailing list does not exist.!
-
-SPModelException subclass: #SPListNotIncludedException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Lists'!
-
-!SPListNotIncludedException commentStamp: '<historical>' prior: 0!
-Indicates that, against expectations, a mailing list is not included by a user.!
-
-!SPModelException methodsFor: 'priv handling' stamp: 'as 3/20/2006 15:58'!
+!SPException methodsFor: 'priv handling' stamp: 'as 8/17/2006 11:04'!
 isResumable
 
 	^ false.! !
 
-SPModelException subclass: #SPUserAlreadyExistsException
+SPException subclass: #SPListNotFoundException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Users'!
+	category: 'Stamp-ListManager'!
+
+!SPListNotFoundException commentStamp: '<historical>' prior: 0!
+Indicates that, against expectations, a mailing list does not exist.!
+
+SPException subclass: #SPListNotIncludedException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager'!
+
+!SPListNotIncludedException commentStamp: '<historical>' prior: 0!
+Indicates that, against expectations, a mailing list is not included by a user.!
+
+SPException subclass: #SPSubscriptionAlreadyExistsException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager'!
+
+SPException subclass: #SPSubscriptionNotFoundException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager'!
+
+SPException subclass: #SPUserAlreadyExistsException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager'!
 
 !SPUserAlreadyExistsException commentStamp: '<historical>' prior: 0!
 Indicates that, against expectations, a user already exists.!
 
-SPModelException subclass: #SPUserAlreadyIncludedException
+SPException subclass: #SPUserAlreadyIncludedException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Users'!
+	category: 'Stamp-ListManager'!
 
 !SPUserAlreadyIncludedException commentStamp: '<historical>' prior: 0!
 Indicates that, against expectations, a user is already included by a mailing list.!
 
-SPModelException subclass: #SPUserNotFoundException
+SPException subclass: #SPUserNotFoundException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Users'!
+	category: 'Stamp-ListManager'!
 
 !SPUserNotFoundException commentStamp: '<historical>' prior: 0!
 Indicates that, against expectations, a user does not exist.!
 
-SPModelException subclass: #SPUserNotIncludedException
+SPException subclass: #SPUserNotIncludedException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Users'!
+	category: 'Stamp-ListManager'!
 
 !SPUserNotIncludedException commentStamp: '<historical>' prior: 0!
 Indicates that, against expectations, a user is not included by a mailing list.!
@@ -1611,47 +1986,6 @@ The specified command was not found.!
 reply
 
 	^ SPSmtpReply commandUnrecognized.! !
-
-SMTPClient subclass: #SPMailSender
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Client'!
-
-!SPMailSender commentStamp: '<historical>' prior: 0!
-Some minor changes to my superclass.!
-
-!SPMailSender class methodsFor: 'sending mail' stamp: 'as 3/16/2006 15:58'!
-deliverMessage: aMailMessage usingServer: aString
-
-	self
-		deliverMailFrom: aMailMessage from
-		to: aMailMessage recipients
-		text: aMailMessage text
-		usingServer: aString.! !
-
-!SPMailSender class methodsFor: 'instance creation' stamp: 'as 2/22/2006 15:08'!
-openOnHost: hostIP port: portNumber
-
-	^ self new openOnHost: hostIP port: portNumber! !
-
-!SPMailSender methodsFor: 'private protocol' stamp: 'as 2/22/2006 14:43'!
-login
-
-	"anonymous"
-	self initiateSession.! !
-
-!SPMailSender methodsFor: 'actions' stamp: 'as 2/22/2006 15:48'!
-reopen
-
-	self close.
-	self ensureConnection.! !
-
-!SPMailSender methodsFor: 'private protocol' stamp: 'as 2/22/2006 15:15'!
-reset
-
-	self sendCommand: 'RSET'.
-	self checkResponse.! !
 
 TestCase subclass: #SPCodeTest
 	instanceVariableNames: ''
@@ -1862,4 +2196,64 @@ testCrLf
 testLf
 
 	self assert: lf convertToSqueakText = cr.! !
+
+AnObsoleteSPModelException subclass: #SPListAlreadyExistsException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager'!
+
+!SPListAlreadyExistsException commentStamp: '<historical>' prior: 0!
+Indicates that, against expectations, a mailing list already exists.!
+
+AnObsoleteSPModelException subclass: #SPListAlreadyIncludedException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager'!
+
+!SPListAlreadyIncludedException commentStamp: '<historical>' prior: 0!
+Indicates that, against expectations, a mailing list is already included by a user.!
+
+SMTPClient subclass: #SPMailSender
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Client'!
+
+!SPMailSender commentStamp: '<historical>' prior: 0!
+Some minor changes to my superclass.!
+
+!SPMailSender class methodsFor: 'sending mail' stamp: 'as 3/16/2006 15:58'!
+deliverMessage: aMailMessage usingServer: aString
+
+	self
+		deliverMailFrom: aMailMessage from
+		to: aMailMessage recipients
+		text: aMailMessage text
+		usingServer: aString.! !
+
+!SPMailSender class methodsFor: 'instance creation' stamp: 'as 2/22/2006 15:08'!
+openOnHost: hostIP port: portNumber
+
+	^ self new openOnHost: hostIP port: portNumber! !
+
+!SPMailSender methodsFor: 'private protocol' stamp: 'as 2/22/2006 14:43'!
+login
+
+	"anonymous"
+	self initiateSession.! !
+
+!SPMailSender methodsFor: 'actions' stamp: 'as 2/22/2006 15:48'!
+reopen
+
+	self close.
+	self ensureConnection.! !
+
+!SPMailSender methodsFor: 'private protocol' stamp: 'as 2/22/2006 15:15'!
+reset
+
+	self sendCommand: 'RSET'.
+	self checkResponse.! !
 SPSmtpCommand initialize!
+SPWeb initialize!
