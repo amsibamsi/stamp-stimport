@@ -301,16 +301,17 @@ manager
 
 	^ manager.! !
 
-!SPKernel methodsFor: 'initialize-release' stamp: 'as 10/10/2006 18:20'!
+!SPKernel methodsFor: 'initialize-release' stamp: 'as 10/12/2006 16:23'!
 reinitialize
 
 	self stop.
+	listener destroy.
 	self initialize.! !
 
-!SPKernel methodsFor: 'starting-stoping' stamp: 'as 9/27/2006 12:01'!
+!SPKernel methodsFor: 'starting-stoping' stamp: 'as 10/12/2006 16:05'!
 restart
 
-	listener stop; start.! !
+	listener restart.! !
 
 !SPKernel methodsFor: 'accessing' stamp: 'as 10/5/2006 13:36'!
 sender
@@ -782,16 +783,26 @@ SPObject subclass: #SPMailListener
 !SPMailListener commentStamp: '<historical>' prior: 0!
 Listens for incoming SMTP connections and treats them appropriately.!
 
-!SPMailListener methodsFor: 'starting-stopping' stamp: 'as 7/24/2006 09:28'!
+!SPMailListener methodsFor: 'starting-stopping' stamp: 'as 10/12/2006 16:18'!
 destroy
 
-	service unregister.
-	service := nil.! !
+	service unregister.! !
 
 !SPMailListener methodsFor: 'initialize-release' stamp: 'as 10/11/2006 18:42'!
 initialize
 
 	service := SPMailService withListener: self onPort: (self preferenceAt: #receiverPort).! !
+
+!SPMailListener methodsFor: 'initialize-release' stamp: 'as 10/12/2006 16:02'!
+reinitialize
+
+	service unregister.
+	self initialize.! !
+
+!SPMailListener methodsFor: 'starting-stopping' stamp: 'as 10/12/2006 16:06'!
+restart
+
+	service stop; start.! !
 
 !SPMailListener methodsFor: 'accessing' stamp: 'as 9/14/2006 09:57'!
 service
@@ -903,17 +914,18 @@ nameForAddress: addressString
 	name ifNil: [ name := 'UNRESOLVED'. ].
 	^ name.! !
 
-!SPMailReceiver methodsFor: 'receiving' stamp: 'as 10/3/2006 16:06'!
+!SPMailReceiver methodsFor: 'receiving' stamp: 'as 10/12/2006 15:54'!
 receive
 
 	"Receive commands from client as long as connection is there and
 	 quit is not requested."
+	"In case of an error the connection is closed."
 
-	self reply: SPSmtpReply ready.
+	self reply: (SPSmtpReply ready: (self preferenceAt: #serverName)).
 	[
 		[
 			[ quit not and: [ stream isConnected. ] ] whileTrue: [ self receiveCommand. ].
-		] on: Exception do: [ self reply: SPSmtpReply closing. ].
+		] on: Exception do: [ self reply: (SPSmtpReply closing: (self preferenceAt: #serverName)). ].
 	] ensure: [ stream close. ].! !
 
 !SPMailReceiver methodsFor: 'receiving' stamp: 'as 4/18/2006 16:50'!
@@ -994,7 +1006,7 @@ user: aSPUser
 	messages do: [ :message | message user: aSPUser. ].! !
 
 SPObject subclass: #SPMailSender
-	instanceVariableNames: 'client'
+	instanceVariableNames: 'client monitor'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Client'!
@@ -1002,8 +1014,8 @@ SPObject subclass: #SPMailSender
 !SPMailSender commentStamp: '<historical>' prior: 0!
 Send mails over an smtp server.!
 
-!SPMailSender methodsFor: 'initialize-release' stamp: 'as 10/11/2006 21:40'!
-initialize
+!SPMailSender methodsFor: 'initialize-release' stamp: 'as 10/12/2006 15:13'!
+initClient
 
 	| hostIP |
 	hostIP := NetNameResolver
@@ -1013,21 +1025,37 @@ initialize
 		onHostNamed: hostIP
 		port: (self preferenceAt: #senderPort).! !
 
-!SPMailSender methodsFor: 'sending' stamp: 'as 10/11/2006 18:27'!
+!SPMailSender methodsFor: 'initialize-release' stamp: 'as 10/12/2006 15:13'!
+initialize
+
+	monitor := monitor new.
+	self initClient.! !
+
+!SPMailSender methodsFor: 'initialize-release' stamp: 'as 10/12/2006 15:13'!
+reinitialize
+
+	monitor critical: [
+		client isConnected ifTrue: [ client close. ].
+		self initClient.
+	].! !
+
+!SPMailSender methodsFor: 'sending' stamp: 'as 10/12/2006 15:14'!
 sendMessage: aSPMailMessage
 
 	| subscriptions recipients sender |
 	subscriptions := kernel manager allActiveSubscriptionsForList: aSPMailMessage list.
 	recipients := subscriptions collect: [ :subscription | subscription contact address. ].
 	sender := aSPMailMessage list address.
-	[
-		client
-			open;
-			from: sender;
-			to: recipients;
-			data: aSPMailMessage mail;
-			quit.
-	] ensure: [ client close. ].! !
+	monitor critical: [
+		[
+			client
+				open;
+				from: sender;
+				to: recipients;
+				data: aSPMailMessage mail;
+				quit.
+		] ensure: [ client close. ].
+	].! !
 
 !SPObject class methodsFor: 'configuration' stamp: 'as 9/27/2006 11:58'!
 configuration
@@ -1686,12 +1714,12 @@ cannotVerify
 		message: 'Verification is disabled';
 		yourself.! !
 
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 9/12/2006 16:56'!
-closing
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 10/12/2006 15:48'!
+closing: hostnameString
 
 	^ self new
 		code: 421;
-		message: NetNameResolver localHostName, ' Service not available, closing transmission channel';
+		message: hostnameString, ' Service not available, closing transmission channel';
 		yourself.! !
 
 !SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 4/20/2006 16:17'!
@@ -1734,12 +1762,12 @@ okay
 		message: 'Okay';
 		yourself.! !
 
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 4/20/2006 16:18'!
-ready
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 10/12/2006 15:50'!
+ready: hostnameString
 
 	^ self new
 		code: 220;
-		message: NetNameResolver localHostName;
+		message: hostnameString;
 		yourself.! !
 
 !SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 9/11/2006 17:02'!
@@ -1991,12 +2019,13 @@ WASystemConfiguration subclass: #SPBaseConfiguration
 !SPBaseConfiguration commentStamp: '<historical>' prior: 0!
 Base configuration attributes for Stamp.!
 
-!SPBaseConfiguration methodsFor: 'as yet unclassified' stamp: 'as 10/10/2006 18:05'!
+!SPBaseConfiguration methodsFor: 'as yet unclassified' stamp: 'as 10/12/2006 15:27'!
 attributes
 
 	^ Array
 		with: (WAStringAttribute key: #rootDir);
-		with: (WANumberAttribute key: #resolverTimeout).! !
+		with: (WANumberAttribute key: #resolverTimeout);
+		with: (WAStringAttribute key: #serverName).! !
 
 !SPBaseConfiguration methodsFor: 'as yet unclassified' stamp: 'as 10/10/2006 18:04'!
 resolverTimeout
@@ -2007,6 +2036,11 @@ resolverTimeout
 rootDir
 
 	^ 'stamp'.! !
+
+!SPBaseConfiguration methodsFor: 'as yet unclassified' stamp: 'as 10/12/2006 15:41'!
+serverName
+
+	^ NetNameResolver localHostName.! !
 
 WASystemConfiguration subclass: #SPConfiguration
 	instanceVariableNames: ''
@@ -2190,11 +2224,6 @@ reply
 	"Every command failure should be replied to the client."
 
 	self subclassResponsibility.! !
-
-!SPSmtpCommandException methodsFor: 'accessing' stamp: 'as 1/31/2006 11:24'!
-server: aSPMailReceiver
-
-	server := aSPMailReceiver.! !
 
 SPSmtpCommandException subclass: #SPWrongSmtpCommandException
 	instanceVariableNames: ''
@@ -2746,21 +2775,23 @@ TcpService subclass: #SPMailService
 !SPMailService commentStamp: '<historical>' prior: 0!
 A TCP service listening for incoming SMTP connections.!
 
-!SPMailService class methodsFor: 'instance creation' stamp: 'as 5/30/2006 09:28'!
+!SPMailService class methodsFor: 'instance creation' stamp: 'as 10/12/2006 16:07'!
 withListener: aSPMailListener onPort: aNumber
 
-	^ (self on: aNumber) listener: aSPMailListener.! !
+	^ (self on: aNumber)
+		listener: aSPMailListener;
+		yourself.! !
 
 !SPMailService methodsFor: 'accessing' stamp: 'as 5/30/2006 09:17'!
 listener: aSPMailListener
 
 	listener := aSPMailListener.! !
 
-!SPMailService methodsFor: 'conversation' stamp: 'as 10/3/2006 15:51'!
+!SPMailService methodsFor: 'conversation' stamp: 'as 10/12/2006 15:24'!
 serve: aSocket
 
 	| receiver |
-	receiver := SPMailReceiver withKernel: listener kernel stream: (SocketStream on: aSocket) .
+	receiver := SPMailReceiver withKernel: listener kernel stream: (SocketStream on: aSocket).
 	receiver receive.! !
 
 SMTPClient subclass: #SPSmtpClient
