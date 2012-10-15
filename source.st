@@ -3,50 +3,6 @@ SystemOrganization addCategory: #'Stamp-Mail-Server'!
 SystemOrganization addCategory: #'Stamp-Model'!
 SystemOrganization addCategory: #'Stamp-Tests'!
 
-String subclass: #SPSmtpReply
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server'!
-
-!SPSmtpReply commentStamp: '<historical>' prior: 0!
-SMTP replies are sent from the server to the client and are just strings.!
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:05'!
-badSequence
-
-	^ '503 Bad sequence of commands'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:15'!
-cannotVerify
-
-	^ '252 Verification is disabled'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:16'!
-commandUnrecognized
-
-	^ '500 Syntax error or command unrecognized'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:21'!
-mailInput
-
-	^ '354 Start mail input; end with <CRLF>.<CRLF>'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:22'!
-notImplemented
-
-	^ '502 Command not implemented'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:23'!
-okay
-
-	^ '250 Okay'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/17/2006 16:09'!
-ready
-
-	^ '220 ', NetNameResolver localHostName.! !
-
 Object subclass: #SPList
 	instanceVariableNames: 'id name users'
 	classVariableNames: ''
@@ -143,13 +99,14 @@ receiveCommand
 		on: SPSmtpCommandException
 		do: [ :ex | ex defaultAction. ex return. ].! !
 
-!SPMailReceiver methodsFor: 'private' stamp: 'as 2/21/2006 09:38'!
+!SPMailReceiver methodsFor: 'private' stamp: 'as 3/7/2006 12:04'!
 receiveData
 
 	"Receive mail data as specified by the DATA SMTP command."
 
-	message from: (stream upToAll: self dataDelimiter).
+	message from: (stream upToAll: self dataDelimiter) convertToSqueakText.
 	self reply: SPSmtpReply okay.
+	(MailDB openOn: 'stamp') addNewMessage: message.
 	self reset.! !
 
 !SPMailReceiver methodsFor: 'actions' stamp: 'as 1/31/2006 15:01'!
@@ -223,8 +180,8 @@ SPSmtpCommand subclass: #SPEhloSmtpCommand
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
 
-!SPEhloSmtpCommand commentStamp: '<historical>' prior: 0!
-The EHLO command is accepted but no service extensions are implemented.!
+!SPEhloSmtpCommand commentStamp: 'as 3/6/2006 11:19' prior: 0!
+The EHLO command unimplemented since no service extension are needed/implemented.!
 
 !SPEhloSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/11/2006 16:00'!
 verb
@@ -236,10 +193,10 @@ doExecute
 
 	"nothing to do"! !
 
-!SPEhloSmtpCommand methodsFor: 'executing' stamp: 'as 2/20/2006 17:09'!
+!SPEhloSmtpCommand methodsFor: 'executing' stamp: 'as 3/6/2006 11:19'!
 reply
 
-	^ SPSmtpReply okay.! !
+	^ SPSmtpReply notImplemented.! !
 
 SPSmtpCommand subclass: #SPHeloSmtpCommand
 	instanceVariableNames: ''
@@ -520,13 +477,12 @@ SPSmtpState subclass: #SPReadySmtpState
 !SPReadySmtpState commentStamp: '<historical>' prior: 0!
 The server waits for the client helo.!
 
-!SPReadySmtpState methodsFor: 'transitions' stamp: 'as 2/15/2006 18:37'!
+!SPReadySmtpState methodsFor: 'transitions' stamp: 'as 3/7/2006 12:17'!
 transitions
 
 	^ self anytimeTransitions
 		at: SPResetSmtpCommand put: self class;
 		at: SPHeloSmtpCommand put: SPResetSmtpState;
-		at: SPEhloSmtpCommand put: self class;
 		yourself.! !
 
 SPSmtpState subclass: #SPRecipientSmtpState
@@ -655,12 +611,80 @@ TcpService subclass: #SPMailListener
 !SPMailListener commentStamp: '<historical>' prior: 0!
 A TCP service accepting SMTP connections.!
 
-!SPMailListener methodsFor: 'conversation' stamp: 'as 1/31/2006 14:37'!
+!SPMailListener methodsFor: 'conversation' stamp: 'as 3/6/2006 16:33'!
 serve: aSocket
 
 	| server |
 	server := SPMailReceiver on: (SocketStream on: aSocket).
 	server receive.! !
+
+String subclass: #SPSmtpReply
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPSmtpReply commentStamp: '<historical>' prior: 0!
+SMTP replies are sent from the server to the client and are just strings.!
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:05'!
+badSequence
+
+	^ '503 Bad sequence of commands'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:15'!
+cannotVerify
+
+	^ '252 Verification is disabled'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:16'!
+commandUnrecognized
+
+	^ '500 Syntax error or command unrecognized'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:21'!
+mailInput
+
+	^ '354 Start mail input; end with <CRLF>.<CRLF>'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:22'!
+notImplemented
+
+	^ '502 Command not implemented'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:23'!
+okay
+
+	^ '250 Okay'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/17/2006 16:09'!
+ready
+
+	^ '220 ', NetNameResolver localHostName.! !
+
+!String methodsFor: '*Stamp' stamp: 'as 3/7/2006 12:09'!
+convertToSmtpText
+
+	"SMTP likes CRLF as end of line characters, so CR and LF are converted to CRLF."
+
+	| convertedString cr lf |
+	cr := String cr.
+	lf := String lf.
+	convertedString := self copyReplaceAll: lf with: cr.
+	convertedString := convertedString copyReplaceAll: cr with: cr, lf.
+	^ convertedString.! !
+
+!String methodsFor: '*Stamp' stamp: 'as 3/7/2006 11:43'!
+convertToSqueakText
+
+	"Squeak likes CR as end of line character, so CRLF and LF are converted to CR."
+
+	| convertedString cr lf |
+	cr := String cr.
+	lf := String lf.
+	convertedString := self copyReplaceAll: cr, lf with: cr.
+	convertedString := convertedString copyReplaceAll: lf with: cr.
+	^ convertedString.! !
 
 SMTPClient subclass: #SPMailSender
 	instanceVariableNames: ''
@@ -694,6 +718,72 @@ reset
 	self sendCommand: 'RSET'.
 	self checkResponse.! !
 
+Exception subclass: #SPSmtpCommandException
+	instanceVariableNames: 'server'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPSmtpCommandException commentStamp: '<historical>' prior: 0!
+Indicates that an SMTP command from the client failed on the server.!
+
+!SPSmtpCommandException class methodsFor: 'instance creation' stamp: 'as 1/31/2006 11:22'!
+on: aSPMailReceiver
+
+	^ self new
+		server: aSPMailReceiver;
+		yourself.! !
+
+!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:21'!
+defaultAction
+
+	server reply: self reply.! !
+
+!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/17/2006 17:55'!
+isResumable
+
+	^ false.! !
+
+!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:05'!
+reply
+
+	"Every command failure should be replied to the client."
+
+	self subclassResponsibility.! !
+
+!SPSmtpCommandException methodsFor: 'accessing' stamp: 'as 1/31/2006 11:24'!
+server: aSPMailReceiver
+
+	server := aSPMailReceiver.! !
+
+SPSmtpCommandException subclass: #SPSmtpCommandNotAllowed
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPSmtpCommandNotAllowed commentStamp: '<historical>' prior: 0!
+The command is not allowed in the current state of the server.!
+
+!SPSmtpCommandNotAllowed methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:04'!
+reply
+
+	^ SPSmtpReply badSequence.! !
+
+SPSmtpCommandException subclass: #SPSmtpCommandNotFound
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPSmtpCommandNotFound commentStamp: '<historical>' prior: 0!
+The specified command was not found.!
+
+!SPSmtpCommandNotFound methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:06'!
+reply
+
+	^ SPSmtpReply commandUnrecognized.! !
+
 TestCase subclass: #SPCodeTest
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -725,7 +815,7 @@ TestCase subclass: #SPMailReceivingSendingTest
 	category: 'Stamp-Tests'!
 
 !SPMailReceivingSendingTest commentStamp: '<historical>' prior: 0!
-Test the whole mail receiving/sending subsystem.!
+Test the mail receiving/sending subsystem.!
 
 !SPMailReceivingSendingTest methodsFor: 'running' stamp: 'as 2/21/2006 10:15'!
 findPortFor: aSPMailListener
@@ -844,68 +934,62 @@ testUnrecognized
 		raise: TelnetProtocolError.
 	self assert: (client responseCode = 500).! !
 
-Exception subclass: #SPSmtpCommandException
-	instanceVariableNames: 'server'
+TestCase subclass: #SPSmtpTextConversionTest
+	instanceVariableNames: 'cr lf'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail-Server'!
+	category: 'Stamp-Tests'!
 
-!SPSmtpCommandException commentStamp: '<historical>' prior: 0!
-Indicates that an SMTP command from the client failed on the server.!
+!SPSmtpTextConversionTest commentStamp: '<historical>' prior: 0!
+Test text conversion from Squeak to SMTP.!
 
-!SPSmtpCommandException class methodsFor: 'instance creation' stamp: 'as 1/31/2006 11:22'!
-on: aSPMailReceiver
+!SPSmtpTextConversionTest methodsFor: 'running' stamp: 'as 3/7/2006 12:11'!
+setUp
 
-	^ self new
-		server: aSPMailReceiver;
-		yourself.! !
+	cr := String cr.
+	lf := String lf.! !
 
-!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:21'!
-defaultAction
+!SPSmtpTextConversionTest methodsFor: 'testing' stamp: 'as 3/7/2006 12:15'!
+testCombined
 
-	server reply: self reply.! !
+	self assert: (cr, cr, lf, lf) convertToSmtpText = (cr, lf, cr, lf, cr, lf, cr, lf).! !
 
-!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/17/2006 17:55'!
-isResumable
+!SPSmtpTextConversionTest methodsFor: 'testing' stamp: 'as 3/7/2006 12:12'!
+testCr
 
-	^ false.! !
+	self assert: cr convertToSmtpText = (cr, lf).! !
 
-!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:05'!
-reply
+!SPSmtpTextConversionTest methodsFor: 'testing' stamp: 'as 3/7/2006 12:12'!
+testLf
 
-	"Every command failure should be replied to the client."
+	self assert: lf convertToSmtpText = (cr, lf).! !
 
-	self subclassResponsibility.! !
-
-!SPSmtpCommandException methodsFor: 'accessing' stamp: 'as 1/31/2006 11:24'!
-server: aSPMailReceiver
-
-	server := aSPMailReceiver.! !
-
-SPSmtpCommandException subclass: #SPSmtpCommandNotAllowed
-	instanceVariableNames: ''
+TestCase subclass: #SPSqueakTextConversionTest
+	instanceVariableNames: 'cr lf'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail-Server'!
+	category: 'Stamp-Tests'!
 
-!SPSmtpCommandNotAllowed commentStamp: '<historical>' prior: 0!
-The command is not allowed in the current state of the server.!
+!SPSqueakTextConversionTest commentStamp: '<historical>' prior: 0!
+Test text conversion from SMTP to Squeak.!
 
-!SPSmtpCommandNotAllowed methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:04'!
-reply
+!SPSqueakTextConversionTest methodsFor: 'running' stamp: 'as 3/7/2006 11:47'!
+setUp
 
-	^ SPSmtpReply badSequence.! !
+	cr := String cr.
+	lf := String lf.! !
 
-SPSmtpCommandException subclass: #SPSmtpCommandNotFound
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server'!
+!SPSqueakTextConversionTest methodsFor: 'testing' stamp: 'as 3/7/2006 11:52'!
+testCombined
 
-!SPSmtpCommandNotFound commentStamp: '<historical>' prior: 0!
-The specified command was not found.!
+	self assert: (lf, cr, cr, lf, lf, cr, lf ) convertToSqueakText = (cr, cr, cr, cr, cr).! !
 
-!SPSmtpCommandNotFound methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:06'!
-reply
+!SPSqueakTextConversionTest methodsFor: 'testing' stamp: 'as 3/7/2006 11:52'!
+testCrLf
 
-	^ SPSmtpReply commandUnrecognized.! !
+	self assert: (cr, lf) convertToSqueakText = cr.! !
+
+!SPSqueakTextConversionTest methodsFor: 'testing' stamp: 'as 3/7/2006 11:52'!
+testLf
+
+	self assert: lf convertToSqueakText = cr.! !
