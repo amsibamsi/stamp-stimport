@@ -590,11 +590,12 @@ SPWAComponent subclass: #SPWebException
 !SPWebException commentStamp: 'as 2/14/2007 14:29' prior: 0!
 Render a error display for any exception.!
 
-!SPWebException class methodsFor: 'instance creation' stamp: 'as 2/14/2007 14:41'!
+!SPWebException class methodsFor: 'instance creation' stamp: 'as 2/16/2007 12:31'!
 withException: aException
 
 	^ self new
-		exception: aException.! !
+		exception: aException;
+		yourself.! !
 
 !SPWebException methodsFor: 'access' stamp: 'as 2/14/2007 14:42'!
 exception: aException
@@ -710,11 +711,12 @@ Navigation bar.!
 SPWebNavigation class
 	instanceVariableNames: 'target'!
 
-!SPWebNavigation class methodsFor: 'instance creation' stamp: 'as 2/13/2007 16:44'!
+!SPWebNavigation class methodsFor: 'instance creation' stamp: 'as 2/16/2007 12:31'!
 withTarget: aWAComponent
 
 	^ self new
-		target: aWAComponent.! !
+		target: aWAComponent;
+		yourself.! !
 
 !SPWebNavigation methodsFor: 'call/answer' stamp: 'as 2/14/2007 13:56'!
 callLists
@@ -929,6 +931,11 @@ SPException subclass: #SPContactVerificationFailedException
 
 !SPContactVerificationFailedException commentStamp: 'as 2/15/2007 16:50' prior: 0!
 Verification failed.!
+
+!SPException methodsFor: 'priv handling' stamp: 'as 2/21/2007 11:06'!
+defaultAction
+
+	UnhandledError signalForException: self! !
 
 !SPException methodsFor: 'printing' stamp: 'as 2/15/2007 16:43'!
 description
@@ -1261,7 +1268,7 @@ SPConfiguration subclass: #SPStampConfiguration
 !SPStampConfiguration commentStamp: 'as 1/16/2007 11:28' prior: 0!
 Initializes a default configuration for Stamp.!
 
-!SPStampConfiguration methodsFor: 'initialize-release' stamp: 'as 2/8/2007 17:08'!
+!SPStampConfiguration methodsFor: 'initialize-release' stamp: 'as 2/21/2007 11:09'!
 initialize
 
 	super initialize.
@@ -1284,7 +1291,7 @@ initialize
 		
 	"receiver"
 	self attributeAt: #receiverMaxMailSize put:
-		(SPIntegerConfigurationAttribute withValue: 1024 * 1024 min: 64 * 1024 max: 4096 * 1024).
+		(SPIntegerConfigurationAttribute withValue: 1024 * 1024 min: 64 * 1024 max: 16 * 1024 * 1024).
 	self attributeAt: #receiverMaxRecipients put:
 		(SPIntegerConfigurationAttribute withValue: 10 min: 1 max: 100).
 		
@@ -1297,8 +1304,10 @@ initialize
 	"queue"
 	self attributeAt: #queueSize put:
 		(SPIntegerConfigurationAttribute withValue: 1000 min: 1 max: 10000).
-	self attributeAt: #queueInterval put:
-		(SPIntegerConfigurationAttribute withValue: 120 min: 60 max: 600).
+	self attributeAt: #queueRetries put:
+		(SPIntegerConfigurationAttribute withValue: 10 min: 0 max: 1000).
+	self attributeAt: #queueDelaySeconds put:
+		(SPIntegerConfigurationAttribute withValue: 120 min: 60 max: 3600).
 
 	"contacts"
 	self attributeAt: #contactVerificationLength put:
@@ -1864,10 +1873,10 @@ allLists
 
 	^ lists.! !
 
-!SPListManager methodsFor: 'get-subscription' stamp: 'as 1/24/2007 15:25'!
+!SPListManager methodsFor: 'get-subscription' stamp: 'as 2/19/2007 01:48'!
 allSubscriptions
 
-	^ monitor critical: [ subscriptions. ].! !
+	^ subscriptions.! !
 
 !SPListManager methodsFor: 'get-user' stamp: 'as 2/15/2007 14:18'!
 allUsers
@@ -2231,7 +2240,7 @@ path
 	^ '<', localPart, '@', domain, '>'.! !
 
 Object subclass: #SPMailHandler
-	instanceVariableNames: 'process message'
+	instanceVariableNames: 'process message state retries'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
@@ -2239,27 +2248,35 @@ Object subclass: #SPMailHandler
 !SPMailHandler commentStamp: 'as 1/25/2007 11:32' prior: 0!
 Each incoming mail is wrapped in it's own mail handler that runs its own process to handle the message.!
 
-!SPMailHandler class methodsFor: 'instance creation' stamp: 'as 1/25/2007 11:32'!
+!SPMailHandler class methodsFor: 'instance creation' stamp: 'as 2/16/2007 12:31'!
 withMessage: aSPMailMessage
 
-	^ self new message: aSPMailMessage.! !
+	^ self new
+		message: aSPMailMessage;
+		yourself.! !
 
-!SPMailHandler methodsFor: 'utility' stamp: 'as 1/26/2007 17:48'!
-forever: aBlock
+!SPMailHandler methodsFor: 'processing' stamp: 'as 2/21/2007 11:00'!
+delay
 
-	[ true. ] whileTrue: [ aBlock value. ].! !
+	(Delay forSeconds: self queueDelaySeconds) wait.! !
 
-!SPMailHandler methodsFor: 'initialize-release' stamp: 'as 1/25/2007 11:34'!
+!SPMailHandler methodsFor: 'initialize-release' stamp: 'as 2/21/2007 11:21'!
 initialize
 
-	process _ [ self processMessage. ] newProcess.! !
+	retries _ 0.
+	process _ [ self run. ] newProcess.! !
+
+!SPMailHandler methodsFor: 'processing' stamp: 'as 2/21/2007 11:23'!
+isFinished
+
+	^ message _ nil or: [ retries >= self queueRetries. ].! !
 
 !SPMailHandler methodsFor: 'access' stamp: 'as 1/30/2007 10:22'!
 message: aSPMailMessage
 
 	message _ aSPMailMessage.! !
 
-!SPMailHandler methodsFor: 'processing' stamp: 'as 2/12/2007 15:54'!
+!SPMailHandler methodsFor: 'processing' stamp: 'as 2/21/2007 11:20'!
 processMessage
 
 	| recipients |
@@ -2268,6 +2285,34 @@ processMessage
 		(message isAllowedPost and: [ recipients notNil. ]) ifTrue: [
 			message insertListName; insertReturnPath.
 			self sendMessageTo: recipients.
+		].
+		message _ nil.
+	]
+	on: Exception
+	do:[
+		:ex |
+		state = ex description.
+		retries _ retries + 1.
+		ex return.
+	].! !
+
+!SPMailHandler methodsFor: 'configuration' stamp: 'as 2/21/2007 11:01'!
+queueDelaySeconds
+
+	^ SPKernel instance configurator preferenceAt: #queueDelaySeconds.! !
+
+!SPMailHandler methodsFor: 'configuration' stamp: 'as 2/21/2007 11:21'!
+queueRetries
+
+	^ SPKernel instance configurator preferenceAt: #queueRetries.! !
+
+!SPMailHandler methodsFor: 'processing' stamp: 'as 2/21/2007 11:22'!
+run
+
+	[
+		[ self isFinished. ] whileFalse: [
+			self processMessage.
+			self delay.
 		].
 	] ensure: [ SPKernel instance queue removeHandler: self. ].! !
 
