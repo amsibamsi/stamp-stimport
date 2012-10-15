@@ -3,6 +3,107 @@ SystemOrganization addCategory: #'Stamp-Exceptions'!
 SystemOrganization addCategory: #'Stamp-Testing'!
 SystemOrganization addCategory: #'Stamp-Mail'!
 
+TcpService subclass: #SPMailListener
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail'!
+
+!SPMailListener commentStamp: '<historical>' prior: 0!
+A TCP service accepting SMTP connections.!
+
+!SPMailListener methodsFor: 'conversation' stamp: 'as 1/10/2006 21:53'!
+serve: aSocket
+
+	| receiver message |
+	receiver := SPMailReceiver on: (SocketStream on: aSocket).
+	message := receiver receive.! !
+
+Exception subclass: #SPSmtpCommandException
+	instanceVariableNames: 'receiver'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Exceptions'!
+
+!SPSmtpCommandException class methodsFor: 'instance creation' stamp: 'as 1/17/2006 17:54'!
+on: aSPMailReceiver
+
+	^ self new
+		receiver: aSPMailReceiver;
+		yourself.! !
+
+!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/18/2006 16:00'!
+defaultAction
+
+	receiver reply: self reply.! !
+
+!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/17/2006 17:55'!
+isResumable
+
+	^ false.! !
+
+!SPSmtpCommandException methodsFor: 'accessing' stamp: 'as 1/17/2006 17:55'!
+receiver: aSPMailReceiver
+
+	receiver := aSPMailReceiver.! !
+
+!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:01'!
+reply
+
+	self subclassResponsibility.! !
+
+SPSmtpCommandException subclass: #SPSmtpCommandFailed
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Exceptions'!
+
+SPSmtpCommandException subclass: #SPSmtpCommandNotAllowed
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Exceptions'!
+
+!SPSmtpCommandNotAllowed methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:04'!
+reply
+
+	^ SPSmtpReply badSequence.! !
+
+SPSmtpCommandException subclass: #SPSmtpCommandNotFound
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Exceptions'!
+
+!SPSmtpCommandNotFound methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:06'!
+reply
+
+	^ SPSmtpReply commandUnrecognized.! !
+
+TestCase subclass: #CodeTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Tests'!
+
+!CodeTest commentStamp: '<historical>' prior: 0!
+Test different aspects of the Smalltalk code in my implementation.!
+
+!CodeTest methodsFor: 'configuration' stamp: 'as 1/11/2006 17:03'!
+packageName
+
+	^ 'Stamp'.! !
+
+!CodeTest methodsFor: 'testing' stamp: 'as 1/11/2006 17:03'!
+testClassComment
+
+	"Each class should have a comment."
+
+	(PackageInfo named: self packageName) classes do: [
+		:each |
+		self assert: each hasComment.
+	].! !
+
 Object subclass: #SPMailReceiver
 	instanceVariableNames: 'state stream message sender recipient dataMode'
 	classVariableNames: ''
@@ -69,17 +170,17 @@ receive
 	stream close.
 	^ message.! !
 
-!SPMailReceiver methodsFor: 'private' stamp: 'as 1/14/2006 22:25'!
+!SPMailReceiver methodsFor: 'private' stamp: 'as 1/18/2006 16:27'!
 receiveCommand
 
 	"Find the apropriate command for a string line from the client and execute it."
 
 	| line command |
 	line := stream nextLineCrLf.
-	command := SPSmtpCommand fromString: line target: self.
-	[ state execute: command. ]
-		on: SPSmtpCommandNotFound
-		do: [ self reply: SPSmtpReply commandUnrecognized ].! !
+	[ command := SPSmtpCommand fromString: line target: self.
+	 state execute: command. ]
+		on: SPSmtpCommandException
+		do: [ :ex | ex defaultAction. ex return. ].! !
 
 !SPMailReceiver methodsFor: 'private' stamp: 'as 1/14/2006 22:12'!
 receiveData
@@ -269,8 +370,8 @@ argumentFor: aString command: aSmtpCommand
 
 	^ aString copyFrom: (aSmtpCommand verb size + 1) to: aString size.! !
 
-!SPSmtpCommand class methodsFor: 'private' stamp: 'as 1/12/2006 17:20'!
-commandFor: aString
+!SPSmtpCommand class methodsFor: 'private' stamp: 'as 1/18/2006 16:34'!
+commandFor: aString target: aSPMailReceiver
 
 	"Extract command and return appropriate command class. The verb string for a SMTP command is case insensitive."
 
@@ -279,18 +380,18 @@ commandFor: aString
 		:each |
 		aString asLowercase beginsWith: each verb asLowercase
 	] ifNone: [
-		SPSmtpCommandNotFound signal.	
+		nil	
 	].
+	class isNil ifTrue: [ (SPSmtpCommandNotFound on: aSPMailReceiver) signal. ].
 	^ class new.! !
 
-!SPSmtpCommand class methodsFor: 'instance creation' stamp: 'as 1/12/2006 21:46'!
+!SPSmtpCommand class methodsFor: 'instance creation' stamp: 'as 1/18/2006 15:55'!
 fromString: aString target: aSPMailReceiver
 
 	"Return a new command created from a given string."
 
 	| command argument |
-	command := self commandFor: aString.
-	self assert: [ command notNil. ].
+	command := self commandFor: aString target: aSPMailReceiver.
 	argument := self argumentFor: aString command: command.
 	command
 		argument: argument;
@@ -430,10 +531,10 @@ nextStateClassFor: aSPSmtpCommand
 
 	^ self transitions at: aSPSmtpCommand class.! !
 
-!SPSmtpState class methodsFor: 'instance creation' stamp: 'as 1/12/2006 21:37'!
+!SPSmtpState class methodsFor: 'instance creation' stamp: 'as 1/16/2006 20:30'!
 on: aSPMailReceiver
 
-	self new
+	^ self new
 		owner: aSPMailReceiver;
 		yourself.! !
 
@@ -456,14 +557,14 @@ commandAllowed: aSPSmtpCommand
 
 	^ self allowedCommands includes: aSPSmtpCommand class.! !
 
-!SPSmtpState methodsFor: 'commands' stamp: 'as 1/12/2006 21:54'!
+!SPSmtpState methodsFor: 'commands' stamp: 'as 1/18/2006 15:39'!
 execute: aSPSmtpCommand
 
 	(self commandAllowed: aSPSmtpCommand) ifTrue: [
 		aSPSmtpCommand execute.
 		owner gotoState: (self nextStateFor: aSPSmtpCommand).
 	] ifFalse: [
-		SPSmtpCommandNotAllowed signal.
+		(SPSmtpCommandNotAllowed on: owner) signal.
 	].! !
 
 !SPSmtpState methodsFor: 'commands' stamp: 'as 1/12/2006 21:44'!
@@ -519,48 +620,6 @@ initialize
 
 	var1 := 1.! !
 
-Exception subclass: #SPSmtpCommandFailed
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Exceptions'!
-
-Exception subclass: #SPSmtpCommandNotAllowed
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Exceptions'!
-
-Exception subclass: #SPSmtpCommandNotFound
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Exceptions'!
-
-TestCase subclass: #CodeTest
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Tests'!
-
-!CodeTest commentStamp: '<historical>' prior: 0!
-Test different aspects of the Smalltalk code in my implementation.!
-
-!CodeTest methodsFor: 'configuration' stamp: 'as 1/11/2006 17:03'!
-packageName
-
-	^ 'Stamp'.! !
-
-!CodeTest methodsFor: 'testing' stamp: 'as 1/11/2006 17:03'!
-testClassComment
-
-	"Each class should have a comment."
-
-	(PackageInfo named: self packageName) classes do: [
-		:each |
-		self assert: each hasComment.
-	].! !
-
 String subclass: #SPSmtpReply
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -600,23 +659,7 @@ okay
 
 	^ '250'.! !
 
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 22:05'!
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/17/2006 16:09'!
 ready
 
-	^ '220 anonymous.xx'.! !
-
-TcpService subclass: #SPMailListener
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail'!
-
-!SPMailListener commentStamp: '<historical>' prior: 0!
-A TCP service accepting SMTP connections.!
-
-!SPMailListener methodsFor: 'conversation' stamp: 'as 1/10/2006 21:53'!
-serve: aSocket
-
-	| receiver message |
-	receiver := SPMailReceiver on: (SocketStream on: aSocket).
-	message := receiver receive.! !
+	^ '220 ', NetNameResolver localHostName.! !
