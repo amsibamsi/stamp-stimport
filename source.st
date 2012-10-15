@@ -609,17 +609,11 @@ clientQuit
 
 	quit := true.! !
 
-!SPMailReceiver methodsFor: 'quit' stamp: 'as 11/16/2006 15:50'!
-close
+!SPMailReceiver methodsFor: 'quit' stamp: 'as 11/16/2006 17:08'!
+close: aString
 
-	self replyClosing.
+	self replyClosing: aString.
 	stream close.! !
-
-!SPMailReceiver methodsFor: 'quit' stamp: 'as 11/16/2006 15:56'!
-forceQuit
-
-	self replyClosing.
-	self quit.! !
 
 !SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 11/16/2006 14:20'!
 initialize
@@ -714,7 +708,7 @@ quit
 	stream close.
 	kernel listener removeConnection: self.! !
 
-!SPMailReceiver methodsFor: 'receive' stamp: 'as 11/16/2006 14:48'!
+!SPMailReceiver methodsFor: 'receive' stamp: 'as 11/16/2006 17:02'!
 receive
 
 	"Receive commands from client as long as connection is there and
@@ -723,9 +717,9 @@ receive
 
 	self reply: (SPSmtpReply ready: self serverName).
 	[
-		"["
+		[
 			[ quit not and: [ stream isConnected. ] ] whileTrue: [ self receiveCommand. ].
-		"] on: Exception do: [ self replyClosing. ]."
+		] on: Exception do: [ self replyClosing: 'Unknown server error'. ].
 	] ensure: [ self quit. ].! !
 
 !SPMailReceiver methodsFor: 'receive' stamp: 'as 11/16/2006 15:35'!
@@ -843,10 +837,10 @@ remotePort
 
 	^ stream socket remotePort.! !
 
-!SPMailReceiver methodsFor: 'reply' stamp: 'as 11/8/2006 22:30'!
-replyClosing
+!SPMailReceiver methodsFor: 'reply' stamp: 'as 11/16/2006 17:00'!
+replyClosing: aString
 
-	self reply: (SPSmtpReply closing: self serverName).! !
+	self reply: (SPSmtpReply closing: self serverName reason: aString).! !
 
 !SPMailReceiver methodsFor: 'reply' stamp: 'as 11/8/2006 21:53'!
 reply: aSPSmtpReply
@@ -1568,10 +1562,10 @@ initStates
 		add: SPResetSmtpState;
 		yourself.! !
 
-!SPMailSmtpCommand class methodsFor: 'smtp' stamp: 'as 11/7/2006 16:51'!
+!SPMailSmtpCommand class methodsFor: 'smtp' stamp: 'as 11/16/2006 17:19'!
 verb
 
-	^ 'mail from: '.! !
+	^ 'mail from:'.! !
 
 !SPMailSmtpCommand methodsFor: 'execute' stamp: 'as 11/15/2006 12:21'!
 doExecute
@@ -1593,23 +1587,21 @@ SPSmtpCommand subclass: #SPNoopSmtpCommand
 	category: 'Stamp-Mail-Server-Commands'!
 
 !SPNoopSmtpCommand commentStamp: '<historical>' prior: 0!
-NOOP means no operation. This command is ignored and has no effect on the server.!
+NOOP means no operation. This command is recognized but ignored and has no effect on the server.!
 
-!SPNoopSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:12'!
+!SPNoopSmtpCommand class methodsFor: 'class initialization' stamp: 'as 11/16/2006 17:36'!
 initStates
 
 	"self initialize"
 
-	^ Set new
-		add: self allStates;
-		yourself.! !
+	^ self allStates.! !
 
 !SPNoopSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/12/2006 22:18'!
 verb
 
 	^ 'noop'.! !
 
-!SPNoopSmtpCommand methodsFor: 'execute' stamp: 'as 9/13/2006 16:30'!
+!SPNoopSmtpCommand methodsFor: 'execute' stamp: 'as 11/16/2006 17:38'!
 doExecute
 
 	"nothing to do"! !
@@ -1628,23 +1620,22 @@ SPSmtpCommand subclass: #SPQuitSmtpCommand
 !SPQuitSmtpCommand commentStamp: '<historical>' prior: 0!
 The client wants to quit the session.!
 
-!SPQuitSmtpCommand class methodsFor: 'class initialization' stamp: 'as 5/11/2006 10:59'!
+!SPQuitSmtpCommand class methodsFor: 'class initialization' stamp: 'as 11/16/2006 17:36'!
 initStates
 
 	"self initialize"
 
-	^ Set new
-		addAll: self allStates;
-		yourself.! !
+	^ self allStates.! !
 
 !SPQuitSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/14/2006 22:31'!
 verb
 
 	^ 'quit'.! !
 
-!SPQuitSmtpCommand methodsFor: 'execute' stamp: 'as 11/15/2006 18:29'!
+!SPQuitSmtpCommand methodsFor: 'execute' stamp: 'as 11/16/2006 16:51'!
 doExecute
 
+	self reply: (SPSmtpReply quit: target serverName).
 	target clientQuit.! !
 
 !SPQuitSmtpCommand methodsFor: 'execute' stamp: 'as 11/13/2006 16:36'!
@@ -1676,10 +1667,10 @@ initStates
 		add: SPRecipientSmtpState;
 		yourself.! !
 
-!SPRecipientSmtpCommand class methodsFor: 'smtp' stamp: 'as 11/7/2006 16:51'!
+!SPRecipientSmtpCommand class methodsFor: 'smtp' stamp: 'as 11/16/2006 17:20'!
 verb
 
-	^ 'rcpt to: '.! !
+	^ 'rcpt to:'.! !
 
 !SPRecipientSmtpCommand methodsFor: 'execute' stamp: 'as 11/15/2006 12:22'!
 doExecute
@@ -1931,14 +1922,12 @@ hasArgument
 
 	^ true.! !
 
-!SPVerifySmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:33'!
+!SPVerifySmtpCommand class methodsFor: 'class initialization' stamp: 'as 11/16/2006 17:36'!
 initStates
 
 	"self initialize"
 
-	^ Set new
-		add: self allStates;
-		yourself.! !
+	^ self allStates.! !
 
 !SPVerifySmtpCommand class methodsFor: 'smtp' stamp: 'as 11/8/2006 12:31'!
 verb
@@ -1980,12 +1969,12 @@ cannotVerify
 		message: 'Verification is disabled';
 		yourself.! !
 
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 10/12/2006 15:48'!
-closing: hostnameString
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 11/16/2006 16:59'!
+closing: hostnameString reason: aString
 
 	^ self new
 		code: 421;
-		message: hostnameString, ' Service not available, closing transmission channel';
+		message: hostnameString, ' ', aString;
 		yourself.! !
 
 !SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 4/20/2006 16:17'!
@@ -2034,6 +2023,14 @@ okay
 	^ self new
 		code: 250;
 		message: 'Okay';
+		yourself.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 11/16/2006 16:46'!
+quit: hostnameString
+
+	^ self new
+		code: 221;
+		message: hostnameString, ' Bye';
 		yourself.! !
 
 !SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 10/12/2006 15:50'!
@@ -2671,7 +2668,7 @@ attributes
 		with: (WANumberAttribute key: #listenerPort);
 		with: (WANumberAttribute key: #listenerMaxConnections).! !
 
-!SPMailListenerConfiguration methodsFor: 'preferences' stamp: 'as 11/16/2006 16:29'!
+!SPMailListenerConfiguration methodsFor: 'preferences' stamp: 'as 11/16/2006 17:13'!
 listenerMaxConnections
 
 	^ 10.! !
@@ -2874,7 +2871,7 @@ SPReceiverException subclass: #SPConnectionClosedException
 !SPConnectionClosedException commentStamp: '<historical>' prior: 0!
 The connection was unexpectedly closed.!
 
-!SPConnectionClosedException methodsFor: 'priv handling' stamp: 'as 11/16/2006 15:05'!
+!SPConnectionClosedException methodsFor: 'priv handling' stamp: 'as 11/16/2006 17:07'!
 defaultAction
 
 	receiver clientQuit.! !
@@ -2996,10 +2993,10 @@ SPReceiverException subclass: #SPTooManyConnectionsException
 !SPTooManyConnectionsException commentStamp: '<historical>' prior: 0!
 There are too many connections, the current connection will be aborted.!
 
-!SPTooManyConnectionsException methodsFor: 'priv handling' stamp: 'as 11/16/2006 15:54'!
+!SPTooManyConnectionsException methodsFor: 'priv handling' stamp: 'as 11/16/2006 17:08'!
 defaultAction
 
-	receiver close.! !
+	receiver close: 'Too many connections'.! !
 
 SPException subclass: #SPSubscriptionNotFoundException
 	instanceVariableNames: ''
