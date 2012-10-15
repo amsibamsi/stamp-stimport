@@ -561,6 +561,12 @@ SPException subclass: #SPContactVerificationFailedException
 !SPContactVerificationFailedException commentStamp: 'as 2/15/2007 16:50' prior: 0!
 Verification failed.!
 
+SPException subclass: #SPEmpyArgumentException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Core'!
+
 !SPException methodsFor: 'priv handling' stamp: 'as 2/21/2007 13:47'!
 defaultAction
 
@@ -2699,10 +2705,10 @@ name
 
 	^ name.! !
 
-!SPList methodsFor: 'access' stamp: 'as 10/5/2006 14:47'!
+!SPList methodsFor: 'access' stamp: 'as 3/1/2007 13:02'!
 name: aString
 
-	name := aString.! !
+	name _ aString.! !
 
 Object subclass: #SPListManager
 	instanceVariableNames: 'users lists subscriptions monitor contacts newContacts'
@@ -4206,15 +4212,23 @@ check: aString
 
 	^ password = (self encrypt: aString).! !
 
-!SPPassword methodsFor: 'private' stamp: 'as 9/26/2006 14:09'!
+!SPPassword methodsFor: 'check' stamp: 'as 3/1/2007 11:46'!
+checkNotNilOrEmpty: aString
+
+	(aString isNil or: [ aString isEmpty. ]) ifTrue: [
+		SPWrongPasswordException signal: 'Empty password'.
+	].! !
+
+!SPPassword methodsFor: 'private' stamp: 'as 3/1/2007 11:48'!
 encrypt: aString
 
+	self checkNotNilOrEmpty: aString.
 	^ SHA1 hashStream: (ReadStream on: aString).! !
 
-!SPPassword methodsFor: 'private' stamp: 'as 9/26/2006 14:42'!
+!SPPassword methodsFor: 'private' stamp: 'as 3/1/2007 11:48'!
 new: aString
 
-	password := self encrypt: aString.! !
+	password _ self encrypt: aString.! !
 
 !SPPassword methodsFor: 'set' stamp: 'as 9/26/2006 14:44'!
 new: newString old: oldString
@@ -5166,6 +5180,13 @@ activate
 
 	active := true.! !
 
+!SPUser methodsFor: 'check' stamp: 'as 3/1/2007 11:55'!
+checkNotNilOrEmpty: aString
+
+	(aString isNil or: [ aString isEmpty. ]) ifTrue: [
+		SPEmpyArgumentException signal: 'Username is empty'.
+	].! !
+
 !SPUser methodsFor: 'state' stamp: 'as 9/5/2006 11:26'!
 deactivate
 
@@ -5191,10 +5212,11 @@ name
 
 	^ name.! !
 
-!SPUser methodsFor: 'access' stamp: 'as 3/9/2006 16:48'!
+!SPUser methodsFor: 'access' stamp: 'as 3/1/2007 11:52'!
 name: aString
 
-	name := aString.! !
+	self checkNotNil: aString.
+	name _ aString.! !
 
 !SPUser methodsFor: 'password' stamp: 'as 9/26/2006 15:03'!
 newPassword: newString oldPassword: oldString
