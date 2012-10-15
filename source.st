@@ -1219,11 +1219,16 @@ addUser: aSPUser
 		users add: aSPUser.
 	].! !
 
-!SPListManager methodsFor: 'get-list' stamp: 'as 2/6/2007 18:16'!
+!SPListManager methodsFor: 'configuration' stamp: 'as 2/12/2007 15:49'!
+adminAddress
+
+	^ SPKernel instance configurator preferenceAt: #adminAddress.! !
+
+!SPListManager methodsFor: 'get-list' stamp: 'as 2/12/2007 15:51'!
 adminForList: aSPList
 
 	^ monitor critical: [
-		aSPList admin.
+		aSPList admin ifNil: [ self adminAddress. ].
 	].! !
 
 !SPListManager methodsFor: 'get-list' stamp: 'as 2/6/2007 15:37'!
@@ -1293,25 +1298,6 @@ listWithAddress: aSPMailAddress
 			detect: [ :each | each address = aSPMailAddress. ]
 			ifNone: [ nil. ].
 	].! !
-
-!SPListManager methodsFor: 'get-list' stamp: 'as 1/30/2007 16:15'!
-listsForPost: aSPMailMessage
-
-	| list allLists |
-	allLists _ Set new.
-	monitor critical: [
-		aSPMailMessage recipients do: [
-			:recipient |
-			list _ self listWithAddress: recipient.
-			list ifNil: [
-				SPListNotFoundException signal:
-					'No list found for address ', recipient asString.
-			] ifNotNil: [
-				lists add: list.
-			].
-		].
-	].
-	^ allLists.! !
 
 !SPListManager methodsFor: 'add-remove' stamp: 'as 1/24/2007 15:24'!
 removeContact: aSPContact
@@ -1528,13 +1514,14 @@ message: aSPMailMessage
 
 	message _ aSPMailMessage.! !
 
-!SPMailHandler methodsFor: 'processing' stamp: 'as 2/7/2007 00:00'!
+!SPMailHandler methodsFor: 'processing' stamp: 'as 2/12/2007 15:54'!
 processMessage
 
 	| recipients |
 	[
 		recipients _ message listRecipients.
 		(message isAllowedPost and: [ recipients notNil. ]) ifTrue: [
+			message insertListName; insertReturnPath.
 			self sendMessageTo: recipients.
 		].
 	] ensure: [ SPKernel instance queue removeHandler: self. ].! !
@@ -1653,6 +1640,11 @@ uniqueMessageId
 		^ messageId.
 	].! !
 
+!SPMailMessage methodsFor: 'access' stamp: 'as 2/12/2007 15:58'!
+admin
+
+	^ SPKernel instance manager adminForList: self recipientList.! !
+
 !SPMailMessage methodsFor: 'configuration' stamp: 'as 1/15/2007 11:32'!
 config
 
@@ -1675,20 +1667,15 @@ ensureMessageId: hostnameString
 		mail setField: 'message-id' toString: '<', self class uniqueMessageId asString, '@', hostnameString, '>'.
 	].! !
 
-!SPMailMessage methodsFor: 'initialize-release' stamp: 'as 1/30/2007 10:05'!
-initialize
+!SPMailMessage methodsFor: 'insert' stamp: 'as 2/12/2007 15:53'!
+insertListName
 
-	recipients _ Set new.! !
+	mail subject: '[', self recipientList name, '] ', mail subject.! !
 
-!SPMailMessage methodsFor: 'insert' stamp: 'as 11/15/2006 12:32'!
-insertListName: aSPList
-
-	mail subject: '[', aSPList name, '] ', mail subject.! !
-
-!SPMailMessage methodsFor: 'insert' stamp: 'as 11/14/2006 18:22'!
+!SPMailMessage methodsFor: 'insert' stamp: 'as 2/12/2007 16:08'!
 insertReturnPath
 
-	mail returnPath: sender path.! !
+	mail returnPath: self admin path.! !
 
 !SPMailMessage methodsFor: 'insert' stamp: 'as 12/4/2006 12:32'!
 insertTraceFrom: fromString by: byString
@@ -1696,18 +1683,12 @@ insertTraceFrom: fromString by: byString
 	mail received: 'from ', fromString, ' by ', byString, '; ', MailMessage dateStampNow, ' ', self timezone.
 	date _ DateAndTime now.! !
 
-!SPMailMessage methodsFor: 'test' stamp: 'as 2/5/2007 10:09'!
+!SPMailMessage methodsFor: 'test' stamp: 'as 2/12/2007 15:32'!
 isAllowedPost
 
-	| user allowed |
-	allowed _ true.
+	| user |
 	user _ SPKernel instance manager userWithAddress: sender.
-	self recipientLists do: [
-		:each |
-		allowed _ allowed and:
-			[ SPKernel instance manager isAllowed: user toPostTo: each. ].
-	].
-	^ allowed.! !
+	^ SPKernel instance manager isAllowed: user toPostTo: self recipientList.! !
 
 !SPMailMessage methodsFor: 'posts' stamp: 'as 2/6/2007 23:34'!
 listRecipients
@@ -1787,13 +1768,6 @@ addMessages: aCollection
 checkFreeQueueSize: aNumber
 
 	(queue size + aNumber) > self queueSize ifTrue: [
-		SPQueueFullException signal.
-	].! !
-
-!SPMailQueue methodsFor: 'check' stamp: 'as 1/17/2007 19:45'!
-checkQueueNotFull
-
-	queue size >= self queueSize ifTrue: [
 		SPQueueFullException signal.
 	].! !
 
