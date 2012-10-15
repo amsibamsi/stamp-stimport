@@ -1695,13 +1695,13 @@ cancel
 
 	self answer.! !
 
-!SPWebEditList methodsFor: 'access' stamp: 'as 3/5/2007 10:22'!
+!SPWebEditList methodsFor: 'access' stamp: 'as 3/8/2007 15:32'!
 list: aSPList
 
 	list _ aSPList.
 	name _ list name.
 	list admin ifNil: [ admin _ ''. ] ifNotNil: [ admin _ list admin asString. ].
-	description _ list description.
+	list description ifNil: [ description _ ''. ] ifNotNil: [ description _ list description. ].
 	! !
 
 !SPWebEditList methodsFor: 'rendering' stamp: 'as 3/1/2007 17:34'!
@@ -1731,7 +1731,7 @@ renderContentOn: html
 		].
 	].! !
 
-!SPWebEditList methodsFor: 'call/answer' stamp: 'as 3/1/2007 18:04'!
+!SPWebEditList methodsFor: 'call/answer' stamp: 'as 3/8/2007 15:33'!
 save
 
 	self do: [
@@ -1740,6 +1740,11 @@ save
 			list admin: nil.
 		] ifFalse: [
 			list admin: (SPMailAddress fromString: admin).
+		].
+		description isEmpty ifTrue: [
+			list description: nil.
+		] ifFalse: [
+			list description: description.
 		].
 	] catchExceptions: SPException.
 	self answer.! !
@@ -2792,7 +2797,7 @@ stop
 	listener waitForStop.! !
 
 Object subclass: #SPList
-	instanceVariableNames: 'address name description closed admin locked'
+	instanceVariableNames: 'address name description admin locked'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-ListManager'!
@@ -2848,11 +2853,10 @@ hash
 
 	^ address hash.! !
 
-!SPList methodsFor: 'initialize-release' stamp: 'as 3/5/2007 10:18'!
+!SPList methodsFor: 'initialize-release' stamp: 'as 3/8/2007 15:31'!
 initialize
 
-	self locked: true.
-	self description: ''.! !
+	self locked: true.! !
 
 !SPList methodsFor: 'state' stamp: 'as 2/27/2007 15:30'!
 invertLocking
@@ -2887,26 +2891,6 @@ Object subclass: #SPListManager
 
 !SPListManager commentStamp: 'as 12/4/2006 12:39' prior: 0!
 Access/modify lists, users, contacts and subscriptions.!
-
-!SPListManager methodsFor: 'get-recipients' stamp: 'as 2/5/2007 09:57'!
-activeRecipientsForList: aSPList
-
-	^ monitor critical: [
-		(self activeSubscriptionsForList: aSPList) collect: [
-			:each |
-			each contact address.
-		].
-	].! !
-
-!SPListManager methodsFor: 'get-subscription' stamp: 'as 2/5/2007 09:55'!
-activeSubscriptionsForList: aSPList
-
-	^ monitor critical: [
-		(self subscriptionsForList: aSPList) select: [
-			:each |
-			each isActive.
-		].
-	].! !
 
 !SPListManager methodsFor: 'add-remove' stamp: 'as 2/22/2007 15:31'!
 addContact: addressString user: aSPUser
@@ -3113,13 +3097,16 @@ initialize
 	
 	self initRootUser.! !
 
-!SPListManager methodsFor: 'test' stamp: 'as 2/4/2007 22:18'!
+!SPListManager methodsFor: 'test' stamp: 'as 3/8/2007 16:39'!
 isAllowed: aSPUser toPostTo: aSPList
 
-	^ monitor critical: [
-		aSPList isOpen or: [
-			aSPUser notNil and: [ self isSubscribed: aSPUser to: aSPList. ].
-		].
+	| subscription |
+	aSPList isLocked ifFalse: [ ^ true. ].
+	subscription _ self subscriptionFor: aSPUser to: aSPList.
+	subscription ifNotNil: [
+		^ subscription isAccepted.
+	] ifNil: [
+		^ false.
 	].! !
 
 !SPListManager methodsFor: 'test' stamp: 'as 2/13/2007 17:39'!
@@ -3131,17 +3118,6 @@ isRootUser: aSPUser
 isRootUsername: aString
 
 	^ aString = self rootUsername.! !
-
-!SPListManager methodsFor: 'test' stamp: 'as 2/5/2007 11:17'!
-isSubscribed: aSPUser to: aSPList
-
-	^ monitor critical: [
-		(subscriptions detect: [
-			:subscription |
-			subscription list = aSPList and:
-				[ aSPUser verifiedContacts includes: subscription contact. ].
-		] ifNone: [ nil. ]) notNil.
-	].! !
 
 !SPListManager methodsFor: 'test' stamp: 'as 2/14/2007 22:23'!
 listExists: aSPList
@@ -3213,6 +3189,16 @@ pendingSubscriptions
 		].
 	].! !
 
+!SPListManager methodsFor: 'get-recipients' stamp: 'as 3/8/2007 15:26'!
+recipientsForList: aSPList
+
+	| recipients |
+	recipients _ (self subscriptionsForList: aSPList) select: [
+		:each |
+		each isActive and: [ each isAccepted. ].
+	].
+	^ recipients collect: [ :each | each contact address. ].! !
+
 !SPListManager methodsFor: 'add-remove' stamp: 'as 2/21/2007 15:00'!
 removeContact: aSPContact
 
@@ -3277,6 +3263,17 @@ subscriptionExists: aSPSubscription
 
 	^ monitor critical: [
 		subscriptions includes: aSPSubscription.
+	].! !
+
+!SPListManager methodsFor: 'get-subscription' stamp: 'as 3/8/2007 15:51'!
+subscriptionFor: aSPUser to: aSPList
+
+	^ monitor critical: [
+		subscriptions detect: [
+			:subscription |
+			subscription list == aSPList and:
+				[ aSPUser verifiedContacts includes: subscription contact. ].
+		] ifNone: [ nil. ].
 	].! !
 
 !SPListManager methodsFor: 'get-subscription' stamp: 'as 3/7/2007 17:37'!
@@ -3524,12 +3521,11 @@ run
 		[ self isFinished. ] whileFalse: [ self delay; processMessage. ].
 	] ensure: [ SPKernel instance queue removeHandler: self. ].! !
 
-!SPMailHandler methodsFor: 'processing' stamp: 'as 3/7/2007 17:18'!
+!SPMailHandler methodsFor: 'processing' stamp: 'as 3/8/2007 15:12'!
 sendMessage
 
 	monitor critical: [
 		self attempting.
-		message prepareToSend.
 		SPSmtpClient new sendMessage: message.
 		self sent.
 	].! !
@@ -3719,9 +3715,6 @@ mail: aMailMessage
 
 	mail _ aMailMessage.! !
 
-!SPMailMessage methodsFor: 'send' stamp: 'as 2/26/2007 13:10'!
-prepareToSend! !
-
 !SPMailMessage methodsFor: 'access' stamp: 'as 2/26/2007 10:03'!
 recipients
 
@@ -3782,39 +3775,46 @@ checkIsAllowed
 		^ SPPostingNotAllowedException signal.
 	].! !
 
-!SPMailPosting methodsFor: 'test' stamp: 'as 2/26/2007 11:54'!
+!SPMailPosting methodsFor: 'test' stamp: 'as 3/8/2007 15:45'!
 isAllowed
+	
+	^ SPKernel instance manager isAllowed: self senderUser toPostTo: self recipientList.! !
 
-	| user |
-	user _ SPKernel instance manager userWithAddress: sender.
-	^ SPKernel instance manager isAllowed: user toPostTo: self recipientList.! !
-
-!SPMailPosting methodsFor: 'post' stamp: 'as 2/26/2007 10:12'!
+!SPMailPosting methodsFor: 'post' stamp: 'as 3/8/2007 15:26'!
 listRecipients
 
-	^ SPKernel instance manager activeRecipientsForList: self recipientList.! !
+	^ SPKernel instance manager recipientsForList: self recipientList.! !
 
-!SPMailPosting methodsFor: 'send' stamp: 'as 2/26/2007 13:15'!
-prepareToSend
-
-	"Insert list name and return path. Replace mail to be sure things aren't
-	 written multiple times if this gets called more than once."
+!SPMailPosting methodsFor: 'access' stamp: 'as 3/8/2007 15:14'!
+mail
 
 	| message |
 	message _ MailMessage from: mail.
 	message returnPath: self admin asString.
 	message subject: '[', self recipientList name, '] ', mail subject.
-	mail _ message.! !
+	^ message.! !
 
-!SPMailPosting methodsFor: 'post' stamp: 'as 2/26/2007 10:28'!
+!SPMailPosting methodsFor: 'post' stamp: 'as 3/8/2007 15:44'!
 recipientList
 
-	SPKernel instance manager listWithAddress: recipients first.! !
+	| list |
+	list _ SPKernel instance manager listWithAddress: recipients first.
+	list ifNil: [ SPListNotFoundException signal. ].
+	^ list.! !
 
-!SPMailPosting methodsFor: 'access' stamp: 'as 2/26/2007 11:48'!
+!SPMailPosting methodsFor: 'access' stamp: 'as 3/8/2007 15:26'!
 recipients
 
+	self checkIsAllowed.
 	^ self listRecipients.! !
+
+!SPMailPosting methodsFor: 'post' stamp: 'as 3/8/2007 15:41'!
+senderUser
+
+	| user |
+	user _ SPKernel instance manager userWithAddress: sender.
+	user ifNil: [ SPUserNotFoundException signal. ].
+	^ user.! !
 
 Object subclass: #SPMailNotifier
 	instanceVariableNames: 'message'
