@@ -1,3 +1,4 @@
+SystemOrganization addCategory: #'Stamp-Configuration'!
 SystemOrganization addCategory: #'Stamp-Mail-Client'!
 SystemOrganization addCategory: #'Stamp-Mail-Server'!
 SystemOrganization addCategory: #'Stamp-Model'!
@@ -59,10 +60,29 @@ Object subclass: #SPList
 !SPList commentStamp: '<historical>' prior: 0!
 A Stamp mailing list.!
 
-!SPList methodsFor: 'accessing' stamp: 'as 3/10/2006 15:44'!
-addUser: aSPUser
+!SPList class methodsFor: 'instance creation' stamp: 'as 3/20/2006 16:12'!
+withName: aString
+
+	^ self new
+		name: aString;
+		yourself.! !
+
+!SPList methodsFor: 'private' stamp: 'as 3/21/2006 15:18'!
+addNewUser: aSPUser
 
 	users add: aSPUser.! !
+
+!SPList methodsFor: 'operations' stamp: 'as 3/21/2006 14:54'!
+addUser: aSPUser
+
+	self shouldNotIncludeUser: aSPUser.
+	self addNewUser: aSPUser.
+	aSPUser addNewList: self.! !
+
+!SPList methodsFor: 'accessing' stamp: 'as 3/21/2006 15:03'!
+allUsers
+
+	^ users.! !
 
 !SPList methodsFor: 'comparing' stamp: 'as 3/9/2006 16:50'!
 hash
@@ -79,10 +99,34 @@ name
 
 	^ name.! !
 
-!SPList methodsFor: 'accessing' stamp: 'as 3/10/2006 15:44'!
-removeUser: aSPUser
+!SPList methodsFor: 'accessing' stamp: 'as 3/20/2006 16:13'!
+name: aString
+
+	name := aString.! !
+
+!SPList methodsFor: 'private' stamp: 'as 3/21/2006 15:18'!
+removeExistingUser: aSPUser
 
 	users remove: aSPUser.! !
+
+!SPList methodsFor: 'operations' stamp: 'as 3/21/2006 14:57'!
+removeUser: aSPUser
+
+	self shouldIncludeUser: aSPUser.
+	self removeExistingUser: aSPUser.
+	aSPUser removeExistingList: self.! !
+
+!SPList methodsFor: 'private' stamp: 'as 3/21/2006 14:56'!
+shouldIncludeUser: aSPUser
+
+	(users includes: aSPUser) ifFalse: [ SPUserNotIncludedException signal. ].
+	self assert: (users includes: aSPUser).! !
+
+!SPList methodsFor: 'private' stamp: 'as 3/21/2006 14:56'!
+shouldNotIncludeUser: aSPUser
+
+	(users includes: aSPUser) ifTrue: [ SPUserAlreadyIncludedException signal. ].
+	self assert: (users includes: aSPUser) not.! !
 
 !SPList methodsFor: 'comparing' stamp: 'as 3/9/2006 16:48'!
 = aSPList
@@ -741,16 +785,23 @@ Object subclass: #SPUser
 !SPUser commentStamp: '<historical>' prior: 0!
 A Stamp user.!
 
-!SPUser class methodsFor: 'instance creation' stamp: 'as 3/9/2006 16:49'!
-withName: nameString address: addressString list: aSPList
+!SPUser class methodsFor: 'instance creation' stamp: 'as 3/20/2006 16:13'!
+withName: nameString address: addressString
 
-	^ SPUser new
+	^ self new
 		name: nameString;
 		address: addressString;
-		addList: aSPList.! !
+		yourself.! !
 
-!SPUser methodsFor: 'accessing' stamp: 'as 3/9/2006 16:33'!
+!SPUser methodsFor: 'operations' stamp: 'as 3/21/2006 14:51'!
 addList: aSPList
+
+	self shouldNotIncludeList: aSPList.
+	self addNewList: aSPList.
+	aSPList addNewUser: self.! !
+
+!SPUser methodsFor: 'private' stamp: 'as 3/21/2006 14:43'!
+addNewList: aSPList
 
 	lists add: aSPList.! !
 
@@ -774,6 +825,11 @@ initialize
 
 	lists := Set new.! !
 
+!SPUser methodsFor: 'accessing' stamp: 'as 3/20/2006 15:47'!
+lists
+
+	^ lists.! !
+
 !SPUser methodsFor: 'accessing' stamp: 'as 3/9/2006 16:54'!
 name
 
@@ -784,10 +840,29 @@ name: aString
 
 	name := aString.! !
 
-!SPUser methodsFor: 'accessing' stamp: 'as 3/9/2006 16:54'!
-removeList: aSPList
+!SPUser methodsFor: 'private' stamp: 'as 3/21/2006 14:43'!
+removeExistingList: aSPList
 
 	lists remove: aSPList.! !
+
+!SPUser methodsFor: 'operations' stamp: 'as 3/21/2006 14:51'!
+removeList: aSPList
+
+	self shouldIncludeList: aSPList.
+	self removeExistingList: aSPList.
+	aSPList removeExistingUser: self.! !
+
+!SPUser methodsFor: 'private' stamp: 'as 3/21/2006 14:53'!
+shouldIncludeList: aSPList
+
+	(lists includes: aSPList) ifFalse: [ SPListNotIncludedException signal. ].
+	self assert: (lists includes: aSPList).! !
+
+!SPUser methodsFor: 'private' stamp: 'as 3/21/2006 14:53'!
+shouldNotIncludeList: aSPList
+
+	(lists includes: aSPList) ifTrue: [ SPListAlreadyIncludedException signal. ].
+	self assert: (lists includes: aSPList) not.! !
 
 !SPUser methodsFor: 'comparing' stamp: 'as 3/9/2006 16:51'!
 = aSPUser
@@ -795,7 +870,7 @@ removeList: aSPList
 	^ name = aSPUser name.! !
 
 Object subclass: #SPUserManager
-	instanceVariableNames: 'kernel'
+	instanceVariableNames: 'kernel users'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Model'!
@@ -808,10 +883,81 @@ withKernel: aSPKernel
 
 	^ self new kernel: aSPKernel.! !
 
+!SPUserManager methodsFor: 'operations' stamp: 'as 3/21/2006 14:38'!
+addUser: nameString address: addressString
+
+	self userShouldNotExist: nameString.
+	users add: (SPUser withName: nameString address: addressString).! !
+
+!SPUserManager methodsFor: 'initialize-release' stamp: 'as 3/17/2006 11:08'!
+initialize
+
+	users := Set new.! !
+
 !SPUserManager methodsFor: 'accessing' stamp: 'as 3/14/2006 14:43'!
 kernel: aSPKernel
 
 	kernel := aSPKernel.! !
+
+!SPUserManager methodsFor: 'operations' stamp: 'as 3/21/2006 14:38'!
+removeUser: nameString
+
+	users remove: (self userShouldExist: nameString).! !
+
+!SPUserManager methodsFor: 'private' stamp: 'as 3/21/2006 14:27'!
+userShouldExist: nameString
+
+	| selectedUsers |
+	selectedUsers := users select: [ :user | user name = nameString ].
+	self assert: (selectedUsers size <= 1).
+	selectedUsers isEmpty ifTrue: [ SPUserNotFoundException signal. ].
+	self assert: (selectedUsers notEmpty).
+	^ selectedUsers first.! !
+
+!SPUserManager methodsFor: 'private' stamp: 'as 3/21/2006 14:23'!
+userShouldNotExist: nameString
+
+	| userExists |
+	userExists := self userExists: nameString.
+	userExists ifTrue: [ SPUserAlreadyExistsException signal ].
+	self assert: userExists not.! !
+
+!SPUserManager methodsFor: 'operations' stamp: 'as 3/21/2006 14:37'!
+user: nameString
+
+	^ self userShouldExist: nameString.! !
+
+TcpService subclass: #SPMailListener
+	instanceVariableNames: 'kernel'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPMailListener commentStamp: '<historical>' prior: 0!
+A TCP service accepting SMTP connections.!
+
+!SPMailListener class methodsFor: 'instance creation' stamp: 'as 3/14/2006 14:35'!
+withKernel: aSPKernel onPort: aNumber
+
+	^ (self on: aNumber) kernel: aSPKernel.! !
+
+!SPMailListener methodsFor: 'accessing' stamp: 'as 3/14/2006 14:36'!
+kernel: aSPKernel
+
+	kernel := aSPKernel.! !
+
+!SPMailListener methodsFor: 'conversation' stamp: 'as 3/16/2006 15:23'!
+serve: aSocket
+
+	| server |
+	server := SPMailReceiver on: (SocketStream on: aSocket) withKernel: kernel.
+	server receive.! !
+
+WASystemConfiguration subclass: #SPSystemConfiguration
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration'!
 
 String subclass: #SPSmtpReply
 	instanceVariableNames: ''
@@ -881,32 +1027,6 @@ convertToSqueakText
 	convertedString := convertedString copyReplaceAll: lf with: cr.
 	^ convertedString.! !
 
-TcpService subclass: #SPMailListener
-	instanceVariableNames: 'kernel'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server'!
-
-!SPMailListener commentStamp: '<historical>' prior: 0!
-A TCP service accepting SMTP connections.!
-
-!SPMailListener class methodsFor: 'instance creation' stamp: 'as 3/14/2006 14:35'!
-withKernel: aSPKernel onPort: aNumber
-
-	^ (self on: aNumber) kernel: aSPKernel.! !
-
-!SPMailListener methodsFor: 'accessing' stamp: 'as 3/14/2006 14:36'!
-kernel: aSPKernel
-
-	kernel := aSPKernel.! !
-
-!SPMailListener methodsFor: 'conversation' stamp: 'as 3/16/2006 15:23'!
-serve: aSocket
-
-	| server |
-	server := SPMailReceiver on: (SocketStream on: aSocket) withKernel: kernel.
-	server receive.! !
-
 SMTPClient subclass: #SPMailSender
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -947,72 +1067,6 @@ reset
 
 	self sendCommand: 'RSET'.
 	self checkResponse.! !
-
-Exception subclass: #SPSmtpCommandException
-	instanceVariableNames: 'server'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server'!
-
-!SPSmtpCommandException commentStamp: '<historical>' prior: 0!
-Indicates that an SMTP command from the client failed on the server.!
-
-!SPSmtpCommandException class methodsFor: 'instance creation' stamp: 'as 1/31/2006 11:22'!
-on: aSPMailReceiver
-
-	^ self new
-		server: aSPMailReceiver;
-		yourself.! !
-
-!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:21'!
-defaultAction
-
-	server reply: self reply.! !
-
-!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/17/2006 17:55'!
-isResumable
-
-	^ false.! !
-
-!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:05'!
-reply
-
-	"Every command failure should be replied to the client."
-
-	self subclassResponsibility.! !
-
-!SPSmtpCommandException methodsFor: 'accessing' stamp: 'as 1/31/2006 11:24'!
-server: aSPMailReceiver
-
-	server := aSPMailReceiver.! !
-
-SPSmtpCommandException subclass: #SPSmtpCommandNotAllowed
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server'!
-
-!SPSmtpCommandNotAllowed commentStamp: '<historical>' prior: 0!
-The command is not allowed in the current state of the server.!
-
-!SPSmtpCommandNotAllowed methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:04'!
-reply
-
-	^ SPSmtpReply badSequence.! !
-
-SPSmtpCommandException subclass: #SPSmtpCommandNotFound
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server'!
-
-!SPSmtpCommandNotFound commentStamp: '<historical>' prior: 0!
-The specified command was not found.!
-
-!SPSmtpCommandNotFound methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:06'!
-reply
-
-	^ SPSmtpReply commandUnrecognized.! !
 
 TestCase subclass: #SPCodeTest
 	instanceVariableNames: ''
@@ -1223,3 +1277,116 @@ testCrLf
 testLf
 
 	self assert: lf convertToSqueakText = cr.! !
+
+Exception subclass: #SPModelException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Model'!
+
+SPModelException subclass: #SPListAlreadyIncludedException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Model'!
+
+SPModelException subclass: #SPListNotIncludedException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Model'!
+
+!SPModelException methodsFor: 'priv handling' stamp: 'as 3/20/2006 15:58'!
+isResumable
+
+	^ false.! !
+
+SPModelException subclass: #SPUserAlreadyExistsException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Model'!
+
+SPModelException subclass: #SPUserAlreadyIncludedException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Model'!
+
+SPModelException subclass: #SPUserNotFoundException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Model'!
+
+SPModelException subclass: #SPUserNotIncludedException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Model'!
+
+Exception subclass: #SPSmtpCommandException
+	instanceVariableNames: 'server'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPSmtpCommandException commentStamp: '<historical>' prior: 0!
+Indicates that an SMTP command from the client failed on the server.!
+
+!SPSmtpCommandException class methodsFor: 'instance creation' stamp: 'as 1/31/2006 11:22'!
+on: aSPMailReceiver
+
+	^ self new
+		server: aSPMailReceiver;
+		yourself.! !
+
+!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:21'!
+defaultAction
+
+	server reply: self reply.! !
+
+!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/17/2006 17:55'!
+isResumable
+
+	^ false.! !
+
+!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:05'!
+reply
+
+	"Every command failure should be replied to the client."
+
+	self subclassResponsibility.! !
+
+!SPSmtpCommandException methodsFor: 'accessing' stamp: 'as 1/31/2006 11:24'!
+server: aSPMailReceiver
+
+	server := aSPMailReceiver.! !
+
+SPSmtpCommandException subclass: #SPSmtpCommandNotAllowed
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPSmtpCommandNotAllowed commentStamp: '<historical>' prior: 0!
+The command is not allowed in the current state of the server.!
+
+!SPSmtpCommandNotAllowed methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:04'!
+reply
+
+	^ SPSmtpReply badSequence.! !
+
+SPSmtpCommandException subclass: #SPSmtpCommandNotFound
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPSmtpCommandNotFound commentStamp: '<historical>' prior: 0!
+The specified command was not found.!
+
+!SPSmtpCommandNotFound methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:06'!
+reply
+
+	^ SPSmtpReply commandUnrecognized.! !
