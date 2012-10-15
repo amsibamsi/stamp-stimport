@@ -483,19 +483,6 @@ Object subclass: #SPConfiguration
 !SPConfiguration commentStamp: 'as 3/11/2007 16:44' prior: 0!
 Stores configuration attributes and associates them with a symbol. The values of the attributes are called preferences and can be changed with the appropriate methods.!
 
-!SPConfiguration methodsFor: 'preferences' stamp: 'as 3/11/2007 16:45'!
-allPreferences
-
-	"Returns a dictionary with associations aSymbol -> value."
-
-	| preferences |
-	preferences _ Dictionary new.
-	attributes associationsDo: [
-		:attribute |
-		preferences at: attribute key put: attribute value value.
-	].
-	^ preferences.! !
-
 !SPConfiguration methodsFor: 'attributes' stamp: 'as 3/11/2007 17:26'!
 attributeAt: aSymbol
 
@@ -507,6 +494,16 @@ attributeAt: aSymbol
 attributeAt: aSymbol put: aSPConfigurationAttribute
 
 	attributes at: aSymbol put: aSPConfigurationAttribute.! !
+
+!SPConfiguration methodsFor: 'accessing' stamp: 'as 3/11/2007 23:34'!
+attributes
+
+	^ attributes.! !
+
+!SPConfiguration methodsFor: 'descriptions' stamp: 'as 3/11/2007 23:34'!
+descriptionAt: aSymbol
+
+	^ (self attributeAt: aSymbol) description.! !
 
 !SPConfiguration methodsFor: 'initialize-release' stamp: 'as 12/12/2006 18:05'!
 initialize
@@ -831,11 +828,11 @@ Object subclass: #SPConfigurator
 !SPConfigurator commentStamp: 'as 3/11/2007 16:52' prior: 0!
 Initializes a base configuration for Stamp with default values and coordinates concurrent access to preferences.!
 
-!SPConfigurator methodsFor: 'configuration' stamp: 'as 2/28/2007 13:04'!
-allPreferences
+!SPConfigurator methodsFor: 'configuration' stamp: 'as 3/11/2007 23:50'!
+attributes
 
 	^ monitor critical: [
-		config allPreferences.
+		config attributes copy.
 	].! !
 
 !SPConfigurator methodsFor: 'initialize-release' stamp: 'as 1/29/2007 17:01'!
@@ -3747,10 +3744,10 @@ SPWATable subclass: #SPWebConfiguration
 !SPWebConfiguration commentStamp: 'as 2/28/2007 12:27' prior: 0!
 Configuration editor.!
 
-!SPWebConfiguration methodsFor: 'call/answer' stamp: 'as 3/5/2007 12:57'!
+!SPWebConfiguration methodsFor: 'call/answer' stamp: 'as 3/11/2007 23:52'!
 edit: anAssociation
 
-	self call: (SPWebEditPreference withKey: anAssociation key value: anAssociation value).
+	self call: (SPWebEditPreference withKey: anAssociation key value: anAssociation value value).
 	self updateTable.! !
 
 !SPWebConfiguration methodsFor: 'initialize-release' stamp: 'as 3/5/2007 13:36'!
@@ -3764,20 +3761,21 @@ renderContentOn: html
 	self renderTitle: 'Preferences' on: html.
 	super renderContentOn: html.! !
 
-!SPWebConfiguration methodsFor: 'rendering' stamp: 'as 3/5/2007 12:57'!
+!SPWebConfiguration methodsFor: 'rendering' stamp: 'as 3/11/2007 23:51'!
 tableColumns
 
 	^ OrderedCollection new
 		add: (WAReportColumn selector: #key title: 'Name');
-		add: ((WAReportColumn selector: #value title: 'Value') sortBlock: nil; yourself);
+		add: (WAReportColumn new title: 'Value'; valueBlock: [ :item | item value value asString. ]; yourself);
 		add: (WAReportColumn new title: 'Edit'; valueBlock: [ :item | 'edit'. ]; clickBlock: [ :item | self edit: item. ]; sortBlock: nil; yourself);
+		add: (WAReportColumn new title: 'Description'; valueBlock: [ :item | item value description. ]; yourself);
 		yourself.! !
 
-!SPWebConfiguration methodsFor: 'rendering' stamp: 'as 3/5/2007 10:26'!
+!SPWebConfiguration methodsFor: 'rendering' stamp: 'as 3/11/2007 23:35'!
 tableRows
 
 	^ OrderedCollection new
-		addAll: (SPKernel instance configurator allPreferences associations);
+		addAll: (SPKernel instance configurator attributes associations);
 		yourself.! !
 
 SPWATable subclass: #SPWebContacts
