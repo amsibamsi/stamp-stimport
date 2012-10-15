@@ -1906,12 +1906,11 @@ message: aSPMailMessage
 
 	message _ aSPMailMessage.! !
 
-!SPMailHandler methodsFor: 'processing' stamp: 'as 2/5/2007 10:54'!
+!SPMailHandler methodsFor: 'processing' stamp: 'as 2/5/2007 16:19'!
 processMessage
 
 	| recipients |
 	[
-		self halt.
 		recipients _ message listRecipients.
 		(message isAllowedPost and: [ recipients notNil. ]) ifTrue: [
 			self sendMessageTo: recipients.
@@ -2332,7 +2331,7 @@ quit
 	stream close.
 	SPKernel instance listener removeConnection: self.! !
 
-!SPMailReceiver methodsFor: 'receive' stamp: 'as 2/5/2007 10:38'!
+!SPMailReceiver methodsFor: 'receive' stamp: 'as 2/5/2007 16:19'!
 receive
 
 	"Receive commands from client as long as connection is there and
@@ -2343,7 +2342,7 @@ receive
 	[
 		[
 			[ quit not and: [ stream isConnected. ] ] whileTrue: [ self receiveCommand. ].
-		] on: Exception do: [ :e | self halt. self replyClosing: 'Unknown error'. ].
+		] on: Exception do: [ :e | self replyClosing: 'Unknown error'. ].
 	] ensure: [ self quit. ].! !
 
 !SPMailReceiver methodsFor: 'receive' stamp: 'as 11/16/2006 15:35'!
