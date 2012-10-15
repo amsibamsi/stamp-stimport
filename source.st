@@ -11,49 +11,134 @@ SystemOrganization addCategory: #'Stamp-Storage'!
 SystemOrganization addCategory: #'Stamp-Tests'!
 SystemOrganization addCategory: #'Stamp-Web'!
 
-!MailMessage class methodsFor: '*Stamp' stamp: 'as 9/27/2006 13:39'!
-dateStampNow
-	"Return the current date and time formatted as a email Date: line"
-	"The result conforms to RFC822 with a long year, e.g.  'Thu, 18 Feb 1999 20:38:51'"
+WAComponent subclass: #SPWeb
+	instanceVariableNames: 'kernel body'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
 
-	"Fix:
-	 According to RFC822, this must also include the time zone.
-	 Anselm Strauss, astrauss@gmx.ch, Wed, 20 Sep 2006"
+!SPWeb commentStamp: '<historical>' prior: 0!
+Stamp web interface.!
 
-	| zone digits sign |
-	zone := DateAndTime localTimeZone offset.
-	digits := zone hours abs * 100 + zone minutes abs.
-	zone negative ifTrue: [ sign := '-'. ] ifFalse: [ sign := '+'. ].
+!SPWeb class methodsFor: 'class initialization' stamp: 'as 7/19/2006 10:19'!
+initialize
 
-	^	(Date today weekday copyFrom: 1 to: 3), ', ',
-		(Date today printFormat: #(1 2 3 $  2 1 1)), ' ',
-		Time now print24, ' ',
-		sign, (digits printPaddedWith: $0 to: 4).! !
+	"self initialize"
 
-!MailMessage methodsFor: '*Stamp' stamp: 'as 9/19/2006 18:11'!
-addField: nameString fromString: valueString
+	self registerAsApplication: 'stamp'.! !
 
-	"Add a field. If any field of the specified name exists, it will not be overwritten."
+!SPWeb methodsFor: 'as yet unclassified' stamp: 'as 7/26/2006 09:30'!
+children
 
-	| field key value |
-	key := nameString asLowercase.
-	field := fields at: key ifAbsent: [
-		fields at: key put: OrderedCollection new.
-	].
-	value := MIMEHeaderValue forField: nameString fromString: valueString.
-	field add: value.
-	text := nil.
-	tokens := nil.! !
+	^ Array with: body.! !
 
-!MailMessage methodsFor: '*Stamp' stamp: 'as 9/19/2006 18:25'!
-received: aString
+!SPWeb methodsFor: 'accessing' stamp: 'as 7/24/2006 10:35'!
+kernel: aSPKernel
 
-	self addField: 'received' fromString: aString.! !
+	kernel := aSPKernel.! !
 
-!MailMessage methodsFor: '*Stamp' stamp: 'as 9/25/2006 11:35'!
-returnPath: aString
+!SPWeb methodsFor: 'rendering' stamp: 'as 7/26/2006 09:26'!
+renderContentOn: html
 
-	self addField: 'return-path' fromString: aString.! !
+	html heading: 'stamp'.
+	kernel isNil
+		ifTrue: [ self renderKernelSelection: html. ]
+		ifFalse: [ self renderDefault: html. ].
+
+	"html anchorWithAction: [ self call: SPWeb3 new. ] text: 'stamp3'."! !
+
+!SPWeb methodsFor: 'rendering' stamp: 'as 7/26/2006 09:27'!
+renderDefault: html
+
+	html paragraph: 'kernel is: ', kernel name.
+
+	html anchorWithAction: [ body := SPWebUsers withKernel: kernel. ] text: 'users'.
+	html horizontalRule.
+	html render: body.! !
+
+!SPWeb methodsFor: 'rendering' stamp: 'as 7/26/2006 09:38'!
+renderKernelSelection: html
+
+	html paragraph: 'kernels:'.
+	SPKernel allInstances do: [
+		:each |
+		html anchorWithAction: [ self kernel: each. ] text: each name.
+		html text: ' '.
+	].! !
+
+WAComponent subclass: #SPWebAddUser
+	instanceVariableNames: 'kernel name address'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+SPWebAddUser class
+	instanceVariableNames: 'kernel'!
+
+!SPWebAddUser commentStamp: '<historical>' prior: 0!
+testing...!
+
+!SPWebAddUser class methodsFor: 'instance creation' stamp: 'as 7/25/2006 15:50'!
+withKernel: aSPKernel
+
+	^ self new kernel: aSPKernel.! !
+
+!SPWebAddUser methodsFor: 'as yet unclassified' stamp: 'as 7/26/2006 11:10'!
+addUser
+
+	kernel userManager addUser: name address: address.
+	self answer.! !
+
+!SPWebAddUser methodsFor: 'accessing' stamp: 'as 7/25/2006 16:15'!
+kernel: aSPKernel
+
+	kernel := aSPKernel.! !
+
+!SPWebAddUser methodsFor: 'rendering' stamp: 'as 7/25/2006 16:17'!
+renderContentOn: html
+
+	html form: [
+		html defaultAction: [ self addUser. ].
+		html textInputWithValue: name callback: [ :n | name := n. ].
+		html textInputWithValue: address callback: [ :a | address := a. ].
+		html submitButtonWithText: 'ok'.
+	].! !
+
+WAComponent subclass: #SPWebUsers
+	instanceVariableNames: 'kernel test'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebUsers commentStamp: '<historical>' prior: 0!
+testing...!
+
+!SPWebUsers class methodsFor: 'instance creation' stamp: 'as 7/24/2006 11:31'!
+withKernel: aSPKernel
+
+	^ self new kernel: aSPKernel.! !
+
+!SPWebUsers methodsFor: 'accessing' stamp: 'as 7/24/2006 11:31'!
+kernel: aSPKernel
+
+	kernel := aSPKernel.! !
+
+!SPWebUsers methodsFor: 'rendering' stamp: 'as 7/26/2006 11:14'!
+renderAllUsers: html
+
+	kernel userManager allUsers do: [
+		:user |
+		html paragraph: [ html text: user name, ' - ', user address. ].
+	].! !
+
+!SPWebUsers methodsFor: 'rendering' stamp: 'as 7/26/2006 09:29'!
+renderContentOn: html
+
+	html heading: 'users' level: 3.
+	self renderAllUsers: html.
+	html horizontalRule.
+	html anchorWithAction: [ self call: (SPWebAddUser withKernel: kernel). ] text: 'add user'.
+	"html anchorWithAction: [ test := 1. ] text: 'test'."! !
 
 Object subclass: #SPContact
 	instanceVariableNames: 'user address active verified'
@@ -1801,32 +1886,6 @@ removeContact: aSPContact
 
 	^ name = aSPUser name.! !
 
-TcpService subclass: #SPMailService
-	instanceVariableNames: 'listener'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server'!
-
-!SPMailService commentStamp: '<historical>' prior: 0!
-A TCP service listening for incoming SMTP connections.!
-
-!SPMailService class methodsFor: 'instance creation' stamp: 'as 5/30/2006 09:28'!
-withListener: aSPMailListener onPort: aNumber
-
-	^ (self on: aNumber) listener: aSPMailListener.! !
-
-!SPMailService methodsFor: 'accessing' stamp: 'as 5/30/2006 09:17'!
-listener: aSPMailListener
-
-	listener := aSPMailListener.! !
-
-!SPMailService methodsFor: 'conversation' stamp: 'as 10/3/2006 15:51'!
-serve: aSocket
-
-	| receiver |
-	receiver := SPMailReceiver withKernel: listener kernel stream: (SocketStream on: aSocket) .
-	receiver receive.! !
-
 WASystemConfiguration subclass: #SPBaseConfiguration
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -1921,135 +1980,6 @@ attributes
 resolverTimeout
 
 	^ 3.! !
-
-WAComponent subclass: #SPWeb
-	instanceVariableNames: 'kernel body'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWeb commentStamp: '<historical>' prior: 0!
-Stamp web interface.!
-
-!SPWeb class methodsFor: 'class initialization' stamp: 'as 7/19/2006 10:19'!
-initialize
-
-	"self initialize"
-
-	self registerAsApplication: 'stamp'.! !
-
-!SPWeb methodsFor: 'as yet unclassified' stamp: 'as 7/26/2006 09:30'!
-children
-
-	^ Array with: body.! !
-
-!SPWeb methodsFor: 'accessing' stamp: 'as 7/24/2006 10:35'!
-kernel: aSPKernel
-
-	kernel := aSPKernel.! !
-
-!SPWeb methodsFor: 'rendering' stamp: 'as 7/26/2006 09:26'!
-renderContentOn: html
-
-	html heading: 'stamp'.
-	kernel isNil
-		ifTrue: [ self renderKernelSelection: html. ]
-		ifFalse: [ self renderDefault: html. ].
-
-	"html anchorWithAction: [ self call: SPWeb3 new. ] text: 'stamp3'."! !
-
-!SPWeb methodsFor: 'rendering' stamp: 'as 7/26/2006 09:27'!
-renderDefault: html
-
-	html paragraph: 'kernel is: ', kernel name.
-
-	html anchorWithAction: [ body := SPWebUsers withKernel: kernel. ] text: 'users'.
-	html horizontalRule.
-	html render: body.! !
-
-!SPWeb methodsFor: 'rendering' stamp: 'as 7/26/2006 09:38'!
-renderKernelSelection: html
-
-	html paragraph: 'kernels:'.
-	SPKernel allInstances do: [
-		:each |
-		html anchorWithAction: [ self kernel: each. ] text: each name.
-		html text: ' '.
-	].! !
-
-WAComponent subclass: #SPWebAddUser
-	instanceVariableNames: 'kernel name address'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-SPWebAddUser class
-	instanceVariableNames: 'kernel'!
-
-!SPWebAddUser commentStamp: '<historical>' prior: 0!
-testing...!
-
-!SPWebAddUser class methodsFor: 'instance creation' stamp: 'as 7/25/2006 15:50'!
-withKernel: aSPKernel
-
-	^ self new kernel: aSPKernel.! !
-
-!SPWebAddUser methodsFor: 'as yet unclassified' stamp: 'as 7/26/2006 11:10'!
-addUser
-
-	kernel userManager addUser: name address: address.
-	self answer.! !
-
-!SPWebAddUser methodsFor: 'accessing' stamp: 'as 7/25/2006 16:15'!
-kernel: aSPKernel
-
-	kernel := aSPKernel.! !
-
-!SPWebAddUser methodsFor: 'rendering' stamp: 'as 7/25/2006 16:17'!
-renderContentOn: html
-
-	html form: [
-		html defaultAction: [ self addUser. ].
-		html textInputWithValue: name callback: [ :n | name := n. ].
-		html textInputWithValue: address callback: [ :a | address := a. ].
-		html submitButtonWithText: 'ok'.
-	].! !
-
-WAComponent subclass: #SPWebUsers
-	instanceVariableNames: 'kernel test'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebUsers commentStamp: '<historical>' prior: 0!
-testing...!
-
-!SPWebUsers class methodsFor: 'instance creation' stamp: 'as 7/24/2006 11:31'!
-withKernel: aSPKernel
-
-	^ self new kernel: aSPKernel.! !
-
-!SPWebUsers methodsFor: 'accessing' stamp: 'as 7/24/2006 11:31'!
-kernel: aSPKernel
-
-	kernel := aSPKernel.! !
-
-!SPWebUsers methodsFor: 'rendering' stamp: 'as 7/26/2006 11:14'!
-renderAllUsers: html
-
-	kernel userManager allUsers do: [
-		:user |
-		html paragraph: [ html text: user name, ' - ', user address. ].
-	].! !
-
-!SPWebUsers methodsFor: 'rendering' stamp: 'as 7/26/2006 09:29'!
-renderContentOn: html
-
-	html heading: 'users' level: 3.
-	self renderAllUsers: html.
-	html horizontalRule.
-	html anchorWithAction: [ self call: (SPWebAddUser withKernel: kernel). ] text: 'add user'.
-	"html anchorWithAction: [ test := 1. ] text: 'test'."! !
 
 Exception subclass: #SPException
 	instanceVariableNames: ''
@@ -2198,47 +2128,6 @@ SPException subclass: #SPWrongPasswordException
 
 !SPWrongPasswordException commentStamp: '<historical>' prior: 0!
 The given password is not correct.!
-
-SMTPClient subclass: #SPMailSender
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Client'!
-
-!SPMailSender commentStamp: '<historical>' prior: 0!
-Some minor changes to my superclass.!
-
-!SPMailSender class methodsFor: 'sending' stamp: 'as 3/16/2006 15:58'!
-deliverMessage: aMailMessage usingServer: aString
-
-	self
-		deliverMailFrom: aMailMessage from
-		to: aMailMessage recipients
-		text: aMailMessage text
-		usingServer: aString.! !
-
-!SPMailSender class methodsFor: 'instance creation' stamp: 'as 9/27/2006 13:20'!
-openOnHost: hostIP port: portNumber
-
-	^ self new openOnHost: hostIP port: portNumber.! !
-
-!SPMailSender methodsFor: 'private' stamp: 'as 2/22/2006 14:43'!
-login
-
-	"anonymous"
-	self initiateSession.! !
-
-!SPMailSender methodsFor: 'open-close' stamp: 'as 2/22/2006 15:48'!
-reopen
-
-	self close.
-	self ensureConnection.! !
-
-!SPMailSender methodsFor: 'private' stamp: 'as 2/22/2006 15:15'!
-reset
-
-	self sendCommand: 'RSET'.
-	self checkResponse.! !
 
 TestCase subclass: #SPCodeTest
 	instanceVariableNames: ''
@@ -2602,6 +2491,115 @@ userPassword
 
 	^ '9000'.! !
 
+!MailMessage class methodsFor: '*Stamp' stamp: 'as 9/27/2006 13:39'!
+dateStampNow
+	"Return the current date and time formatted as a email Date: line"
+	"The result conforms to RFC822 with a long year, e.g.  'Thu, 18 Feb 1999 20:38:51'"
+
+	"Fix:
+	 According to RFC822, this must also include the time zone.
+	 Anselm Strauss, astrauss@gmx.ch, Wed, 20 Sep 2006"
+
+	| zone digits sign |
+	zone := DateAndTime localTimeZone offset.
+	digits := zone hours abs * 100 + zone minutes abs.
+	zone negative ifTrue: [ sign := '-'. ] ifFalse: [ sign := '+'. ].
+
+	^	(Date today weekday copyFrom: 1 to: 3), ', ',
+		(Date today printFormat: #(1 2 3 $  2 1 1)), ' ',
+		Time now print24, ' ',
+		sign, (digits printPaddedWith: $0 to: 4).! !
+
+!MailMessage methodsFor: '*Stamp' stamp: 'as 9/19/2006 18:11'!
+addField: nameString fromString: valueString
+
+	"Add a field. If any field of the specified name exists, it will not be overwritten."
+
+	| field key value |
+	key := nameString asLowercase.
+	field := fields at: key ifAbsent: [
+		fields at: key put: OrderedCollection new.
+	].
+	value := MIMEHeaderValue forField: nameString fromString: valueString.
+	field add: value.
+	text := nil.
+	tokens := nil.! !
+
+!MailMessage methodsFor: '*Stamp' stamp: 'as 9/19/2006 18:25'!
+received: aString
+
+	self addField: 'received' fromString: aString.! !
+
+!MailMessage methodsFor: '*Stamp' stamp: 'as 9/25/2006 11:35'!
+returnPath: aString
+
+	self addField: 'return-path' fromString: aString.! !
+
+!MailDBFile methodsFor: '*Stamp' stamp: 'as 10/3/2006 17:35'!
+reopen
+	"check the file size and mod time; if they match, then do a fast reopen.  Otherwise, read everything in the slow way"
+	| entry dir file |
+	modTimeAtSave ifNil: [ ^self open ].
+	sizeAtSave ifNil: [ ^self open ].
+
+	"Fix by Anselm Strauss, 2006/10/03, astrauss@gmx.ch"
+	"Can now use relative filenames with multiple directories."
+	dir := FileDirectory default fullName, '/', (FileDirectory dirPathFor: filename).
+	file := FileDirectory localNameFor: filename.
+	entry := (FileDirectory on: dir) entryAt: file.
+
+	entry ifNil: [ ^self open ].
+
+	entry fileSize = sizeAtSave ifFalse: [ ^self open ].
+	entry modificationTime = modTimeAtSave ifFalse: [ ^self open ].
+
+! !
+
+!MailDBFile methodsFor: '*Stamp' stamp: 'as 10/3/2006 17:24'!
+save
+	"Atomically save a representation of this object to its file.  The new file is written to <name>.new, and on success, renamed to simply <name>.  If the write fails, then the old version will still exist"
+
+	| f dir shortName dirname |
+
+	(StandardFileStream fileNamed: filename) close.	"ensure it exists"
+	shortName := FileDirectory localNameFor: filename.
+	
+	"Fix by Anselm Strauss, 2006/10/03, astrauss@gmx.ch"
+	"Can now use relative filenames with multiple directories."
+	dirname := FileDirectory default fullName, '/', (FileDirectory dirPathFor: filename).
+	dir := FileDirectory on: dirname.
+
+	Cursor write showWhile: [
+		f := FileStream fileNamed: filename, '.new'.
+		self writeOn: f.
+		f setToEnd; close
+		].
+	dir deleteFileNamed: shortName ifAbsent: [].
+	dir rename: shortName, '.new' toBe: shortName.
+
+	self updateSizeAndModTime.! !
+
+!MailDBFile methodsFor: '*Stamp' stamp: 'as 10/3/2006 17:22'!
+updateSizeAndModTime
+	"update the cached size and modification time"
+	| entry dir file |
+
+	"Fix by Anselm Strauss, 2006/10/03, astrauss@gmx.ch"
+	"Can now use relative filenames with multiple directories."
+	dir := FileDirectory default fullName, '/', (FileDirectory dirPathFor: filename).
+	file := FileDirectory localNameFor: filename.
+	entry := (FileDirectory on: dir) entryAt: file.
+	
+	entry ifNil: [
+		"uh oh!!"
+		self reportInconsistency.
+		sizeAtSave := nil.
+		modTimeAtSave := nil.
+		^self ].
+
+	sizeAtSave := entry fileSize.
+	modTimeAtSave := entry modificationTime.! !
+
 !String methodsFor: '*Stamp' stamp: 'as 3/7/2006 12:09'!
 convertToSmtpText
 
@@ -2625,5 +2623,72 @@ convertToSqueakText
 	convertedString := self copyReplaceAll: cr, lf with: cr.
 	convertedString := convertedString copyReplaceAll: lf with: cr.
 	^ convertedString.! !
-SPSmtpCommand initialize!
+
+TcpService subclass: #SPMailService
+	instanceVariableNames: 'listener'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPMailService commentStamp: '<historical>' prior: 0!
+A TCP service listening for incoming SMTP connections.!
+
+!SPMailService class methodsFor: 'instance creation' stamp: 'as 5/30/2006 09:28'!
+withListener: aSPMailListener onPort: aNumber
+
+	^ (self on: aNumber) listener: aSPMailListener.! !
+
+!SPMailService methodsFor: 'accessing' stamp: 'as 5/30/2006 09:17'!
+listener: aSPMailListener
+
+	listener := aSPMailListener.! !
+
+!SPMailService methodsFor: 'conversation' stamp: 'as 10/3/2006 15:51'!
+serve: aSocket
+
+	| receiver |
+	receiver := SPMailReceiver withKernel: listener kernel stream: (SocketStream on: aSocket) .
+	receiver receive.! !
+
+SMTPClient subclass: #SPMailSender
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Client'!
+
+!SPMailSender commentStamp: '<historical>' prior: 0!
+Some minor changes to my superclass.!
+
+!SPMailSender class methodsFor: 'sending' stamp: 'as 3/16/2006 15:58'!
+deliverMessage: aMailMessage usingServer: aString
+
+	self
+		deliverMailFrom: aMailMessage from
+		to: aMailMessage recipients
+		text: aMailMessage text
+		usingServer: aString.! !
+
+!SPMailSender class methodsFor: 'instance creation' stamp: 'as 9/27/2006 13:20'!
+openOnHost: hostIP port: portNumber
+
+	^ self new openOnHost: hostIP port: portNumber.! !
+
+!SPMailSender methodsFor: 'private' stamp: 'as 2/22/2006 14:43'!
+login
+
+	"anonymous"
+	self initiateSession.! !
+
+!SPMailSender methodsFor: 'open-close' stamp: 'as 2/22/2006 15:48'!
+reopen
+
+	self close.
+	self ensureConnection.! !
+
+!SPMailSender methodsFor: 'private' stamp: 'as 2/22/2006 15:15'!
+reset
+
+	self sendCommand: 'RSET'.
+	self checkResponse.! !
 SPWeb initialize!
+SPSmtpCommand initialize!
