@@ -1,3 +1,4 @@
+SystemOrganization addCategory: #'Stamp-Tests'!
 SystemOrganization addCategory: #'Stamp-Mail'!
 
 TcpService subclass: #SPMailListener
@@ -15,6 +16,64 @@ serve: aSocket
 	| receiver message |
 	receiver := SPMailReceiver on: (SocketStream on: aSocket).
 	message := receiver receive.! !
+
+TestCase subclass: #CodeTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Tests'!
+
+!CodeTest commentStamp: '<historical>' prior: 0!
+Test different aspects of the Smalltalk code in my implementation.!
+
+!CodeTest methodsFor: 'configuration' stamp: 'as 1/11/2006 17:03'!
+packageName
+
+	^ 'Stamp'.! !
+
+!CodeTest methodsFor: 'testing' stamp: 'as 1/11/2006 17:03'!
+testClassComment
+
+	"Each class should have a comment."
+
+	(PackageInfo named: self packageName) classes do: [
+		:each |
+		self assert: each hasComment.
+	].! !
+
+String subclass: #SPSmtpReply
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail'!
+
+!SPSmtpReply commentStamp: '<historical>' prior: 0!
+SMTP replies are sent from the server to the client and are just strings.!
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 22:01'!
+badSequence
+
+	^ '503'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:48'!
+commandUnrecognized
+
+	^ '500'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/11/2006 16:03'!
+notImplemented
+
+	^ '502'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:09'!
+okay
+
+	^ '250'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 22:05'!
+ready
+
+	^ '220 anonymous.xx'.! !
 
 Object subclass: #SPMailReceiver
 	instanceVariableNames: 'state stream message'
@@ -296,37 +355,3 @@ receiver: aSPSmtpReceiver
 reply
 
 	^ reply.! !
-
-String subclass: #SPSmtpReply
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail'!
-
-!SPSmtpReply commentStamp: '<historical>' prior: 0!
-SMTP replies are sent from the server to the client and are just strings.!
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 22:01'!
-badSequence
-
-	^ '503'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:48'!
-commandUnrecognized
-
-	^ '500'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/11/2006 16:03'!
-notImplemented
-
-	^ '502'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:09'!
-okay
-
-	^ '250'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 22:05'!
-ready
-
-	^ '220 anonymous.xx'.! !
