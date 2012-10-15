@@ -480,11 +480,13 @@ Object subclass: #SPConfiguration
 	poolDictionaries: ''
 	category: 'Stamp-Configuration'!
 
-!SPConfiguration commentStamp: 'as 1/15/2007 18:16' prior: 0!
-Stores configuration attributes and connects them to a symbol. The values of the attributes are called preferences and can be changed with the appropriate methods.!
+!SPConfiguration commentStamp: 'as 3/11/2007 16:44' prior: 0!
+Stores configuration attributes and associates them with a symbol. The values of the attributes are called preferences and can be changed with the appropriate methods.!
 
-!SPConfiguration methodsFor: 'preferences' stamp: 'as 2/28/2007 13:03'!
+!SPConfiguration methodsFor: 'preferences' stamp: 'as 3/11/2007 16:45'!
 allPreferences
+
+	"Returns a dictionary with associations aSymbol -> value."
 
 	| preferences |
 	preferences _ Dictionary new.
@@ -494,10 +496,12 @@ allPreferences
 	].
 	^ preferences.! !
 
-!SPConfiguration methodsFor: 'attributes' stamp: 'as 12/13/2006 13:47'!
+!SPConfiguration methodsFor: 'attributes' stamp: 'as 3/11/2007 17:26'!
 attributeAt: aSymbol
 
-	^ attributes at: aSymbol ifAbsent: [ SPConfigurationAttributeNotFoundException signal. ].! !
+	^ attributes at: aSymbol ifAbsent: [
+		SPConfigurationAttributeNotFoundException signal: 'No preference found at symbol #', aSymbol asString.
+	].! !
 
 !SPConfiguration methodsFor: 'attributes' stamp: 'as 12/12/2006 11:01'!
 attributeAt: aSymbol put: aSPConfigurationAttribute
@@ -530,56 +534,104 @@ SPConfiguration subclass: #SPStampConfiguration
 	poolDictionaries: ''
 	category: 'Stamp-Configuration'!
 
-!SPStampConfiguration commentStamp: 'as 1/16/2007 11:28' prior: 0!
-Initializes a default configuration for Stamp.!
+!SPStampConfiguration commentStamp: 'as 3/11/2007 16:52' prior: 0!
+Default configuration for Stamp.!
 
-!SPStampConfiguration methodsFor: 'initialize-release' stamp: 'as 2/28/2007 22:58'!
+!SPStampConfiguration methodsFor: 'initialize-release' stamp: 'as 3/11/2007 17:23'!
 initialize
 
 	super initialize.
 
 	"basic"
 	self attributeAt: #resolverTimeout put:
-		(SPIntegerConfigurationAttribute withValue: 3 min: 1 max: 100).
+		(SPIntegerConfigurationAttribute
+			withValue: 3
+			description: 'Timeout in seconds for domain name lookups.'
+			min: 1
+			max: 100).
 	self attributeAt: #serverName put:
-		(SPStringConfigurationAttribute withValue: NetNameResolver localHostName).
+		(SPStringConfigurationAttribute
+			withValue: NetNameResolver localHostName
+			description: 'Hostname of the local server.').
 	self attributeAt: #timezone put:
-		(SPStringConfigurationAttribute withValue: '+0100').
+		(SPStringConfigurationAttribute
+			withValue: '+0100'
+			description: 'Local timezone formatted as +/-XXXX.').
 	self attributeAt: #adminAddress put:
-		(SPAddressConfigurationAttribute withValue: (SPMailAddress fromString: 'postmaster@localhost')).
+		(SPAddressConfigurationAttribute
+			withValue: (SPMailAddress fromString: 'postmaster@localhost')
+			description: 'Email address used as default sender for all outgoing mail that has no specific sender specified.').
 
 	"listener"
 	self attributeAt: #listenerMaxConnections put:
-		(SPIntegerConfigurationAttribute withValue: 10 min: 0 max: 100).
+		(SPIntegerConfigurationAttribute
+			withValue: 10
+			description: 'Maximum number of simultaneous incoming SMTP connections.'
+			min: 1
+			max: 1000).
 	self attributeAt: #listenerPort put:
-		(SPIntegerConfigurationAttribute withValue: 2525 min: 1 max: 65536).
+		(SPIntegerConfigurationAttribute
+			withValue: 2525
+			description: 'Listening port for incoming SMTP connection.'
+			min: 1
+			max: 65536).
 		
 	"receiver"
 	self attributeAt: #receiverMaxMailSize put:
-		(SPIntegerConfigurationAttribute withValue: 1024 * 1024 min: 64 * 1024 max: 16 * 1024 * 1024).
+		(SPIntegerConfigurationAttribute
+			withValue: 1024 * 1024
+			description: 'Maximum size of received mails in number of characters.'
+			min: 64 * 1024
+			max: 16 * 1024 * 1024).
 	self attributeAt: #receiverMaxRecipients put:
-		(SPIntegerConfigurationAttribute withValue: 10 min: 1 max: 100).
+		(SPIntegerConfigurationAttribute
+			withValue: 10
+			description: 'Maximum number of recipient addresses in incoming mails.'
+			min: 1
+			max: 100).
 		
 	"sender"
 	self attributeAt: #senderPort put:
-		(SPIntegerConfigurationAttribute withValue: 25 min: 1 max: 65536).
+		(SPIntegerConfigurationAttribute
+			withValue: 25
+			description: 'Destination port where outgoing mail is sent to.'
+			min: 1
+			max: 65536).
 	self attributeAt: #senderServer put:
-		(SPStringConfigurationAttribute withValue: 'smtp.unibe.ch').
+		(SPStringConfigurationAttribute
+			withValue: 'localhost'
+			description: 'Destination server where outgoing mail is sent to.').
 		
 	"queue"
 	self attributeAt: #queueSize put:
-		(SPIntegerConfigurationAttribute withValue: 1000 min: 1 max: 10000).
+		(SPIntegerConfigurationAttribute
+			withValue: 1000
+			description: 'Maximum number of messages the queue can hold.'
+			min: 1
+			max: 10000).
 	self attributeAt: #queueSendAttempts put:
-		(SPIntegerConfigurationAttribute withValue: 10 min: 1 max: 1000).
-	self attributeAt: #queueDelaySeconds put:
-		(SPIntegerConfigurationAttribute withValue: 120 min: 60 max: 3600).
+		(SPIntegerConfigurationAttribute
+			withValue: 10
+			description: 'Maximum number of unsuccessful send attempts before a message is deleted.'
+			min: 1
+			max: 1000).
+	self attributeAt: #queueDelay put:
+		(SPIntegerConfigurationAttribute
+			withValue: 120
+			description:'Delay in seconds between send attempts of a message in the queue.'
+			min: 10
+			max: 86400).
 
 	"contacts"
 	self attributeAt: #contactVerificationLength put:
-		(SPIntegerConfigurationAttribute withValue: 32 min: 8 max: 512).! !
+		(SPIntegerConfigurationAttribute
+			withValue: 32
+			description: 'Length of the verification code that is used to verify a new contact.'
+			min: 8
+			max: 512).! !
 
 Object subclass: #SPConfigurationAttribute
-	instanceVariableNames: 'value mutable'
+	instanceVariableNames: 'value mutable description'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Configuration-Attributes'!
@@ -606,10 +658,13 @@ type
 
 	^ SPMailAddress.! !
 
-!SPConfigurationAttribute class methodsFor: 'instance creation' stamp: 'as 12/12/2006 12:56'!
-withValue: anObject
+!SPConfigurationAttribute class methodsFor: 'instance creation' stamp: 'as 3/11/2007 17:03'!
+withValue: anObject description: aString
 
-	^ self new value: anObject.! !
+	^ self new
+		value: anObject;
+		description: aString;
+		yourself.! !
 
 !SPConfigurationAttribute methodsFor: 'checking' stamp: 'as 12/12/2006 12:45'!
 checkMutable
@@ -621,6 +676,16 @@ checkValue: anObject
 
 	(anObject isKindOf: self type) ifFalse:
 		[ SPInvalidConfigurationAttributeValueException signal: 'Value must be of kind: ', self type asString. ].! !
+
+!SPConfigurationAttribute methodsFor: 'accessing' stamp: 'as 3/11/2007 17:02'!
+description
+
+	^ description.! !
+
+!SPConfigurationAttribute methodsFor: 'accessing' stamp: 'as 3/11/2007 17:02'!
+description: aString
+
+	description _ aString.! !
 
 !SPConfigurationAttribute methodsFor: 'configuration' stamp: 'as 2/28/2007 12:39'!
 fromString: aString
@@ -692,28 +757,25 @@ type
 
 	^ Integer.! !
 
-!SPNumberConfigurationAttribute class methodsFor: 'instance creation' stamp: 'as 12/12/2006 17:42'!
-withValue: valueNumber max: maxNumber min: minNumber
-
-	^ self withValue: valueNumber min: minNumber max: maxNumber.! !
-
-!SPNumberConfigurationAttribute class methodsFor: 'instance creation' stamp: 'as 12/12/2006 17:42'!
-withValue: valueNumber min: minNumber max: maxNumber
+!SPNumberConfigurationAttribute class methodsFor: 'instance creation' stamp: 'as 3/11/2007 17:12'!
+withValue: valueNumber description: aString min: minNumber max: maxNumber
 
 	^ self new
 		min: minNumber;
 		max: maxNumber;
-		value: valueNumber.! !
+		value: valueNumber;
+		description: aString;
+		yourself.! !
 
-!SPNumberConfigurationAttribute methodsFor: 'checking' stamp: 'as 1/18/2007 01:05'!
+!SPNumberConfigurationAttribute methodsFor: 'checking' stamp: 'as 3/11/2007 17:00'!
 checkLimits: aNumber
 
 	aNumber < min ifTrue:
 		[ SPInvalidConfigurationAttributeValueException
-			signal: 'Value should not be smaller than ', min asString. ].
+			signal: 'Value must not be smaller than ', min asString. ].
 	aNumber > max ifTrue:
 		[ SPInvalidConfigurationAttributeValueException
-			signal: 'Value should not be higher than ', max asString. ].! !
+			signal: 'Value must not be higher than ', max asString. ].! !
 
 !SPNumberConfigurationAttribute methodsFor: 'configuration' stamp: 'as 12/12/2006 14:28'!
 checkValue: aNumber
@@ -766,8 +828,8 @@ Object subclass: #SPConfigurator
 	poolDictionaries: ''
 	category: 'Stamp-Configuration'!
 
-!SPConfigurator commentStamp: 'as 1/23/2007 15:38' prior: 0!
-Holds all configuration data, allows to get/set attributes.!
+!SPConfigurator commentStamp: 'as 3/11/2007 16:52' prior: 0!
+Initializes a base configuration for Stamp with default values and coordinates concurrent access to preferences.!
 
 !SPConfigurator methodsFor: 'configuration' stamp: 'as 2/28/2007 13:04'!
 allPreferences
@@ -1676,10 +1738,10 @@ config
 
 	^ SPKernel instance configurator.! !
 
-!SPMailHandler methodsFor: 'processing' stamp: 'as 2/21/2007 11:00'!
+!SPMailHandler methodsFor: 'processing' stamp: 'as 3/11/2007 17:23'!
 delay
 
-	(Delay forSeconds: self queueDelaySeconds) wait.! !
+	(Delay forSeconds: self queueDelay) wait.! !
 
 !SPMailHandler methodsFor: 'initialize-release' stamp: 'as 3/7/2007 17:18'!
 initialize
@@ -1720,20 +1782,15 @@ processMessage
 		ex return.
 	].! !
 
-!SPMailHandler methodsFor: 'configuration' stamp: 'as 2/28/2007 22:20'!
-queueDelaySeconds
+!SPMailHandler methodsFor: 'configuration' stamp: 'as 3/11/2007 17:23'!
+queueDelay
 
-	^ self config preferenceAt: #queueDelaySeconds.! !
+	^ self config preferenceAt: #queueDelay.! !
 
 !SPMailHandler methodsFor: 'configuration' stamp: 'as 2/28/2007 21:59'!
 queueSendAttempts
 
 	^ self config preferenceAt: #queueSendAttempts.! !
-
-!SPMailHandler methodsFor: 'configuration' stamp: 'as 2/28/2007 22:20'!
-queueTries
-
-	^ self config preferenceAt: #queueTries.! !
 
 !SPMailHandler methodsFor: 'processing' stamp: 'as 2/28/2007 22:38'!
 run
@@ -3661,10 +3718,10 @@ renderContentOn: html
 
 	html render: table.! !
 
-!SPWATable methodsFor: 'rendering' stamp: 'as 3/5/2007 10:17'!
+!SPWATable methodsFor: 'rendering' stamp: 'as 3/9/2007 18:39'!
 rowColors
 
-	^ #('white' 'lightblue').! !
+	^ #('lightgrey' 'lightblue').! !
 
 !SPWATable methodsFor: 'rendering' stamp: 'as 3/5/2007 10:25'!
 tableColumns
@@ -5044,8 +5101,8 @@ SPException subclass: #SPConfigurationException
 	poolDictionaries: ''
 	category: 'Stamp-Configuration-Exceptions'!
 
-!SPConfigurationException commentStamp: 'as 1/15/2007 17:52' prior: 0!
-General configuration exception.!
+!SPConfigurationException commentStamp: 'as 3/11/2007 16:56' prior: 0!
+Configuration exception.!
 
 SPConfigurationException subclass: #SPConfigurationAttributeNotFoundException
 	instanceVariableNames: ''
@@ -5053,8 +5110,8 @@ SPConfigurationException subclass: #SPConfigurationAttributeNotFoundException
 	poolDictionaries: ''
 	category: 'Stamp-Configuration-Exceptions'!
 
-!SPConfigurationAttributeNotFoundException commentStamp: 'as 2/15/2007 16:48' prior: 0!
-Configuration attribute or preference not found.!
+!SPConfigurationAttributeNotFoundException commentStamp: 'as 3/11/2007 16:57' prior: 0!
+Preference not found.!
 
 SPConfigurationException subclass: #SPImmutableConfigurationAttributeException
 	instanceVariableNames: ''
@@ -5062,8 +5119,8 @@ SPConfigurationException subclass: #SPImmutableConfigurationAttributeException
 	poolDictionaries: ''
 	category: 'Stamp-Configuration-Exceptions'!
 
-!SPImmutableConfigurationAttributeException commentStamp: 'as 2/15/2007 16:49' prior: 0!
-I'm immutable.!
+!SPImmutableConfigurationAttributeException commentStamp: 'as 3/11/2007 16:58' prior: 0!
+Immutable preferences can't be mutated.!
 
 SPConfigurationException subclass: #SPInvalidConfigurationAttributeValueException
 	instanceVariableNames: ''
