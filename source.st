@@ -52,14 +52,6 @@ Exception subclass: #SPSmtpCommandNotAllowed
 	poolDictionaries: ''
 	category: 'Stamp-Exceptions'!
 
-SPSmtpCommandNotAllowed class
-	instanceVariableNames: 'test'!
-
-!SPSmtpCommandNotAllowed class methodsFor: 'as yet unclassified' stamp: 'as 1/12/2006 17:01'!
-initialize
-
-	self halt.! !
-
 Exception subclass: #SPSmtpCommandNotFound
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -146,18 +138,14 @@ message: aMailMessage
 
 	message := aMailMessage.! !
 
-!SPMailReceiver methodsFor: 'private' stamp: 'as 1/12/2006 15:52'!
+!SPMailReceiver methodsFor: 'private' stamp: 'as 1/12/2006 17:39'!
 processLine: aString
 
 	"Find the apropriate command for a string line from the client and execute it."
 
 	| command |
-	command := SPSmtpCommand fromString: aString.
-	command notNil ifTrue: [
-		state execute: command.
-	] ifFalse: [
-		self reply: SPSmtpReply commandUnrecognized.
-	].! !
+	command := SPSmtpCommand fromString: aString target: self.
+	state execute: command. "todo: handle different exceptions here!!"! !
 
 !SPMailReceiver methodsFor: 'actions' stamp: 'as 1/11/2006 16:19'!
 receive
@@ -222,11 +210,11 @@ commandAllowed: aSPSmtpCommand
 
 	^ self allowedCommands includes: aSPSmtpCommand class.! !
 
-!SPMailReceiverState methodsFor: 'commands' stamp: 'as 1/12/2006 16:48'!
+!SPMailReceiverState methodsFor: 'commands' stamp: 'as 1/12/2006 17:37'!
 execute: aSPSmtpCommand
 
 	(self commandAllowed: aSPSmtpCommand) ifTrue: [
-		aSPSmtpCommand executeOn: owner.
+		aSPSmtpCommand execute.
 		owner gotoState: (self nextStateFor: aSPSmtpCommand) new.
 	] ifFalse: [
 		"throw exception"
@@ -243,7 +231,7 @@ owner: aSPMailReceiver
 	owner := aSPMailReceiver.! !
 
 Object subclass: #SPSmtpCommand
-	instanceVariableNames: 'argument failed target'
+	instanceVariableNames: 'argument target'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail'!
@@ -334,33 +322,51 @@ doExecute
 	reply := SPSmtpReply okay.
 	outState := SPMailReceiver mailState.! !
 
-!SPSmtpCommand class methodsFor: 'private' stamp: 'as 1/11/2006 14:59'!
-argumentFor: aString verb: verbString
+!SPSmtpCommand class methodsFor: 'private' stamp: 'as 1/12/2006 17:18'!
+argumentFor: aString command: aSmtpCommand
 
 	"Find arguments in a line assuming the given verb for the command."
 
-	^ aString copyFrom: (verbString size + 1) to: aString size.! !
+	^ aString copyFrom: (aSmtpCommand verb size + 1) to: aString size.! !
 
-!SPSmtpCommand class methodsFor: 'private' stamp: 'as 1/12/2006 15:31'!
-commandClassFor: aString
+!SPSmtpCommand class methodsFor: 'private' stamp: 'as 1/12/2006 17:20'!
+commandFor: aString
 
 	"Extract command and return appropriate command class. The verb string for a SMTP command is case insensitive."
 
-	^ self allSubclasses detect: [ :each | aString asLowercase beginsWith: each verb asLowercase ] ifNone: [ ^ nil ].! !
+	| class |
+	class := self allSubclasses detect: [
+		:each |
+		aString asLowercase beginsWith: each verb asLowercase
+	] ifNone: [
+		SPSmtpCommandNotFound signal.	
+	].
+	^ class new.! !
 
-!SPSmtpCommand class methodsFor: 'instance creation' stamp: 'as 1/12/2006 15:33'!
+!SPSmtpCommand class methodsFor: 'instance creation' stamp: 'as 1/12/2006 17:33'!
 fromString: aString
 
-	"Return new command created from a given string, or nil if no related command is found."
+	"Return new command created from a given string."
 
-	| commandClass command argument |
-	commandClass := self commandFor: aString.
-	commandClass notNil ifTrue: [
-		argument := self argumentFor: aString verb: commandClass verb.
-		command := commandClass new
-			argument: argument;
-			yourself.
-	].
+	| command argument |
+	command := self commandFor: aString.
+	self assert: [ command notNil. ].
+	argument := self argumentFor: aString command: command.
+	command argument: argument.
+	^ command.! !
+
+!SPSmtpCommand class methodsFor: 'instance creation' stamp: 'as 1/12/2006 17:36'!
+fromString: aString target: aSPMailReceiver
+
+	"Return new command created from a given string."
+
+	| command argument |
+	command := self commandFor: aString.
+	self assert: [ command notNil. ].
+	argument := self argumentFor: aString command: command.
+	command
+		argument: argument;
+		target: aSPMailReceiver.
 	^ command.! !
 
 !SPSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/11/2006 15:38'!
@@ -382,33 +388,27 @@ doExecute
 
 	self subclassResponsibility.! !
 
-!SPSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 15:54'!
-executeOn: aSPMailReceiver
+!SPSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 17:37'!
+execute
 
-	target := aSPMailReceiver.
 	self doExecute.
 	target reply: self reply.
 	! !
-
-!SPSmtpCommand methodsFor: 'private' stamp: 'as 1/12/2006 15:26'!
-fail
-
-	failed := true.! !
-
-!SPSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 15:26'!
-failed
-
-	^ failed.! !
-
-!SPSmtpCommand methodsFor: 'initialize-release' stamp: 'as 1/12/2006 15:35'!
-initialize
-
-	failed := false.! !
 
 !SPSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 15:18'!
 reply
 
 	self subclassResponsibility.! !
+
+!SPSmtpCommand methodsFor: 'accessing' stamp: 'as 1/12/2006 17:37'!
+target: aSPMailReceiver
+
+	target := aSPMailReceiver.! !
+
+!SPSmtpCommand methodsFor: 'smtp' stamp: 'as 1/12/2006 17:31'!
+verb
+
+	^ self class verb.! !
 
 SPSmtpCommand subclass: #SPVerifySmtpCommand
 	instanceVariableNames: ''
@@ -452,4 +452,3 @@ serve: aSocket
 	| receiver message |
 	receiver := SPMailReceiver on: (SocketStream on: aSocket).
 	message := receiver receive.! !
-SPSmtpCommandNotAllowed initialize!
