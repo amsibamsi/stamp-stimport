@@ -1295,13 +1295,13 @@ renderContentOn: html
 	self renderAddList: html.
 	! !
 
-!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 3/9/2007 15:01'!
+!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 4/1/2007 17:59'!
 tableColumns
 
 	^ OrderedCollection new
 		add: (WAReportColumn selector: #name title: 'Name');
 		add: (WAReportColumn selector: #address title: 'Address');
-		add: (WAReportColumn selector: #admin title: 'Admin');
+		add: (WAReportColumn new title: 'Admin'; valueBlock: [ :item | item admin asString. ]; yourself);
 		add: (WAReportColumn selector: #description title: 'Description');
 		add: (WAReportColumn new title: 'Subscriptions'; valueBlock: [ :item | self numberOfSubscriptions: item. ]; yourself);
 		add: (WAReportColumn selector: #isLocked title: 'Locked' onClick: [ :item | item invertLocking. ]);
