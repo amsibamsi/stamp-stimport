@@ -14,11 +14,12 @@ initialState
 
 	^ #initial.! !
 
-!SPMailReceiver class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:12'!
+!SPMailReceiver class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:41'!
 on: aSocketStream
 
 	^ self new
 		stream: aSocketStream;
+		state: self initialState;
 		yourself.! !
 
 !SPMailReceiver class methodsFor: 'states' stamp: 'as 1/10/2006 13:29'!
@@ -42,21 +43,22 @@ processLine: aString
 		self reply: SPSmtpReply commandUnrecognized.
 	].! !
 
-!SPMailReceiver methodsFor: 'actions' stamp: 'as 1/10/2006 21:11'!
+!SPMailReceiver methodsFor: 'actions' stamp: 'as 1/10/2006 22:06'!
 receive
 
 	| message |
 	message := ''.
+	self reply: SPSmtpReply ready.
 	[ stream isConnected ] whileTrue: [
 		self processLine: stream nextLineCrLf.
 	].
 	stream close.
 	^ message.! !
 
-!SPMailReceiver methodsFor: 'actions' stamp: 'as 1/10/2006 17:12'!
+!SPMailReceiver methodsFor: 'actions' stamp: 'as 1/10/2006 21:52'!
 reply: aString
 
-	stream nextPutAll: aString; crlf.! !
+	stream nextPutAll: aString; crlf; flush.! !
 
 !SPMailReceiver methodsFor: 'state' stamp: 'as 1/10/2006 16:55'!
 state
@@ -67,6 +69,11 @@ state
 state: aSymbol
 
 	state := aSymbol.! !
+
+!SPMailReceiver methodsFor: 'accessing' stamp: 'as 1/10/2006 21:36'!
+stream: aStream
+
+	stream := aStream.! !
 
 Object subclass: #SPSmtpCommand
 	instanceVariableNames: 'receiver reply outState argument'
@@ -79,10 +86,10 @@ argumentFor: aString verb: verbString
 
 	^ aString copyFrom: (verbString size + 1) to: aString size.! !
 
-!SPSmtpCommand class methodsFor: 'private' stamp: 'as 1/10/2006 18:33'!
+!SPSmtpCommand class methodsFor: 'private' stamp: 'as 1/10/2006 21:44'!
 commandFor: aString
 
-	^ self allSubclasses detect: [ :each | aString beginsWith: each verb ] ifNone: nil.! !
+	^ self allSubclasses detect: [ :each | aString beginsWith: each verb ] ifNone: [ ^ nil ].! !
 
 !SPSmtpCommand class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:22'!
 fromLine: aString receiver: aSPSmtpReceiver
@@ -108,6 +115,11 @@ verb
 
 	self subclassResponsibility.! !
 
+!SPSmtpCommand methodsFor: 'accessing' stamp: 'as 1/10/2006 21:49'!
+argument: aString
+
+	argument := aString.! !
+
 !SPSmtpCommand methodsFor: 'private' stamp: 'as 1/9/2006 08:33'!
 doExecute
 
@@ -115,12 +127,17 @@ doExecute
 
 	self subclassResponsibility.! !
 
-!SPSmtpCommand methodsFor: 'executing' stamp: 'as 1/10/2006 17:02'!
+!SPSmtpCommand methodsFor: 'executing' stamp: 'as 1/10/2006 22:01'!
 execute
 
-	self doExecute.
-	receiver reply: reply.
-	receiver state: outState.! !
+	(self class inStates includes: receiver state)
+	ifTrue: [
+		self doExecute.
+		receiver reply: reply.
+		receiver state: outState.
+	] ifFalse: [
+		receiver reply: SPSmtpReply badSequence.
+	]! !
 
 !SPSmtpCommand methodsFor: 'private' stamp: 'as 1/9/2006 08:33'!
 outState
@@ -152,6 +169,11 @@ inStates
 		add: SPMailReceiver initialState;
 		yourself.! !
 
+!SPSmtpHeloCommand class methodsFor: 'smtp' stamp: 'as 1/10/2006 21:46'!
+verb
+
+	^ 'helo'.! !
+
 !SPSmtpHeloCommand methodsFor: 'executing' stamp: 'as 1/10/2006 16:41'!
 doExecute
 
@@ -164,15 +186,25 @@ Object subclass: #SPSmtpReply
 	poolDictionaries: ''
 	category: 'Stamp-Mail'!
 
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 22:01'!
+badSequence
+
+	^ '503'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:48'!
+commandUnrecognized
+
+	^ '500'.! !
+
 !SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:09'!
 okay
 
 	^ '250'.! !
 
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:10'!
-unrecognizedCommand
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 22:05'!
+ready
 
-	^ '500'.! !
+	^ '220 anonymous.xx'.! !
 
 TcpService subclass: #SPMailListener
 	instanceVariableNames: ''
@@ -180,10 +212,9 @@ TcpService subclass: #SPMailListener
 	poolDictionaries: ''
 	category: 'Stamp-Mail'!
 
-!SPMailListener methodsFor: 'conversation' stamp: 'as 1/10/2006 18:13'!
+!SPMailListener methodsFor: 'conversation' stamp: 'as 1/10/2006 21:53'!
 serve: aSocket
 
 	| receiver message |
 	receiver := SPMailReceiver on: (SocketStream on: aSocket).
-	receiver inspect.
 	message := receiver receive.! !
