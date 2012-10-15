@@ -141,7 +141,7 @@ renderContentOn: html
 	"html anchorWithAction: [ test := 1. ] text: 'test'."! !
 
 Object subclass: #SPContact
-	instanceVariableNames: 'user address active verified'
+	instanceVariableNames: 'user address active verification'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-ListManager'!
@@ -182,31 +182,49 @@ hash
 
 	^ address name hash.! !
 
-!SPContact methodsFor: 'initialize-release' stamp: 'as 9/14/2006 09:37'!
+!SPContact methodsFor: 'initialize-release' stamp: 'as 10/4/2006 22:34'!
 initialize
 
 	self activate.
-	verified := false.! !
+	self initVerification.! !
+
+!SPContact methodsFor: 'initialize-release' stamp: 'as 10/4/2006 22:33'!
+initVerification
+
+	| r |
+	verification := ''.
+	r := Random new.
+	1 to: self verificationLength do: [ :i | verification := verification, (r nextInt: 9) asString. ].! !
 
 !SPContact methodsFor: 'testing' stamp: 'as 9/5/2006 14:08'!
 isActive
 
 	^ user isActive and: [ active. ].! !
 
-!SPContact methodsFor: 'testing' stamp: 'as 9/14/2006 09:31'!
+!SPContact methodsFor: 'testing' stamp: 'as 10/4/2006 22:35'!
 isVerified
 
-	^ verified.! !
+	^ verification isNil.! !
 
 !SPContact methodsFor: 'accessing' stamp: 'as 9/5/2006 11:29'!
 user: aSPUser
 
 	user := aSPUser.! !
 
-!SPContact methodsFor: 'state' stamp: 'as 9/27/2006 13:02'!
-verified
+!SPContact methodsFor: 'accessing' stamp: 'as 10/4/2006 22:36'!
+verification
 
-	verified := true.! !
+	^ verification.! !
+
+!SPContact methodsFor: 'initialize-release' stamp: 'as 10/4/2006 22:34'!
+verificationLength
+
+	^ 32.! !
+
+!SPContact methodsFor: 'state' stamp: 'as 10/4/2006 22:36'!
+verify: aString
+
+	^ verification = aString ifTrue: [ verification := nil. ].! !
 
 !SPContact methodsFor: 'comparing' stamp: 'as 8/21/2006 09:32'!
 = aSPContact
@@ -233,7 +251,7 @@ doesNotUnderstand: aMessage
 	^ self.! !
 
 Object subclass: #SPKernel
-	instanceVariableNames: 'listener queue archive manager filter'
+	instanceVariableNames: 'listener archive manager filter sender'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Core'!
@@ -264,11 +282,11 @@ filter
 
 	^ filter.! !
 
-!SPKernel methodsFor: 'initialize-release' stamp: 'as 9/27/2006 12:01'!
+!SPKernel methodsFor: 'initialize-release' stamp: 'as 10/10/2006 18:19'!
 initialize
 
 	listener := SPMailListener withKernel: self.
-	queue := SPMailQueue withKernel: self.
+	sender := SPMailSender withKernel: self.
 	archive := SPMailArchive withKernel: self.
 	manager := SPListManager new.
 	filter := SPMailFilter withKernel: self.! !
@@ -283,21 +301,21 @@ manager
 
 	^ manager.! !
 
-!SPKernel methodsFor: 'accessing' stamp: 'as 3/10/2006 16:22'!
-queue
-
-	^ queue.! !
-
-!SPKernel methodsFor: 'starting-stoping' stamp: 'as 9/27/2006 12:00'!
+!SPKernel methodsFor: 'initialize-release' stamp: 'as 10/10/2006 18:20'!
 reinitialize
 
-	listener destroy.
+	self stop.
 	self initialize.! !
 
 !SPKernel methodsFor: 'starting-stoping' stamp: 'as 9/27/2006 12:01'!
 restart
 
 	listener stop; start.! !
+
+!SPKernel methodsFor: 'accessing' stamp: 'as 10/5/2006 13:36'!
+sender
+
+	^ sender.! !
 
 !SPKernel methodsFor: 'starting-stoping' stamp: 'as 3/14/2006 14:10'!
 start
@@ -310,7 +328,7 @@ stop
 	listener stop.! !
 
 Object subclass: #SPList
-	instanceVariableNames: 'moderated active address'
+	instanceVariableNames: 'address name moderated active closedPosting'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-ListManager'!
@@ -318,11 +336,12 @@ Object subclass: #SPList
 !SPList commentStamp: '<historical>' prior: 0!
 A mailing list.!
 
-!SPList class methodsFor: 'instance creation' stamp: 'as 9/26/2006 17:11'!
-withAddress: aSPMailAddress
+!SPList class methodsFor: 'instance creation' stamp: 'as 10/5/2006 14:47'!
+withAddress: aSPMailAddress name: aString
 
 	^ self new
 		address: aSPMailAddress;
+		name: aString;
 		yourself.! !
 
 !SPList methodsFor: 'state' stamp: 'as 9/5/2006 14:14'!
@@ -340,21 +359,37 @@ address: aSPMailAddress
 
 	address := aSPMailAddress.! !
 
+!SPList methodsFor: 'state' stamp: 'as 10/5/2006 11:21'!
+closedPosting
+
+	^ closedPosting := true.! !
+
 !SPList methodsFor: 'state' stamp: 'as 9/5/2006 14:14'!
 deactivate
 
 	active := false.! !
+
+!SPList methodsFor: 'testing' stamp: 'as 10/5/2006 11:20'!
+hasClosedPosting
+
+	^ closedPosting.! !
 
 !SPList methodsFor: 'comparing' stamp: 'as 3/9/2006 16:50'!
 hash
 
 	^ name hash.! !
 
-!SPList methodsFor: 'initialize-release' stamp: 'as 9/5/2006 14:13'!
+!SPList methodsFor: 'testing' stamp: 'as 10/5/2006 11:22'!
+hasOpenPosting
+
+	^ closedPosting not.! !
+
+!SPList methodsFor: 'initialize-release' stamp: 'as 10/5/2006 11:20'!
 initialize
 
 	self unmoderate.
-	self activate.! !
+	self activate.
+	self closedPosting.! !
 
 !SPList methodsFor: 'testing' stamp: 'as 9/5/2006 14:14'!
 isActive
@@ -370,6 +405,21 @@ isModerated
 moderate
 
 	moderated := true.! !
+
+!SPList methodsFor: 'accessing' stamp: 'as 10/5/2006 14:47'!
+name
+
+	^ name.! !
+
+!SPList methodsFor: 'accessing' stamp: 'as 10/5/2006 14:47'!
+name: aString
+
+	name := aString.! !
+
+!SPList methodsFor: 'state' stamp: 'as 10/5/2006 11:21'!
+openPosting
+
+	^ closedPosting := false.! !
 
 !SPList methodsFor: 'state' stamp: 'as 9/5/2006 13:05'!
 unmoderate
@@ -399,6 +449,11 @@ addList: aSPList
 addUser: aSPUser
 
 	users add: aSPUser.! !
+
+!SPListManager methodsFor: 'managing' stamp: 'as 10/10/2006 17:05'!
+allActiveSubscriptionsForList: aSPList
+
+	^ subscriptions select: [ :each | each list = aSPList and: [ each isActive. ]. ].! !
 
 !SPListManager methodsFor: 'managing' stamp: 'as 8/18/2006 15:03'!
 allLists
@@ -477,11 +532,11 @@ removeUser: aSPUser
 	users remove: aSPUser ifAbsent: [ SPUserNotFoundException signal. ].
 	subscriptions removeAll: (self subscriptionsForUser: aSPUser).! !
 
-!SPListManager methodsFor: 'managing' stamp: 'as 9/5/2006 13:07'!
+!SPListManager methodsFor: 'managing' stamp: 'as 10/11/2006 12:39'!
 subscribe: aSPContact to: aSPList
 
 	| subscription |
-	subscription := SPSubscription withList: aSPList withContact: aSPContact.
+	subscription := SPSubscription withList: aSPList contact: aSPContact.
 	subscriptions add: subscription.! !
 
 !SPListManager methodsFor: 'managing' stamp: 'as 9/5/2006 13:09'!
@@ -572,7 +627,7 @@ path
 	^ self addressString = aSPMailAddress addressString.! !
 
 Object subclass: #SPMailMessage
-	instanceVariableNames: 'mail lists user sender'
+	instanceVariableNames: 'mail user sender list'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
@@ -581,20 +636,30 @@ Object subclass: #SPMailMessage
 The SMTP protocol defines commands for specifying a sender and one or multiple recipient addresses apart from the ones in the header of a mail message (from:, to:, cc:, ...).
 This class is a wrapper around MailMessage that stores these addresses as well, since they are important when relaying mail. The addresses are not stored directly. The sender is stored as a sender address and the possible corresponding user. The recipients are stored as mailing lists.!
 
-!SPMailMessage methodsFor: 'accessing' stamp: 'as 9/26/2006 13:45'!
-addList: aSPList
+!SPMailMessage methodsFor: 'inserting' stamp: 'as 10/5/2006 14:53'!
+instertName
 
-	lists add: aSPList.! !
+	mail subject: '[', list name, '] ', mail subject.! !
 
-!SPMailMessage methodsFor: 'initialize-release' stamp: 'as 9/26/2006 16:14'!
-initialize
+!SPMailMessage methodsFor: 'inserting' stamp: 'as 10/5/2006 14:46'!
+instertReturnPath
 
-	lists := Set new.! !
+	mail returnPath: mail sender path.! !
 
-!SPMailMessage methodsFor: 'accessing' stamp: 'as 9/26/2006 13:50'!
-lists
+!SPMailMessage methodsFor: 'testing' stamp: 'as 10/11/2006 19:31'!
+isModerated
 
-	^ lists.! !
+	^ list isModerated.! !
+
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 10/5/2006 14:21'!
+list
+
+	^ list.! !
+
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 10/5/2006 14:21'!
+list: aSPList
+
+	list := aSPList.! !
 
 !SPMailMessage methodsFor: 'accessing' stamp: 'as 5/24/2006 12:42'!
 mail
@@ -605,6 +670,11 @@ mail
 mail: aString
 
 	mail := MailMessage from: aString.! !
+
+!SPMailMessage methodsFor: 'copying' stamp: 'as 10/5/2006 15:13'!
+postCopy
+
+	mail := MailMessage from: mail text.! !
 
 !SPMailMessage methodsFor: 'accessing' stamp: 'as 9/26/2006 16:13'!
 sender
@@ -647,18 +717,15 @@ SPObject subclass: #SPMailArchive
 !SPMailArchive commentStamp: '<historical>' prior: 0!
 Mail archive that basically wraps around MailDB.!
 
-!SPMailArchive methodsFor: 'storing' stamp: 'as 10/2/2006 12:36'!
+!SPMailArchive methodsFor: 'storing' stamp: 'as 10/11/2006 19:32'!
 addMessage: aSPMailMessage
 
-	aSPMailMessage lists do: [
-		:list | | dir |
-		dir := (self preferenceAt: #archiveDir), '/', list address addressString.
-		(MailDB openOn: dir) addNewMessage: aSPMailMessage mail.
-	].
-! !
+		| dir |
+		dir := (self preferenceAt: #archiveDir), '/', aSPMailMessage list address addressString.
+		(MailDB openOn: dir) addNewMessage: aSPMailMessage mail.! !
 
 SPObject subclass: #SPMailFilter
-	instanceVariableNames: ''
+	instanceVariableNames: 'inbox outbox holdbox'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
@@ -666,11 +733,45 @@ SPObject subclass: #SPMailFilter
 !SPMailFilter commentStamp: '<historical>' prior: 0!
 Filters incoming/outgoing mail and decides what to do with it.!
 
-!SPMailFilter methodsFor: 'filtering' stamp: 'as 9/27/2006 13:18'!
-newPost: aSPMailMessage
+!SPMailFilter methodsFor: 'filtering' stamp: 'as 10/3/2006 23:02'!
+filter: aSPMailMessage
 
-	kernel archive addMessage: aSPMailMessage.
-	kernel queue outgoing: aSPMailMessage.! !
+	inbox enqueue: aSPMailMessage.! !
+
+!SPMailFilter methodsFor: 'holdbox' stamp: 'as 10/5/2006 10:46'!
+holdboxProcessBlock
+
+	^ [
+		:aSPMailMessage |
+	].! !
+
+!SPMailFilter methodsFor: 'inbox' stamp: 'as 10/5/2006 12:46'!
+inboxProcessBlock
+
+	^ [
+		:aSPMailMessage |
+		aSPMailMessage isModerated ifTrue: [
+			holdbox enqueue: aSPMailMessage.
+		] ifFalse: [
+			outbox enqueue: aSPMailMessage.
+		].
+	].! !
+
+!SPMailFilter methodsFor: 'initialize-release' stamp: 'as 10/5/2006 10:45'!
+initialize
+
+	inbox := SPQueue withProcessBlock: self inboxProcessBlock.
+	outbox := SPQueue withProcessBlock: self outboxProcessBlock.
+	holdbox := SPQueue withProcessBlock: self holdboxProcessBlock.! !
+
+!SPMailFilter methodsFor: 'outbox' stamp: 'as 10/5/2006 13:35'!
+outboxProcessBlock
+
+	^ [
+		:aSPMailMessage |
+		kernel archive addMessage: aSPMailMessage.
+		kernel sender sendMessage: aSPMailMessage.
+	].! !
 
 SPObject subclass: #SPMailListener
 	instanceVariableNames: 'service'
@@ -687,10 +788,10 @@ destroy
 	service unregister.
 	service := nil.! !
 
-!SPMailListener methodsFor: 'initialize-release' stamp: 'as 5/30/2006 09:31'!
+!SPMailListener methodsFor: 'initialize-release' stamp: 'as 10/11/2006 18:42'!
 initialize
 
-	service := SPMailService withListener: self onPort: (self preferenceAt: #port).! !
+	service := SPMailService withListener: self onPort: (self preferenceAt: #receiverPort).! !
 
 !SPMailListener methodsFor: 'accessing' stamp: 'as 9/14/2006 09:57'!
 service
@@ -707,84 +808,8 @@ stop
 
 	service stop.! !
 
-SPObject subclass: #SPMailQueue
-	instanceVariableNames: 'inbox outbox inboxMonitor outboxMonitor inProcess outProcess'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server'!
-
-!SPMailQueue commentStamp: '<historical>' prior: 0!
-Handles incoming and outgoing mail.!
-
-!SPMailQueue methodsFor: 'accessing' stamp: 'as 9/22/2006 14:35'!
-addInbox: aSPMailMessage
-
-	inboxMonitor critical: [ inbox addLast: aSPMailMessage. ].! !
-
-!SPMailQueue methodsFor: 'accessing' stamp: 'as 9/22/2006 14:35'!
-addOutbox: aSPMailMessage
-
-	outboxMonitor critical: [ outbox addLast: aSPMailMessage. ].! !
-
-!SPMailQueue methodsFor: 'private' stamp: 'as 9/27/2006 13:18'!
-forever: aBlock
-
-	[ true. ] whileTrue: [ aBlock value. ].! !
-
-!SPMailQueue methodsFor: 'operations' stamp: 'as 9/26/2006 16:31'!
-incoming: aSPMailMessage
-
-	self addInbox: aSPMailMessage.
-	inProcess isSuspended ifTrue: [ inProcess resume. ].! !
-
-!SPMailQueue methodsFor: 'initialize-release' stamp: 'as 9/27/2006 13:19'!
-initialize
-
-	inboxMonitor := Monitor new.
-	outboxMonitor := Monitor new.
-	inbox := OrderedCollection new.
-	outbox := OrderedCollection new.
-	inProcess := [ self processInbox. ] newProcess.
-	outProcess := [ self processOutbox. ] newProcess.! !
-
-!SPMailQueue methodsFor: 'operations' stamp: 'as 9/26/2006 16:31'!
-outgoing: aSPMailMessage
-
-	self addOutbox: aSPMailMessage.
-	outProcess isSuspended ifTrue: [ outProcess resume. ].! !
-
-!SPMailQueue methodsFor: 'private' stamp: 'as 9/18/2006 17:16'!
-process
-
-	^ Processor activeProcess.! !
-
-!SPMailQueue methodsFor: 'processing' stamp: 'as 9/27/2006 13:18'!
-processInbox
-
-	| message |
-	self forever: [
-		inbox ifEmpty: [ self process suspend. ].
-		message := self removeInbox.
-		kernel filter newPost: message.
-	].! !
-
-!SPMailQueue methodsFor: 'processing' stamp: 'as 9/27/2006 13:18'!
-processOutbox
-
-	! !
-
-!SPMailQueue methodsFor: 'accessing' stamp: 'as 9/22/2006 17:29'!
-removeInbox
-
-	inboxMonitor critical: [ ^ inbox removeFirst. ].! !
-
-!SPMailQueue methodsFor: 'accessing' stamp: 'as 9/22/2006 17:29'!
-removeOutbox
-
-	outboxMonitor critical: [ ^ outbox removeFirst. ].! !
-
 SPObject subclass: #SPMailReceiver
-	instanceVariableNames: 'state stream message quit'
+	instanceVariableNames: 'state stream quit messages'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
@@ -801,11 +826,6 @@ withKernel: aSPKernel stream: aSocketStream
 		stream: aSocketStream;
 		yourself.! !
 
-!SPMailReceiver methodsFor: 'message' stamp: 'as 9/26/2006 15:59'!
-addList: aSPList
-
-	message addList: aSPList.! !
-
 !SPMailReceiver methodsFor: 'receiving' stamp: 'as 2/6/2006 15:19'!
 dataDelimiter
 
@@ -813,27 +833,47 @@ dataDelimiter
 
 	^ String crlf, '.', String crlf.! !
 
-!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 6/12/2006 14:27'!
+!SPMailReceiver methodsFor: 'message' stamp: 'as 10/5/2006 14:44'!
+filterMessages
+
+	messages do: [
+		:message |
+		kernel filter filter: message.
+	].! !
+
+!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 10/5/2006 14:06'!
 initialize
 
 	quit := false.
-	message := SPMailMessage new.
+	self initMessages.
 	self state: SPReadySmtpState.! !
 
-!SPMailReceiver methodsFor: 'message' stamp: 'as 9/26/2006 17:00'!
-insertReturnPath
+!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 10/5/2006 14:22'!
+initMessages
 
-	self mail returnPath: self sender path.! !
+	messages := OrderedCollection new.
+	messages add: SPMailMessage new.! !
 
-!SPMailReceiver methodsFor: 'message' stamp: 'as 9/25/2006 11:41'!
+!SPMailReceiver methodsFor: 'message' stamp: 'as 10/5/2006 15:02'!
 insertTrace
 
-	self mail received: 'from ', self remoteName, ' by ', self localName, '; ', MailMessage dateStampNow.! !
+	messages do: [
+		:message |
+		message mail received: 'from ', self remoteName, ' by ', self localName, '; ', MailMessage dateStampNow.
+	].! !
 
-!SPMailReceiver methodsFor: 'message' stamp: 'as 9/26/2006 16:15'!
-lists
+!SPMailReceiver methodsFor: 'message' stamp: 'as 10/5/2006 15:11'!
+list: aSPList
 
-	message lists.! !
+	| last new |
+	last := messages last.
+	last list ifNil: [
+		last list: aSPList.
+	] ifNotNil: [
+		new := last copy.
+		new list: aSPList.
+		messages add: new.
+	].! !
 
 !SPMailReceiver methodsFor: 'socket' stamp: 'as 9/20/2006 14:39'!
 localAddress
@@ -850,15 +890,10 @@ localPort
 
 	^ stream socket localPort.! !
 
-!SPMailReceiver methodsFor: 'message' stamp: 'as 9/25/2006 11:40'!
-mail
-
-	^ message mail.! !
-
-!SPMailReceiver methodsFor: 'message' stamp: 'as 5/24/2006 11:46'!
+!SPMailReceiver methodsFor: 'message' stamp: 'as 10/5/2006 14:12'!
 mail: aString
 
-	message mail: aString.! !
+	messages do: [ :message | message mail: aString. ].! !
 
 !SPMailReceiver methodsFor: 'private' stamp: 'as 9/25/2006 11:42'!
 nameForAddress: addressString
@@ -867,11 +902,6 @@ nameForAddress: addressString
 	name := NetNameResolver nameForAddress: addressString timeout: (self preferenceAt: #resolverTimeout).
 	name ifNil: [ name := 'UNRESOLVED'. ].
 	^ name.! !
-
-!SPMailReceiver methodsFor: 'message' stamp: 'as 9/26/2006 16:31'!
-queueMail
-
-	kernel queue incoming: message.! !
 
 !SPMailReceiver methodsFor: 'receiving' stamp: 'as 10/3/2006 16:06'!
 receive
@@ -932,21 +962,16 @@ requestQuit
 
 	quit := true.! !
 
-!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 6/12/2006 14:27'!
+!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 10/5/2006 14:06'!
 reset
 
-	message := SPMailMessage new.
+	self initMessages.
 	self state: SPResetSmtpState.! !
 
-!SPMailReceiver methodsFor: 'message' stamp: 'as 9/25/2006 11:40'!
-sender
-
-	^ message sender.! !
-
-!SPMailReceiver methodsFor: 'message' stamp: 'as 6/12/2006 12:29'!
+!SPMailReceiver methodsFor: 'message' stamp: 'as 10/5/2006 14:09'!
 sender: aSPMailAddress
 
-	message sender: aSPMailAddress.! !
+	messages do: [ :message | message sender: aSPMailAddress. ].! !
 
 !SPMailReceiver methodsFor: 'state' stamp: 'as 1/11/2006 14:34'!
 state
@@ -963,15 +988,46 @@ stream: aStream
 
 	stream := aStream.! !
 
-!SPMailReceiver methodsFor: 'message' stamp: 'as 9/26/2006 16:15'!
-user
-
-	^ message user.! !
-
-!SPMailReceiver methodsFor: 'message' stamp: 'as 9/26/2006 15:59'!
+!SPMailReceiver methodsFor: 'message' stamp: 'as 10/5/2006 14:11'!
 user: aSPUser
 
-	message user: aSPUser.! !
+	messages do: [ :message | message user: aSPUser. ].! !
+
+SPObject subclass: #SPMailSender
+	instanceVariableNames: 'client'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Client'!
+
+!SPMailSender commentStamp: '<historical>' prior: 0!
+Send mails over an smtp server.!
+
+!SPMailSender methodsFor: 'initialize-release' stamp: 'as 10/11/2006 21:40'!
+initialize
+
+	| hostIP |
+	hostIP := NetNameResolver
+		addressForName: (self preferenceAt: #senderServer)
+		timeout: (self preferenceAt: #resolveTimeout).
+	client := SPSmtpClient
+		onHostNamed: hostIP
+		port: (self preferenceAt: #senderPort).! !
+
+!SPMailSender methodsFor: 'sending' stamp: 'as 10/11/2006 18:27'!
+sendMessage: aSPMailMessage
+
+	| subscriptions recipients sender |
+	subscriptions := kernel manager allActiveSubscriptionsForList: aSPMailMessage list.
+	recipients := subscriptions collect: [ :subscription | subscription contact address. ].
+	sender := aSPMailMessage list address.
+	[
+		client
+			open;
+			from: sender;
+			to: recipients;
+			data: aSPMailMessage mail;
+			quit.
+	] ensure: [ client close. ].! !
 
 !SPObject class methodsFor: 'configuration' stamp: 'as 9/27/2006 11:58'!
 configuration
@@ -1022,6 +1078,63 @@ preferenceAt: aSymbol
 preferenceAt: aSymbol put: anObject
 
 	self configuration valueAt: aSymbol put: anObject.! !
+
+SPObject subclass: #SPQueue
+	instanceVariableNames: 'queue monitor process processBlock'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Core'!
+
+!SPQueue commentStamp: '<historical>' prior: 0!
+Enqueues objects and processes each one with the given process block. The processing is done in a separate process. Enqueuing of objects is thread-safe.!
+
+!SPQueue class methodsFor: 'instance creation' stamp: 'as 10/3/2006 18:23'!
+withProcessBlock: aBlock
+
+	^ self new processBlock: aBlock; yourself.! !
+
+!SPQueue methodsFor: 'private' stamp: 'as 10/3/2006 18:19'!
+addLast: anObject
+
+	monitor critical: [ queue addLast: anObject. ].! !
+
+!SPQueue methodsFor: 'queueing' stamp: 'as 10/3/2006 22:55'!
+enqueue: anObject
+
+	self addLast: anObject.
+	process isSuspended ifTrue: [ process resume. ].! !
+
+!SPQueue methodsFor: 'private' stamp: 'as 9/27/2006 13:18'!
+forever: aBlock
+
+	[ true. ] whileTrue: [ aBlock value. ].! !
+
+!SPQueue methodsFor: 'initialize-release' stamp: 'as 10/3/2006 18:15'!
+initialize
+
+	monitor := Monitor new.
+	queue := OrderedCollection new.
+	process := [ self processQueue. ] newProcess.! !
+
+!SPQueue methodsFor: 'accessing' stamp: 'as 10/3/2006 18:23'!
+processBlock: aBlock
+
+	processBlock := aBlock.! !
+
+!SPQueue methodsFor: 'processing' stamp: 'as 10/3/2006 23:12'!
+processQueue
+
+	| object |
+	self forever: [
+		queue ifEmpty: [ process suspend. ].
+		object := self removeFirst.
+		processBlock value: object.
+	].! !
+
+!SPQueue methodsFor: 'private' stamp: 'as 10/3/2006 18:19'!
+removeFirst
+
+	monitor critical: [ ^ queue removeFirst. ].! !
 
 Object subclass: #SPPassword
 	instanceVariableNames: 'password'
@@ -1097,15 +1210,14 @@ verb
 
 	^ 'data'.! !
 
-!SPDataSmtpCommand methodsFor: 'executing' stamp: 'as 9/25/2006 11:44'!
+!SPDataSmtpCommand methodsFor: 'executing' stamp: 'as 10/5/2006 15:02'!
 doExecute
 
 	target
 		reply: SPSmtpReply mailInput;
 		mail: target receiveData;
 		insertTrace;
-		insertReturnPath;
-		queueMail;
+		filterMessages;
 		reset.
 	self state: SPResetSmtpState.! !
 
@@ -1307,7 +1419,7 @@ verb
 
 	^ 'rcpt to:'.! !
 
-!SPRecipientSmtpCommand methodsFor: 'executing' stamp: 'as 9/26/2006 17:03'!
+!SPRecipientSmtpCommand methodsFor: 'executing' stamp: 'as 10/5/2006 15:03'!
 doExecute
 
 	| list |
@@ -1315,7 +1427,7 @@ doExecute
 	list isNil ifTrue: [
 		self reply: SPSmtpReply noSuchUser.
 	] ifFalse: [
-		target addList: list.
+		target list: list.
 		self state: SPRecipientSmtpState.
 	].! !
 
@@ -1709,7 +1821,7 @@ SPSmtpState subclass: #SPResetSmtpState
 The server is reset and can receive a new mail.!
 
 Object subclass: #SPSubscription
-	instanceVariableNames: 'list contact moderated active'
+	instanceVariableNames: 'list contact active'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-ListManager'!
@@ -1745,26 +1857,20 @@ deactivate
 
 	active := false.! !
 
-!SPSubscription methodsFor: 'comparing' stamp: 'as 8/18/2006 15:49'!
+!SPSubscription methodsFor: 'comparing' stamp: 'as 10/11/2006 12:41'!
 hash
 
-	^ (list name, contact address) hash.! !
+	^ (list name, contact address addressString) hash.! !
 
-!SPSubscription methodsFor: 'initialize-release' stamp: 'as 9/5/2006 14:05'!
+!SPSubscription methodsFor: 'initialize-release' stamp: 'as 10/11/2006 12:39'!
 initialize
 
-	self unmoderate.
 	self activate.! !
 
 !SPSubscription methodsFor: 'testing' stamp: 'as 9/5/2006 14:15'!
 isActive
 
 	^ contact isActive and: [ list isActive. ] and: [ active. ].! !
-
-!SPSubscription methodsFor: 'testing' stamp: 'as 9/5/2006 14:19'!
-isModerated
-
-	^ contact isModerated and: [ list isModerated. ] and: [ moderated. ].! !
 
 !SPSubscription methodsFor: 'accessing' stamp: 'as 8/18/2006 14:57'!
 list
@@ -1775,16 +1881,6 @@ list
 list: aSPList
 
 	list := aSPList.! !
-
-!SPSubscription methodsFor: 'state' stamp: 'as 9/5/2006 13:17'!
-moderate
-
-	moderated := true.! !
-
-!SPSubscription methodsFor: 'state' stamp: 'as 9/5/2006 13:17'!
-unmoderate
-
-	moderated := false.! !
 
 !SPSubscription methodsFor: 'comparing' stamp: 'as 8/18/2006 16:00'!
 = aSPSubscription
@@ -1895,11 +1991,17 @@ WASystemConfiguration subclass: #SPBaseConfiguration
 !SPBaseConfiguration commentStamp: '<historical>' prior: 0!
 Base configuration attributes for Stamp.!
 
-!SPBaseConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 15:28'!
+!SPBaseConfiguration methodsFor: 'as yet unclassified' stamp: 'as 10/10/2006 18:05'!
 attributes
 
 	^ Array
-		with: (WAStringAttribute key: #rootDir).! !
+		with: (WAStringAttribute key: #rootDir);
+		with: (WANumberAttribute key: #resolverTimeout).! !
+
+!SPBaseConfiguration methodsFor: 'as yet unclassified' stamp: 'as 10/10/2006 18:04'!
+resolverTimeout
+
+	^ 3.! !
 
 !SPBaseConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 15:28'!
 rootDir
@@ -1950,36 +2052,42 @@ SPConfiguration subclass: #SPMailListenerConfiguration
 !SPMailListenerConfiguration commentStamp: '<historical>' prior: 0!
 Mail listener configuration.!
 
-!SPMailListenerConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 09:41'!
+!SPMailListenerConfiguration methodsFor: 'as yet unclassified' stamp: 'as 10/11/2006 18:41'!
 attributes
 
 	^ Array
-		with: (WANumberAttribute key: #port).! !
+		with: (WANumberAttribute key: #receiverPort).! !
 
-!SPMailListenerConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 09:42'!
-port
+!SPMailListenerConfiguration methodsFor: 'as yet unclassified' stamp: 'as 10/11/2006 19:26'!
+receiverPort
 
 	^ 2525.! !
 
-SPConfiguration subclass: #SPMailReceiverConfiguration
+SPConfiguration subclass: #SPMailSenderConfiguration
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Configuration'!
 
-!SPMailReceiverConfiguration commentStamp: '<historical>' prior: 0!
-Mail receiver configuration.!
+!SPMailSenderConfiguration commentStamp: '<historical>' prior: 0!
+Mail sender configuration.!
 
-!SPMailReceiverConfiguration methodsFor: 'as yet unclassified' stamp: 'as 9/20/2006 23:33'!
+!SPMailSenderConfiguration methodsFor: 'as yet unclassified' stamp: 'as 10/11/2006 18:35'!
 attributes
 
 	^ Array
-		with: (WANumberAttribute key: #resolverTimeout).! !
+		with: (WAStringAttribute key: #senderServer);
+		with: (WANumberAttribute key: #senderPort).! !
 
-!SPMailReceiverConfiguration methodsFor: 'as yet unclassified' stamp: 'as 9/20/2006 23:33'!
-resolverTimeout
+!SPMailSenderConfiguration methodsFor: 'as yet unclassified' stamp: 'as 10/11/2006 18:34'!
+senderPort
 
-	^ 3.! !
+	^ 25.! !
+
+!SPMailSenderConfiguration methodsFor: 'as yet unclassified' stamp: 'as 10/11/2006 18:35'!
+senderServer
+
+	^ 'smtp.unibe.ch'.! !
 
 Exception subclass: #SPException
 	instanceVariableNames: ''
@@ -2226,7 +2334,7 @@ findPortFor: aSPMailListener
 			do: [ :ex | ex return.]
 	].! !
 
-!SPMailReceivingSendingTest methodsFor: 'running' stamp: 'as 9/14/2006 13:39'!
+!SPMailReceivingSendingTest methodsFor: 'running' stamp: 'as 10/5/2006 13:24'!
 setUp
 
 	| port tries maxTries delay |
@@ -2239,7 +2347,7 @@ setUp
 	maxTries := 10.
 	delay := Delay forMilliseconds: 300.
 	[
-		[ client := SPMailSender openOnHostNamed: 'localhost' port: port. ]
+		[ client := SPSmtpClient openOnHostNamed: 'localhost' port: port. ]
 			on: ConnectionTimedOut
 			do: [ :ex | tries := tries + 1. ex return. ].
 		delay wait.
@@ -2535,6 +2643,11 @@ returnPath: aString
 
 	self addField: 'return-path' fromString: aString.! !
 
+!MailMessage methodsFor: '*Stamp' stamp: 'as 10/5/2006 14:48'!
+subject: aString
+
+	self addField: 'subject' fromString: aString.! !
+
 !MailDBFile methodsFor: '*Stamp' stamp: 'as 10/3/2006 17:35'!
 reopen
 	"check the file size and mod time; if they match, then do a fast reopen.  Otherwise, read everything in the slow way"
@@ -2650,45 +2763,58 @@ serve: aSocket
 	receiver := SPMailReceiver withKernel: listener kernel stream: (SocketStream on: aSocket) .
 	receiver receive.! !
 
-SMTPClient subclass: #SPMailSender
+SMTPClient subclass: #SPSmtpClient
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Client'!
 
-!SPMailSender commentStamp: '<historical>' prior: 0!
-Some minor changes to my superclass.!
+!SPSmtpClient commentStamp: '<historical>' prior: 0!
+A smtp client with anonymous login.!
 
-!SPMailSender class methodsFor: 'sending' stamp: 'as 3/16/2006 15:58'!
-deliverMessage: aMailMessage usingServer: aString
+!SPSmtpClient class methodsFor: 'instance creation' stamp: 'as 10/10/2006 17:44'!
+onHost: hostIP port: portNumber
 
-	self
-		deliverMailFrom: aMailMessage from
-		to: aMailMessage recipients
-		text: aMailMessage text
-		usingServer: aString.! !
+	^ self new
+		host: hostIP;
+		port: portNumber;
+		yourself.! !
 
-!SPMailSender class methodsFor: 'instance creation' stamp: 'as 9/27/2006 13:20'!
-openOnHost: hostIP port: portNumber
+!SPSmtpClient methodsFor: 'smtp' stamp: 'as 10/10/2006 17:33'!
+from: aSPMailAddress
 
-	^ self new openOnHost: hostIP port: portNumber.! !
+	self sendCommand: 'mail from: ', aSPMailAddress path.
+	self checkResponse.! !
 
-!SPMailSender methodsFor: 'private' stamp: 'as 2/22/2006 14:43'!
+!SPSmtpClient methodsFor: 'private' stamp: 'as 10/10/2006 14:27'!
 login
 
-	"anonymous"
-	self initiateSession.! !
+	"anonymous login"! !
 
-!SPMailSender methodsFor: 'open-close' stamp: 'as 2/22/2006 15:48'!
+!SPSmtpClient methodsFor: 'open-close' stamp: 'as 10/10/2006 14:34'!
+open
+
+	self ensureConnection.! !
+
+!SPSmtpClient methodsFor: 'open-close' stamp: 'as 2/22/2006 15:48'!
 reopen
 
 	self close.
 	self ensureConnection.! !
 
-!SPMailSender methodsFor: 'private' stamp: 'as 2/22/2006 15:15'!
+!SPSmtpClient methodsFor: 'private' stamp: 'as 10/10/2006 17:31'!
 reset
 
-	self sendCommand: 'RSET'.
+	self sendCommand: 'rset'.
 	self checkResponse.! !
+
+!SPSmtpClient methodsFor: 'smtp' stamp: 'as 10/10/2006 17:34'!
+to: aCollection
+
+	aCollection do: [
+		:aSPMailAddress |
+		self sendCommand: 'rcpt to: ', aSPMailAddress path.
+		self checkResponse.
+	].! !
 SPWeb initialize!
 SPSmtpCommand initialize!
