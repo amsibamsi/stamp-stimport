@@ -1321,13 +1321,13 @@ renderContentOn: html
 	self renderTitle: 'Message Queue' renderer: html.
 	super renderContentOn: html.! !
 
-!SPWebQueue methodsFor: 'rendering' stamp: 'as 3/7/2007 17:16'!
+!SPWebQueue methodsFor: 'rendering' stamp: 'as 3/8/2007 17:47'!
 tableColumns
 
 	^ OrderedCollection new
 		add: (WAReportColumn new title: 'Subject'; valueBlock: [ :item | item message subject. ]; yourself);
 		add: (WAReportColumn new title: 'Sender'; valueBlock: [ :item | item message sender asString. ]; yourself);
-		add: (WAReportColumn new title: 'Recipients (1 shown)'; valueBlock: [ :item | item message recipients atRandom asString. ]; yourself);
+		add: (WAReportColumn new title: 'Recipients (1 shown)'; valueBlock: [ :item | | recipients | recipients _ item message recipients. recipients ifEmpty: [ ''. ] ifNotEmpty: [ recipients atRandom asString. ]. ]; yourself);
 		add: (WAReportColumn new title: 'Date'; valueBlock: [ :item | item message date asTimeStamp asString. ]; yourself);
 		add: (WAReportColumn selector: #state title: 'State');
 		add: (WAReportColumn new title: 'Attempts'; valueBlock: [ :item | item attempts asString, '/', self queueSendAttempts asString. ]; yourself);
