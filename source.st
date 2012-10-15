@@ -1,3 +1,4 @@
+SystemOrganization addCategory: #'Stamp-Configuration-Attributes'!
 SystemOrganization addCategory: #'Stamp-Configuration'!
 SystemOrganization addCategory: #'Stamp-Core'!
 SystemOrganization addCategory: #'Stamp-ListManager-Exceptions'!
@@ -464,13 +465,18 @@ userPassword
 	^ '9000'.! !
 
 WAComponent subclass: #SPWeb
-	instanceVariableNames: 'kernel body'
+	instanceVariableNames: 'main navbar'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Web'!
 
 !SPWeb commentStamp: '<historical>' prior: 0!
 Stamp web interface.!
+
+!SPWeb class methodsFor: 'as yet unclassified' stamp: 'as 2/6/2007 12:52'!
+canBeRoot
+
+	^ true.! !
 
 !SPWeb class methodsFor: 'class initialization' stamp: 'as 7/19/2006 10:19'!
 initialize
@@ -479,530 +485,111 @@ initialize
 
 	self registerAsApplication: 'stamp'.! !
 
-!SPWeb methodsFor: 'as yet unclassified' stamp: 'as 7/26/2006 09:30'!
+!SPWeb methodsFor: 'as yet unclassified' stamp: 'as 2/6/2007 14:59'!
 children
 
-	^ Array with: body.! !
+	^ Array with: navbar with: main.! !
 
-!SPWeb methodsFor: 'accessing' stamp: 'as 7/24/2006 10:35'!
-kernel: aSPKernel
+!SPWeb methodsFor: 'initialize-release' stamp: 'as 2/6/2007 15:25'!
+initialize
 
-	kernel := aSPKernel.! !
+	main _ SPWebEmpty new.
+	navbar _ SPWebNavBar withTarget: main.! !
 
-!SPWeb methodsFor: 'rendering' stamp: 'as 7/26/2006 09:26'!
+!SPWeb methodsFor: 'rendering' stamp: 'as 2/6/2007 14:51'!
 renderContentOn: html
 
-	html heading: 'stamp'.
-	kernel isNil
-		ifTrue: [ self renderKernelSelection: html. ]
-		ifFalse: [ self renderDefault: html. ].
+	html divNamed: 'header' with: [
+		html heading: self title.
+		html paragraph: [ html text: self subtitle. ].
+	].
+	html divNamed: 'navbar' with: navbar.
+	html divNamed: 'content' with: main.! !
 
-	"html anchorWithAction: [ self call: SPWeb3 new. ] text: 'stamp3'."! !
+!SPWeb methodsFor: 'rendering' stamp: 'as 2/6/2007 13:31'!
+subtitle
 
-!SPWeb methodsFor: 'rendering' stamp: 'as 7/26/2006 09:27'!
-renderDefault: html
+	^ 'A Mailing List Manager for Squeak.'.! !
 
-	html paragraph: 'kernel is: ', kernel name.
+!SPWeb methodsFor: 'rendering' stamp: 'as 2/6/2007 13:30'!
+title
 
-	html anchorWithAction: [ body := SPWebUsers withKernel: kernel. ] text: 'users'.
-	html horizontalRule.
-	html render: body.! !
+	^ 'Stamp'.! !
 
-!SPWeb methodsFor: 'rendering' stamp: 'as 7/26/2006 09:38'!
-renderKernelSelection: html
-
-	html paragraph: 'kernels:'.
-	SPKernel allInstances do: [
-		:each |
-		html anchorWithAction: [ self kernel: each. ] text: each name.
-		html text: ' '.
-	].! !
-
-WAComponent subclass: #SPWebAddUser
-	instanceVariableNames: 'kernel name address'
+WAComponent subclass: #SPWebEmpty
+	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Web'!
 
-SPWebAddUser class
-	instanceVariableNames: 'kernel'!
+!SPWebEmpty commentStamp: 'as 2/6/2007 15:25' prior: 0!
+Dummy page, show nothing.!
 
-!SPWebAddUser commentStamp: '<historical>' prior: 0!
-testing...!
-
-SPWebAddUser class
-	instanceVariableNames: 'kernel'!
-
-!SPWebAddUser class methodsFor: 'instance creation' stamp: 'as 7/25/2006 15:50'!
-withKernel: aSPKernel
-
-	^ self new kernel: aSPKernel.! !
-
-!SPWebAddUser methodsFor: 'as yet unclassified' stamp: 'as 7/26/2006 11:10'!
-addUser
-
-	kernel userManager addUser: name address: address.
-	self answer.! !
-
-!SPWebAddUser methodsFor: 'accessing' stamp: 'as 7/25/2006 16:15'!
-kernel: aSPKernel
-
-	kernel := aSPKernel.! !
-
-!SPWebAddUser methodsFor: 'rendering' stamp: 'as 7/25/2006 16:17'!
+!SPWebEmpty methodsFor: 'rendering' stamp: 'as 2/6/2007 14:54'!
 renderContentOn: html
 
-	html form: [
-		html defaultAction: [ self addUser. ].
-		html textInputWithValue: name callback: [ :n | name := n. ].
-		html textInputWithValue: address callback: [ :a | address := a. ].
-		html submitButtonWithText: 'ok'.
-	].! !
+	html text: 'Welcome!!'.! !
 
-WAComponent subclass: #SPWebUsers
-	instanceVariableNames: 'kernel test'
+WAComponent subclass: #SPWebLists
+	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Web'!
 
-!SPWebUsers commentStamp: '<historical>' prior: 0!
-testing...!
+!SPWebLists commentStamp: 'as 2/6/2007 14:56' prior: 0!
+List view.!
 
-!SPWebUsers class methodsFor: 'instance creation' stamp: 'as 7/24/2006 11:31'!
-withKernel: aSPKernel
-
-	^ self new kernel: aSPKernel.! !
-
-!SPWebUsers methodsFor: 'accessing' stamp: 'as 7/24/2006 11:31'!
-kernel: aSPKernel
-
-	kernel := aSPKernel.! !
-
-!SPWebUsers methodsFor: 'rendering' stamp: 'as 7/26/2006 11:14'!
-renderAllUsers: html
-
-	kernel userManager allUsers do: [
-		:user |
-		html paragraph: [ html text: user name, ' - ', user address. ].
-	].! !
-
-!SPWebUsers methodsFor: 'rendering' stamp: 'as 7/26/2006 09:29'!
+!SPWebLists methodsFor: 'rendering' stamp: 'as 2/6/2007 15:57'!
 renderContentOn: html
 
-	html heading: 'users' level: 3.
-	self renderAllUsers: html.
-	html horizontalRule.
-	html anchorWithAction: [ self call: (SPWebAddUser withKernel: kernel). ] text: 'add user'.
-	"html anchorWithAction: [ test := 1. ] text: 'test'."! !
+	html table: [
+		html tableHeadings: #('Name' 'Address').
+		SPKernel instance manager allLists do: [
+			:each |
+			html tableRow: [
+				html tableData: [ html text: each name ].
+				html tableData: [ html text: each address asString. ].
+			].
+		].
+	].! !
 
-Exception subclass: #SPException
-	instanceVariableNames: ''
+WAComponent subclass: #SPWebNavBar
+	instanceVariableNames: 'target'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Core'!
+	category: 'Stamp-Web'!
 
-!SPException commentStamp: 'as 1/16/2007 11:30' prior: 0!
-Top exception class for Stamp.!
+SPWebNavBar class
+	instanceVariableNames: 'target'!
 
-SPException subclass: #SPAlreadySubscribedException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
+!SPWebNavBar commentStamp: 'as 2/6/2007 14:54' prior: 0!
+Navigation bar.!
 
-SPException subclass: #SPConfigurationException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Configuration'!
+SPWebNavBar class
+	instanceVariableNames: 'target'!
 
-!SPConfigurationException commentStamp: 'as 1/15/2007 17:52' prior: 0!
-General configuration exception.!
-
-SPConfigurationException subclass: #SPConfigurationAttributeNotFoundException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Configuration'!
-
-!SPConfigurationAttributeNotFoundException commentStamp: 'as 1/16/2007 11:26' prior: 0!
-The configuration attribute or preference was not found.!
-
-SPConfigurationException subclass: #SPImmutableConfigurationAttributeException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Configuration'!
-
-!SPImmutableConfigurationAttributeException commentStamp: 'as 12/12/2006 12:44' prior: 0!
-There was an attempt to mutate an immutable configuration attribute.!
-
-SPConfigurationException subclass: #SPInvalidConfigurationAttributeValueException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Configuration'!
-
-!SPInvalidConfigurationAttributeValueException commentStamp: 'as 1/8/2007 15:34' prior: 0!
-The value didn't pass the value check of the configuration attribute.!
-
-SPException subclass: #SPContactAlreadyExistsException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-SPException subclass: #SPContactNotFoundException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPContactNotFoundException commentStamp: 'as 1/15/2007 10:32' prior: 0!
-The contact was not found.!
-
-SPException subclass: #SPContactNotVerifiedException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPContactNotVerifiedException commentStamp: 'as 1/15/2007 10:32' prior: 0!
-The contact is not verified. It must be verified before it can be used.!
-
-SPException subclass: #SPContactVerificationFailedException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPException methodsFor: 'priv handling' stamp: 'as 8/17/2006 11:04'!
-isResumable
-
-	^ false.! !
-
-SPException subclass: #SPInvalidMailAddressException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPInvalidMailAddressException commentStamp: '<historical>' prior: 0!
-Invalid mail address.!
-
-SPException subclass: #SPListAlreadyExistsException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPListAlreadyExistsException commentStamp: 'as 1/30/2007 15:35' prior: 0!
-The list already exists.!
-
-SPException subclass: #SPListNotFoundException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPListNotFoundException commentStamp: 'as 1/16/2007 12:37' prior: 0!
-The list was not found.!
-
-SPException subclass: #SPPostNotAllowedException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-SPException subclass: #SPQueueFullException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPQueueFullException commentStamp: 'as 1/15/2007 17:38' prior: 0!
-The queue is full, no further messages can be queued.!
-
-SPException subclass: #SPReceiverException
-	instanceVariableNames: 'receiver'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPReceiverException commentStamp: 'as 1/16/2007 14:49' prior: 0!
-General mail receiver exception.!
-
-SPReceiverException subclass: #SPConnectionClosedException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPConnectionClosedException commentStamp: '<historical>' prior: 0!
-The connection was unexpectedly closed.!
-
-!SPConnectionClosedException methodsFor: 'priv handling' stamp: 'as 11/16/2006 17:07'!
-defaultAction
-
-	receiver clientQuit.! !
-
-SPReceiverException subclass: #SPConnectionTimedOutException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPConnectionTimedOutException commentStamp: 'as 1/15/2007 11:30' prior: 0!
-The connection has timed out.!
-
-!SPConnectionTimedOutException methodsFor: 'priv handling' stamp: 'as 12/11/2006 18:19'!
-defaultAction
-
-	receiver close: 'Connection timed out'.! !
-
-!SPReceiverException class methodsFor: 'instance creation' stamp: 'as 10/18/2006 13:41'!
-withReceiver: aSPMailReceiver
+!SPWebNavBar class methodsFor: 'instance creation' stamp: 'as 2/6/2007 15:12'!
+withTarget: aWAComponent
 
 	^ self new
-		receiver: aSPMailReceiver;
-		yourself.! !
+		target: aWAComponent.! !
 
-!SPReceiverException methodsFor: 'access' stamp: 'as 10/18/2006 13:40'!
-receiver: aSPMailReceiver
+!SPWebNavBar methodsFor: 'rendering' stamp: 'as 2/6/2007 15:16'!
+lists
 
-	receiver := aSPMailReceiver.! !
+	target call: (SPWebLists new).! !
 
-SPReceiverException subclass: #SPSmtpException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
+!SPWebNavBar methodsFor: 'rendering' stamp: 'as 2/6/2007 14:55'!
+renderContentOn: html
 
-!SPSmtpException commentStamp: '<historical>' prior: 0!
-An SMTP command from the client has failed on the server.!
+	html unorderedList: [
+		html listItem: [ html anchorWithAction: [ self lists ] text: 'Lists' ].
+	].! !
 
-SPSmtpException subclass: #SPCommandNotAllowedSmtpException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
+!SPWebNavBar methodsFor: 'access' stamp: 'as 2/6/2007 15:12'!
+target: aWAComponent
 
-!SPCommandNotAllowedSmtpException commentStamp: '<historical>' prior: 0!
-The command is not allowed in the current state of the server.!
-
-!SPCommandNotAllowedSmtpException methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:04'!
-reply
-
-	^ SPSmtpReply badSequence.! !
-
-SPSmtpException subclass: #SPCommandNotFoundSmtpException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPCommandNotFoundSmtpException commentStamp: '<historical>' prior: 0!
-The specified command was not found.!
-
-!SPCommandNotFoundSmtpException methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:06'!
-reply
-
-	^ SPSmtpReply commandUnrecognized.! !
-
-SPSmtpException subclass: #SPLineTooLongSmtpException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPLineTooLongSmtpException commentStamp: 'as 1/16/2007 15:04' prior: 0!
-There is too much data on one line.!
-
-!SPLineTooLongSmtpException methodsFor: 'priv handling' stamp: 'as 10/17/2006 22:43'!
-reply
-
-	^ SPSmtpReply lineTooLong.! !
-
-!SPSmtpException methodsFor: 'priv handling' stamp: 'as 10/3/2006 15:50'!
-defaultAction
-
-	receiver reply: self reply.! !
-
-!SPSmtpException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:05'!
-reply
-
-	"Every command failure should be replied to the client."
-
-	self subclassResponsibility.! !
-
-SPSmtpException subclass: #SPTooManyRecipientsSmtpException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPTooManyRecipientsSmtpException methodsFor: 'priv handling' stamp: 'as 10/18/2006 20:40'!
-reply
-
-	^ SPSmtpReply tooManyRecipients.! !
-
-SPSmtpException subclass: #SPTooMuchMailDataSmtpException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPTooMuchMailDataSmtpException methodsFor: 'priv handling' stamp: 'as 10/18/2006 17:46'!
-reply
-
-	^ SPSmtpReply tooMuchMailData.! !
-
-SPSmtpException subclass: #SPWrongCommandSmtpException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPWrongCommandSmtpException commentStamp: '<historical>' prior: 0!
-Wrong parameters or arguments. !
-
-!SPWrongCommandSmtpException methodsFor: 'priv handling' stamp: 'as 9/14/2006 13:59'!
-reply
-
-	^ SPSmtpReply wrongParameterOrArgument.! !
-
-SPReceiverException subclass: #SPTooManyConnectionsException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPTooManyConnectionsException commentStamp: '<historical>' prior: 0!
-There are too many connections, the current connection will be aborted.!
-
-!SPTooManyConnectionsException methodsFor: 'priv handling' stamp: 'as 11/16/2006 17:08'!
-defaultAction
-
-	receiver close: 'Too many connections'.! !
-
-SPException subclass: #SPSubscriptionNotFoundException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPSubscriptionNotFoundException commentStamp: 'as 1/15/2007 11:28' prior: 0!
-The subscription was not found.!
-
-SPException subclass: #SPSyntaxException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Core'!
-
-!SPSyntaxException commentStamp: '<historical>' prior: 0!
-Stamp syntax exception.!
-
-SPException subclass: #SPTooMuchDataException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPTooMuchDataException commentStamp: '<historical>' prior: 0!
-The received data exceeds the limits.!
-
-SPException subclass: #SPUserAlreadyExistsException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPUserAlreadyExistsException commentStamp: 'as 1/30/2007 15:34' prior: 0!
-The user already exists.!
-
-SPException subclass: #SPUserNotFoundException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPUserNotFoundException commentStamp: 'as 1/15/2007 11:28' prior: 0!
-The user was not found.!
-
-SPException subclass: #SPWrongPasswordException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPWrongPasswordException commentStamp: 'as 1/16/2007 12:43' prior: 0!
-The given password is incorrect.!
-
-!MailDBFile methodsFor: '*Stamp' stamp: 'as 10/3/2006 17:35'!
-reopen
-	"check the file size and mod time; if they match, then do a fast reopen.  Otherwise, read everything in the slow way"
-	| entry dir file |
-	modTimeAtSave ifNil: [ ^self open ].
-	sizeAtSave ifNil: [ ^self open ].
-
-	"Fix by Anselm Strauss, 2006/10/03, astrauss@gmx.ch"
-	"Can now use relative filenames with multiple directories."
-	dir := FileDirectory default fullName, '/', (FileDirectory dirPathFor: filename).
-	file := FileDirectory localNameFor: filename.
-	entry := (FileDirectory on: dir) entryAt: file.
-
-	entry ifNil: [ ^self open ].
-
-	entry fileSize = sizeAtSave ifFalse: [ ^self open ].
-	entry modificationTime = modTimeAtSave ifFalse: [ ^self open ].
-
-! !
-
-!MailDBFile methodsFor: '*Stamp' stamp: 'as 10/3/2006 17:24'!
-save
-	"Atomically save a representation of this object to its file.  The new file is written to <name>.new, and on success, renamed to simply <name>.  If the write fails, then the old version will still exist"
-
-	| f dir shortName dirname |
-
-	(StandardFileStream fileNamed: filename) close.	"ensure it exists"
-	shortName := FileDirectory localNameFor: filename.
-	
-	"Fix by Anselm Strauss, 2006/10/03, astrauss@gmx.ch"
-	"Can now use relative filenames with multiple directories."
-	dirname := FileDirectory default fullName, '/', (FileDirectory dirPathFor: filename).
-	dir := FileDirectory on: dirname.
-
-	Cursor write showWhile: [
-		f := FileStream fileNamed: filename, '.new'.
-		self writeOn: f.
-		f setToEnd; close
-		].
-	dir deleteFileNamed: shortName ifAbsent: [].
-	dir rename: shortName, '.new' toBe: shortName.
-
-	self updateSizeAndModTime.! !
-
-!MailDBFile methodsFor: '*Stamp' stamp: 'as 10/3/2006 17:22'!
-updateSizeAndModTime
-	"update the cached size and modification time"
-	| entry dir file |
-
-	"Fix by Anselm Strauss, 2006/10/03, astrauss@gmx.ch"
-	"Can now use relative filenames with multiple directories."
-	dir := FileDirectory default fullName, '/', (FileDirectory dirPathFor: filename).
-	file := FileDirectory localNameFor: filename.
-	entry := (FileDirectory on: dir) entryAt: file.
-	
-	entry ifNil: [
-		"uh oh!!"
-		self reportInconsistency.
-		sizeAtSave := nil.
-		modTimeAtSave := nil.
-		^self ].
-
-	sizeAtSave := entry fileSize.
-	modTimeAtSave := entry modificationTime.! !
+	target _ aWAComponent.! !
 
 Object subclass: #SPConfiguration
 	instanceVariableNames: 'attributes'
@@ -1092,7 +679,7 @@ Object subclass: #SPConfigurationAttribute
 	instanceVariableNames: 'value mutable'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Configuration'!
+	category: 'Stamp-Configuration-Attributes'!
 
 !SPConfigurationAttribute commentStamp: 'as 1/23/2007 14:57' prior: 0!
 A configuration attribute stores one value of any type that can be set/get. A new value is checked against the configured type and checkValue: is called which is intended to be overwritten in subclasses. There is also some code for mutability: setting a new value will fail if the instance is not mutable. As for now, mutability isn't really used, that means it is checked but by default set to true (=mutable).!
@@ -1154,7 +741,7 @@ SPConfigurationAttribute subclass: #SPNumberConfigurationAttribute
 	instanceVariableNames: 'min max'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Configuration'!
+	category: 'Stamp-Configuration-Attributes'!
 
 !SPNumberConfigurationAttribute commentStamp: 'as 1/16/2007 11:27' prior: 0!
 Number configuration attribute.!
@@ -1163,7 +750,7 @@ SPNumberConfigurationAttribute subclass: #SPIntegerConfigurationAttribute
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Configuration'!
+	category: 'Stamp-Configuration-Attributes'!
 
 !SPIntegerConfigurationAttribute commentStamp: 'as 1/16/2007 11:27' prior: 0!
 Integer configuration attribute.!
@@ -1221,7 +808,7 @@ SPConfigurationAttribute subclass: #SPStringConfigurationAttribute
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Configuration'!
+	category: 'Stamp-Configuration-Attributes'!
 
 !SPStringConfigurationAttribute commentStamp: 'as 1/8/2007 15:38' prior: 0!
 Stamp string configuration attribute.!
@@ -1457,7 +1044,7 @@ stop
 	listener waitForStop.! !
 
 Object subclass: #SPList
-	instanceVariableNames: 'address name closed visible'
+	instanceVariableNames: 'address name description closed visible admin'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-ListManager'!
@@ -1488,10 +1075,30 @@ address: aSPMailAddress
 
 	address := aSPMailAddress.! !
 
+!SPList methodsFor: 'access' stamp: 'as 2/6/2007 18:10'!
+admin
+
+	^ admin.! !
+
+!SPList methodsFor: 'access' stamp: 'as 2/6/2007 18:17'!
+admin: aSPMailAddress
+
+	admin _ aSPMailAddress.! !
+
 !SPList methodsFor: 'state' stamp: 'as 10/19/2006 11:28'!
 close
 
 	closed := true.! !
+
+!SPList methodsFor: 'access' stamp: 'as 2/6/2007 18:08'!
+description
+
+	^ description.! !
+
+!SPList methodsFor: 'access' stamp: 'as 2/6/2007 18:08'!
+description: aString
+
+	^ description _ aString.! !
 
 !SPList methodsFor: 'compare' stamp: 'as 3/9/2006 16:50'!
 hash
@@ -1503,11 +1110,12 @@ hide
 
 	visible := false.! !
 
-!SPList methodsFor: 'initialize-release' stamp: 'as 1/30/2007 15:58'!
+!SPList methodsFor: 'initialize-release' stamp: 'as 2/6/2007 18:09'!
 initialize
 
 	self close.
-	self hide.! !
+	self hide.
+	self description: ''.! !
 
 !SPList methodsFor: 'test' stamp: 'as 10/19/2006 11:29'!
 isClosed
@@ -1602,6 +1210,20 @@ addUser: aSPUser
 		users add: aSPUser.
 	].! !
 
+!SPListManager methodsFor: 'get-list' stamp: 'as 2/6/2007 18:16'!
+adminForList: aSPList
+
+	^ monitor critical: [
+		aSPList admin.
+	].! !
+
+!SPListManager methodsFor: 'get-list' stamp: 'as 2/6/2007 15:37'!
+allLists
+
+	^ monitor critical: [
+		lists.
+	].! !
+
 !SPListManager methodsFor: 'get-subscription' stamp: 'as 1/24/2007 15:25'!
 allSubscriptions
 
@@ -1645,6 +1267,13 @@ isSubscribed: aSPUser to: aSPList
 			subscription list = aSPList and:
 				[ aSPUser verifiedContacts includes: subscription contact. ].
 		] ifNone: [ nil. ]) notNil.
+	].! !
+
+!SPListManager methodsFor: 'add-remove' stamp: 'as 2/6/2007 18:15'!
+list: aSPList admin: aSPMailAddress
+
+	monitor critical: [
+		aSPList admin: aSPMailAddress.
 	].! !
 
 !SPListManager methodsFor: 'get-list' stamp: 'as 1/24/2007 15:25'!
@@ -1870,12 +1499,9 @@ Object subclass: #SPMailArchive
 !SPMailArchive commentStamp: '<historical>' prior: 0!
 Mail archive that basically wraps around MailDB.!
 
-!SPMailArchive methodsFor: 'store' stamp: 'as 11/17/2006 14:52'!
+!SPMailArchive methodsFor: 'store' stamp: 'as 2/5/2007 17:31'!
 addMessage: aMailMessage toList: aSPList
-
-		| dir |
-		dir := self archiveDir, '/', aSPList address asString.
-		(MailDB openOn: dir) addNewMessage: aMailMessage.! !
+! !
 
 Object subclass: #SPMailHandler
 	instanceVariableNames: 'process message'
@@ -2011,10 +1637,9 @@ Object subclass: #SPMailMessage
 SPMailMessage class
 	instanceVariableNames: 'monitor messageId'!
 
-!SPMailMessage commentStamp: '<historical>' prior: 0!
+!SPMailMessage commentStamp: 'as 2/6/2007 12:38' prior: 0!
 The SMTP protocol defines commands for specifying a sender and one or multiple recipient addresses apart from the ones in the header of a mail message (from:, to:, cc:, ...).
-This class is a wrapper around MailMessage that stores these addresses as well, since they are important when relaying mail.
-There can be only one recipient, mails to multiple recipients must be split into multiple mail messages.!
+This class is a wrapper around MailMessage and stores the SMTP addresses as well, since they are important when relaying mail.!
 
 SPMailMessage class
 	instanceVariableNames: 'monitor messageId'!
@@ -2253,7 +1878,7 @@ initialize
 	self initMessage.
 	self state: SPReadySmtpState.! !
 
-!SPMailReceiver methodsFor: 'message' stamp: 'as 2/5/2007 09:15'!
+!SPMailReceiver methodsFor: 'message' stamp: 'as 2/6/2007 18:33'!
 insertTraces
 
 	| local remote |
@@ -2261,7 +1886,6 @@ insertTraces
 	remote _ self remoteName ifNil: [ self remoteAddress. ].
 	
 	message insertTraceFrom: local by: remote;
-		insertReturnPath;
 		ensureMessageId: self serverName;
 		date: DateAndTime now.! !
 
@@ -3278,8 +2902,8 @@ Object subclass: #SPSubscription
 	poolDictionaries: ''
 	category: 'Stamp-ListManager'!
 
-!SPSubscription commentStamp: '<historical>' prior: 0!
-A subscription subscribes a user to a mailing list.!
+!SPSubscription commentStamp: 'as 2/6/2007 12:35' prior: 0!
+A subscription subscribes a users contact to a mailing list.!
 
 !SPSubscription class methodsFor: 'instance creation' stamp: 'as 9/5/2006 13:12'!
 withList: aSPList contact: aSPContact
@@ -3567,6 +3191,424 @@ unverifiedContacts
 verifiedContacts
 
 	^ contacts select: [ :contact | contact isVerified. ].! !
+
+!MailDBFile methodsFor: '*Stamp' stamp: 'as 10/3/2006 17:35'!
+reopen
+	"check the file size and mod time; if they match, then do a fast reopen.  Otherwise, read everything in the slow way"
+	| entry dir file |
+	modTimeAtSave ifNil: [ ^self open ].
+	sizeAtSave ifNil: [ ^self open ].
+
+	"Fix by Anselm Strauss, 2006/10/03, astrauss@gmx.ch"
+	"Can now use relative filenames with multiple directories."
+	dir := FileDirectory default fullName, '/', (FileDirectory dirPathFor: filename).
+	file := FileDirectory localNameFor: filename.
+	entry := (FileDirectory on: dir) entryAt: file.
+
+	entry ifNil: [ ^self open ].
+
+	entry fileSize = sizeAtSave ifFalse: [ ^self open ].
+	entry modificationTime = modTimeAtSave ifFalse: [ ^self open ].
+
+! !
+
+!MailDBFile methodsFor: '*Stamp' stamp: 'as 10/3/2006 17:24'!
+save
+	"Atomically save a representation of this object to its file.  The new file is written to <name>.new, and on success, renamed to simply <name>.  If the write fails, then the old version will still exist"
+
+	| f dir shortName dirname |
+
+	(StandardFileStream fileNamed: filename) close.	"ensure it exists"
+	shortName := FileDirectory localNameFor: filename.
+	
+	"Fix by Anselm Strauss, 2006/10/03, astrauss@gmx.ch"
+	"Can now use relative filenames with multiple directories."
+	dirname := FileDirectory default fullName, '/', (FileDirectory dirPathFor: filename).
+	dir := FileDirectory on: dirname.
+
+	Cursor write showWhile: [
+		f := FileStream fileNamed: filename, '.new'.
+		self writeOn: f.
+		f setToEnd; close
+		].
+	dir deleteFileNamed: shortName ifAbsent: [].
+	dir rename: shortName, '.new' toBe: shortName.
+
+	self updateSizeAndModTime.! !
+
+!MailDBFile methodsFor: '*Stamp' stamp: 'as 10/3/2006 17:22'!
+updateSizeAndModTime
+	"update the cached size and modification time"
+	| entry dir file |
+
+	"Fix by Anselm Strauss, 2006/10/03, astrauss@gmx.ch"
+	"Can now use relative filenames with multiple directories."
+	dir := FileDirectory default fullName, '/', (FileDirectory dirPathFor: filename).
+	file := FileDirectory localNameFor: filename.
+	entry := (FileDirectory on: dir) entryAt: file.
+	
+	entry ifNil: [
+		"uh oh!!"
+		self reportInconsistency.
+		sizeAtSave := nil.
+		modTimeAtSave := nil.
+		^self ].
+
+	sizeAtSave := entry fileSize.
+	modTimeAtSave := entry modificationTime.! !
+
+Exception subclass: #SPException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Core'!
+
+!SPException commentStamp: 'as 1/16/2007 11:30' prior: 0!
+Top exception class for Stamp.!
+
+SPException subclass: #SPAlreadySubscribedException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPAlreadySubscribedException commentStamp: 'as 2/6/2007 12:33' prior: 0!
+The subscription already exists.!
+
+SPException subclass: #SPConfigurationException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration'!
+
+!SPConfigurationException commentStamp: 'as 1/15/2007 17:52' prior: 0!
+General configuration exception.!
+
+SPConfigurationException subclass: #SPConfigurationAttributeNotFoundException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration-Attributes'!
+
+!SPConfigurationAttributeNotFoundException commentStamp: 'as 1/16/2007 11:26' prior: 0!
+The configuration attribute or preference was not found.!
+
+SPConfigurationException subclass: #SPImmutableConfigurationAttributeException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration-Attributes'!
+
+!SPImmutableConfigurationAttributeException commentStamp: 'as 12/12/2006 12:44' prior: 0!
+There was an attempt to mutate an immutable configuration attribute.!
+
+SPConfigurationException subclass: #SPInvalidConfigurationAttributeValueException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration-Attributes'!
+
+!SPInvalidConfigurationAttributeValueException commentStamp: 'as 1/8/2007 15:34' prior: 0!
+The value didn't pass the value check of the configuration attribute.!
+
+SPException subclass: #SPContactAlreadyExistsException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPContactAlreadyExistsException commentStamp: 'as 2/6/2007 12:33' prior: 0!
+The contact already exists.!
+
+SPException subclass: #SPContactNotFoundException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPContactNotFoundException commentStamp: 'as 1/15/2007 10:32' prior: 0!
+The contact was not found.!
+
+SPException subclass: #SPContactNotVerifiedException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPContactNotVerifiedException commentStamp: 'as 1/15/2007 10:32' prior: 0!
+The contact is not verified. It must be verified before it can be used.!
+
+SPException subclass: #SPContactVerificationFailedException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPContactVerificationFailedException commentStamp: 'as 2/6/2007 12:34' prior: 0!
+The verification string is wrong.!
+
+!SPException methodsFor: 'priv handling' stamp: 'as 8/17/2006 11:04'!
+isResumable
+
+	^ false.! !
+
+SPException subclass: #SPInvalidMailAddressException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPInvalidMailAddressException commentStamp: '<historical>' prior: 0!
+Invalid mail address.!
+
+SPException subclass: #SPListAlreadyExistsException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPListAlreadyExistsException commentStamp: 'as 1/30/2007 15:35' prior: 0!
+The list already exists.!
+
+SPException subclass: #SPListNotFoundException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPListNotFoundException commentStamp: 'as 1/16/2007 12:37' prior: 0!
+The list was not found.!
+
+SPException subclass: #SPQueueFullException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPQueueFullException commentStamp: 'as 1/15/2007 17:38' prior: 0!
+The queue is full, no further messages can be queued.!
+
+SPException subclass: #SPReceiverException
+	instanceVariableNames: 'receiver'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPReceiverException commentStamp: 'as 1/16/2007 14:49' prior: 0!
+General mail receiver exception.!
+
+SPReceiverException subclass: #SPConnectionClosedException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPConnectionClosedException commentStamp: '<historical>' prior: 0!
+The connection was unexpectedly closed.!
+
+!SPConnectionClosedException methodsFor: 'priv handling' stamp: 'as 11/16/2006 17:07'!
+defaultAction
+
+	receiver clientQuit.! !
+
+SPReceiverException subclass: #SPConnectionTimedOutException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPConnectionTimedOutException commentStamp: 'as 1/15/2007 11:30' prior: 0!
+The connection has timed out.!
+
+!SPConnectionTimedOutException methodsFor: 'priv handling' stamp: 'as 12/11/2006 18:19'!
+defaultAction
+
+	receiver close: 'Connection timed out'.! !
+
+!SPReceiverException class methodsFor: 'instance creation' stamp: 'as 10/18/2006 13:41'!
+withReceiver: aSPMailReceiver
+
+	^ self new
+		receiver: aSPMailReceiver;
+		yourself.! !
+
+!SPReceiverException methodsFor: 'access' stamp: 'as 10/18/2006 13:40'!
+receiver: aSPMailReceiver
+
+	receiver := aSPMailReceiver.! !
+
+SPReceiverException subclass: #SPSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPSmtpException commentStamp: '<historical>' prior: 0!
+An SMTP command from the client has failed on the server.!
+
+SPSmtpException subclass: #SPCommandNotAllowedSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPCommandNotAllowedSmtpException commentStamp: '<historical>' prior: 0!
+The command is not allowed in the current state of the server.!
+
+!SPCommandNotAllowedSmtpException methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:04'!
+reply
+
+	^ SPSmtpReply badSequence.! !
+
+SPSmtpException subclass: #SPCommandNotFoundSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPCommandNotFoundSmtpException commentStamp: '<historical>' prior: 0!
+The specified command was not found.!
+
+!SPCommandNotFoundSmtpException methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:06'!
+reply
+
+	^ SPSmtpReply commandUnrecognized.! !
+
+SPSmtpException subclass: #SPLineTooLongSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPLineTooLongSmtpException commentStamp: 'as 1/16/2007 15:04' prior: 0!
+There is too much data on one line.!
+
+!SPLineTooLongSmtpException methodsFor: 'priv handling' stamp: 'as 10/17/2006 22:43'!
+reply
+
+	^ SPSmtpReply lineTooLong.! !
+
+!SPSmtpException methodsFor: 'priv handling' stamp: 'as 10/3/2006 15:50'!
+defaultAction
+
+	receiver reply: self reply.! !
+
+!SPSmtpException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:05'!
+reply
+
+	"Every command failure should be replied to the client."
+
+	self subclassResponsibility.! !
+
+SPSmtpException subclass: #SPTooManyRecipientsSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPTooManyRecipientsSmtpException commentStamp: 'as 2/6/2007 12:36' prior: 0!
+The maximum number of recipients is reached, no more can be specified for this message.!
+
+!SPTooManyRecipientsSmtpException methodsFor: 'priv handling' stamp: 'as 10/18/2006 20:40'!
+reply
+
+	^ SPSmtpReply tooManyRecipients.! !
+
+SPSmtpException subclass: #SPTooMuchMailDataSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPTooMuchMailDataSmtpException commentStamp: 'as 2/6/2007 12:37' prior: 0!
+The mail data exceeds the limits.!
+
+!SPTooMuchMailDataSmtpException methodsFor: 'priv handling' stamp: 'as 10/18/2006 17:46'!
+reply
+
+	^ SPSmtpReply tooMuchMailData.! !
+
+SPSmtpException subclass: #SPWrongCommandSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPWrongCommandSmtpException commentStamp: '<historical>' prior: 0!
+Wrong parameters or arguments. !
+
+!SPWrongCommandSmtpException methodsFor: 'priv handling' stamp: 'as 9/14/2006 13:59'!
+reply
+
+	^ SPSmtpReply wrongParameterOrArgument.! !
+
+SPReceiverException subclass: #SPTooManyConnectionsException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPTooManyConnectionsException commentStamp: '<historical>' prior: 0!
+There are too many connections, the current connection will be aborted.!
+
+!SPTooManyConnectionsException methodsFor: 'priv handling' stamp: 'as 11/16/2006 17:08'!
+defaultAction
+
+	receiver close: 'Too many connections'.! !
+
+SPException subclass: #SPSubscriptionNotFoundException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPSubscriptionNotFoundException commentStamp: 'as 1/15/2007 11:28' prior: 0!
+The subscription was not found.!
+
+SPException subclass: #SPSyntaxException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Core'!
+
+!SPSyntaxException commentStamp: '<historical>' prior: 0!
+Stamp syntax exception.!
+
+SPException subclass: #SPTooMuchDataException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPTooMuchDataException commentStamp: '<historical>' prior: 0!
+The received data exceeds the limits.!
+
+SPException subclass: #SPUserAlreadyExistsException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPUserAlreadyExistsException commentStamp: 'as 1/30/2007 15:34' prior: 0!
+The user already exists.!
+
+SPException subclass: #SPUserNotFoundException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPUserNotFoundException commentStamp: 'as 1/15/2007 11:28' prior: 0!
+The user was not found.!
+
+SPException subclass: #SPWrongPasswordException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPWrongPasswordException commentStamp: 'as 1/16/2007 12:43' prior: 0!
+The given password is incorrect.!
 
 SMTPClient subclass: #SPSmtpClient
 	instanceVariableNames: ''
