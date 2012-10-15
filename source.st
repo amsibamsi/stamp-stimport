@@ -1,5 +1,6 @@
 SystemOrganization addCategory: #'Stamp-Configuration-Attributes'!
 SystemOrganization addCategory: #'Stamp-Configuration-Exceptions'!
+SystemOrganization addCategory: #'Stamp-Configuration-Tests'!
 SystemOrganization addCategory: #'Stamp-Configuration'!
 SystemOrganization addCategory: #'Stamp-Core-Exceptions'!
 SystemOrganization addCategory: #'Stamp-Core'!
@@ -11,7 +12,6 @@ SystemOrganization addCategory: #'Stamp-Mail-Server-Exceptions'!
 SystemOrganization addCategory: #'Stamp-Mail-Server'!
 SystemOrganization addCategory: #'Stamp-Mail-Server-Commands'!
 SystemOrganization addCategory: #'Stamp-Mail-Server-States'!
-SystemOrganization addCategory: #'Stamp-Mail-Server-Tests'!
 SystemOrganization addCategory: #'Stamp-Tests'!
 SystemOrganization addCategory: #'Stamp-Documentation'!
 SystemOrganization addCategory: #'Stamp-Web'!
@@ -131,12 +131,12 @@ TestCase subclass: #SPCodeTest
 !SPCodeTest commentStamp: '<historical>' prior: 0!
 Test different coding style aspects of the implementation.!
 
-!SPCodeTest methodsFor: 'run' stamp: 'as 1/11/2006 17:03'!
+!SPCodeTest methodsFor: 'running' stamp: 'as 1/11/2006 17:03'!
 packageName
 
 	^ 'Stamp'.! !
 
-!SPCodeTest methodsFor: 'test' stamp: 'as 1/11/2006 17:03'!
+!SPCodeTest methodsFor: 'testing' stamp: 'as 1/11/2006 17:03'!
 testClassComment
 
 	"Each class should have a comment."
@@ -145,6 +145,15 @@ testClassComment
 		:each |
 		self assert: each hasComment.
 	].! !
+
+TestCase subclass: #SPContactTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Tests'!
+
+!SPContactTest commentStamp: 'as 4/11/2007 14:47' prior: 0!
+Test SPContact.!
 
 TestCase subclass: #SPListTest
 	instanceVariableNames: 'list'
@@ -155,177 +164,48 @@ TestCase subclass: #SPListTest
 !SPListTest commentStamp: '<historical>' prior: 0!
 Test SPList.!
 
-!SPListTest methodsFor: 'run' stamp: 'as 9/18/2006 14:58'!
+!SPListTest methodsFor: 'running' stamp: 'as 4/11/2007 11:30'!
+listAddress
+
+	^ SPMailAddress fromString: 'list@local'.! !
+
+!SPListTest methodsFor: 'running' stamp: 'as 4/11/2007 11:49'!
+listAddress2
+
+	^ SPMailAddress fromString: 'list2@local'.! !
+
+!SPListTest methodsFor: 'running' stamp: 'as 4/11/2007 11:45'!
 listName
 
-	^ 'mylist'.! !
+	^ 'name'.! !
 
-!SPListTest methodsFor: 'run' stamp: 'as 9/18/2006 14:56'!
+!SPListTest methodsFor: 'running' stamp: 'as 4/11/2007 11:49'!
+listName2
+
+	^ 'name2'.! !
+
+!SPListTest methodsFor: 'running' stamp: 'as 4/11/2007 11:31'!
 setUp
 
-	list := SPList withName: self listName.! !
+	list _ SPList withAddress: self listAddress name: self listName.! !
 
-!SPListTest methodsFor: 'test' stamp: 'as 9/18/2006 15:02'!
-testActivation
-
-	list activate.
-	self assert: list isActive.
-	list deactivate.
-	self deny: list isActive.! !
-
-!SPListTest methodsFor: 'test' stamp: 'as 9/18/2006 15:04'!
+!SPListTest methodsFor: 'testing' stamp: 'as 4/11/2007 11:51'!
 testEqual
 
 	| list2 |
-	list2 := SPList withName: self listName.
+	list2 _ SPList withAddress: self listAddress name: self listName2.
 	self assert: list = list2.
-	self deny: list ~= list2.! !
+	self deny: list == list2.
+	list2 _ SPList withAddress: self listAddress2 name: self listName.
+	self deny: list = list2.
+	self deny: list == list2.! !
 
-!SPListTest methodsFor: 'test' stamp: 'as 9/18/2006 15:00'!
-testInitialization
+!SPListTest methodsFor: 'testing' stamp: 'as 4/11/2007 11:32'!
+testLocking
 
-	self assert: list isActive.
-	self deny: list isModerated.! !
-
-!SPListTest methodsFor: 'test' stamp: 'as 9/18/2006 15:02'!
-testModeration
-
-	list moderate.
-	self assert: list isModerated.
-	list unmoderate.
-	self deny: list isModerated.! !
-
-!SPListTest methodsFor: 'test' stamp: 'as 9/18/2006 15:03'!
-testName
-
-	self assert: list name = self listName.! !
-
-TestCase subclass: #SPMailReceivingSendingTest
-	instanceVariableNames: 'server client'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Tests'!
-
-!SPMailReceivingSendingTest commentStamp: '<historical>' prior: 0!
-Test the mail receiving/sending subsystem.!
-
-!SPMailReceivingSendingTest methodsFor: 'run' stamp: 'as 2/21/2006 10:15'!
-findPortFor: aSPMailListener
-
-	1024 to: 65536 do: [
-		:port |
-		[ aSPMailListener verifyPortAvailability: port. ^ port. ]
-			on: Error
-			do: [ :ex | ex return.]
-	].! !
-
-!SPMailReceivingSendingTest methodsFor: 'run' stamp: 'as 10/5/2006 13:24'!
-setUp
-
-	| port tries maxTries delay |
-	server := SPMailListener withKernel: SPDummy new.
-	port := self findPortFor: server service.
-	server service portNumber: port.
-	server start.
-
-	tries := 0.
-	maxTries := 10.
-	delay := Delay forMilliseconds: 300.
-	[
-		[ client := SPSmtpClient openOnHostNamed: 'localhost' port: port. ]
-			on: ConnectionTimedOut
-			do: [ :ex | tries := tries + 1. ex return. ].
-		delay wait.
-	] doWhileTrue: [
-		client == nil and: [ tries <= maxTries ].
-	]! !
-
-!SPMailReceivingSendingTest methodsFor: 'run' stamp: 'as 9/14/2006 10:04'!
-tearDown
-
-	client close.
-	server destroy.! !
-
-!SPMailReceivingSendingTest methodsFor: 'test' stamp: 'as 2/22/2006 19:34'!
-testBasic
-
-	self shouldnt: [
-		client
-			reopen;
-			mailFrom: 'user@host.com';
-			recipient: 'user2@host.com';
-			data: 'Subject: test';
-			quit.
-	] raise: TelnetProtocolError.! !
-
-!SPMailReceivingSendingTest methodsFor: 'test' stamp: 'as 2/22/2006 19:43'!
-testQuit
-
-	self shouldnt: [
-		client
-			reopen;
-			quit;
-			reopen;
-			mailFrom: 'user@host.com';
-			quit;
-			reopen;
-			mailFrom: 'user@host.com';
-			recipient: 'user2@host.com';
-			quit;
-			reopen;
-			mailFrom: 'user@host.com';
-			recipient: 'user2@host.com';
-			data: 'Subject: test';
-			quit.
-		] raise: TelnetProtocolError.! !
-
-!SPMailReceivingSendingTest methodsFor: 'test' stamp: 'as 2/22/2006 19:44'!
-testRecipient
-
-	self shouldnt: [
-		client
-			reopen;
-			mailFrom: 'user@host.com';
-			recipient: 'user2@host.com';
-			recipient: 'user3@host.com';
-			quit.
-	] raise: TelnetProtocolError.! !
-
-!SPMailReceivingSendingTest methodsFor: 'test' stamp: 'as 2/22/2006 19:44'!
-testReset
-
-	self shouldnt: [
-		client
-			reopen;
-			reset;
-			mailFrom: 'user@host.com';
-			reset;
-			mailFrom: 'user@host.com';
-			recipient: 'user2@host.com';
-			reset;
-			mailFrom: 'user@host.com';
-			recipient: 'user2@host.com';
-			data: 'Subject: test';
-			reset;
-			quit.
-		] raise: TelnetProtocolError.! !
-
-!SPMailReceivingSendingTest methodsFor: 'test' stamp: 'as 2/22/2006 19:51'!
-testSender
-
-	self
-		should: [ client reopen; mailFrom: 'me'; mailFrom: 'meAgain'. ]
-		raise: TelnetProtocolError.
-	self assert: (client responseCode = 503).
-	! !
-
-!SPMailReceivingSendingTest methodsFor: 'test' stamp: 'as 2/22/2006 19:51'!
-testUnrecognized
-
-	self
-		should: [ client reopen; sendCommand: 'unrecognized'; checkResponse. ]
-		raise: TelnetProtocolError.
-	self assert: (client responseCode = 500).! !
+	self assert: list isLocked.
+	list invertLocking.
+	self deny: list isLocked.! !
 
 TestCase subclass: #SPPasswordTest
 	instanceVariableNames: 'password1 password2 password'
@@ -336,25 +216,29 @@ TestCase subclass: #SPPasswordTest
 !SPPasswordTest commentStamp: '<historical>' prior: 0!
 Stamp password test.!
 
-!SPPasswordTest methodsFor: 'run' stamp: 'as 9/26/2006 14:48'!
+!SPPasswordTest methodsFor: 'running' stamp: 'as 9/26/2006 14:48'!
 setUp
 
 	password1 := 'password1'.
 	password2 := 'password2'.
 	password := SPPassword withPassword: password1.! !
 
-!SPPasswordTest methodsFor: 'test' stamp: 'as 9/26/2006 14:50'!
+!SPPasswordTest methodsFor: 'testing' stamp: 'as 9/26/2006 14:50'!
 testCheck
 
 	self assert: (password check: password1).
 	self deny: (password check: password2).! !
 
-!SPPasswordTest methodsFor: 'test' stamp: 'as 9/26/2006 14:51'!
+!SPPasswordTest methodsFor: 'testing' stamp: 'as 4/11/2007 11:44'!
 testSetting
 
-	self shouldnt: [ password new: password2 old: password1. ] raise: SPWrongPasswordException.
+	self
+		shouldnt: [ password new: password2 old: password1. ]
+		raise: SPWrongPasswordException.
 	self assert: (password check: password2).
-	self should: [ password new: password2 old: password1. ] raise: SPWrongPasswordException.! !
+	self
+		should: [ password new: password2 old: password1. ]
+		raise: SPWrongPasswordException.! !
 
 TestCase subclass: #SPTextConversionTest
 	instanceVariableNames: 'cr lf'
@@ -365,44 +249,44 @@ TestCase subclass: #SPTextConversionTest
 !SPTextConversionTest commentStamp: '<historical>' prior: 0!
 Test text conversion from SMTP to Squeak and back.!
 
-!SPTextConversionTest methodsFor: 'run' stamp: 'as 3/7/2006 11:47'!
+!SPTextConversionTest methodsFor: 'running' stamp: 'as 3/7/2006 11:47'!
 setUp
 
 	cr := String cr.
 	lf := String lf.! !
 
-!SPTextConversionTest methodsFor: 'test' stamp: 'as 10/17/2006 14:28'!
+!SPTextConversionTest methodsFor: 'testing' stamp: 'as 10/17/2006 14:28'!
 testSmtpCombined
 
 	self assert: (cr, cr, lf, lf) convertSqueakToSmtpText = (cr, lf, cr, lf, cr, lf, cr, lf).! !
 
-!SPTextConversionTest methodsFor: 'test' stamp: 'as 10/17/2006 14:28'!
+!SPTextConversionTest methodsFor: 'testing' stamp: 'as 10/17/2006 14:28'!
 testSmtpCrLf
 
 	self assert: cr convertSqueakToSmtpText = (cr, lf).! !
 
-!SPTextConversionTest methodsFor: 'test' stamp: 'as 10/17/2006 14:28'!
+!SPTextConversionTest methodsFor: 'testing' stamp: 'as 10/17/2006 14:28'!
 testSmtpLf
 
 	self assert: lf convertSqueakToSmtpText = (cr, lf).! !
 
-!SPTextConversionTest methodsFor: 'test' stamp: 'as 10/17/2006 14:28'!
+!SPTextConversionTest methodsFor: 'testing' stamp: 'as 10/17/2006 14:28'!
 testSqueakCombined
 
 	self assert: (lf, cr, cr, lf, lf, cr, lf ) convertSmtpToSqueakText = (cr, cr, cr, cr, cr).! !
 
-!SPTextConversionTest methodsFor: 'test' stamp: 'as 10/17/2006 14:29'!
+!SPTextConversionTest methodsFor: 'testing' stamp: 'as 10/17/2006 14:29'!
 testSqueakCrLf
 
 	self assert: (cr, lf) convertSmtpToSqueakText = cr.! !
 
-!SPTextConversionTest methodsFor: 'test' stamp: 'as 10/17/2006 14:29'!
+!SPTextConversionTest methodsFor: 'testing' stamp: 'as 10/17/2006 14:29'!
 testSqueakLf
 
 	self assert: lf convertSmtpToSqueakText = cr.! !
 
 TestCase subclass: #SPUserTest
-	instanceVariableNames: 'user contact1 contact2 address'
+	instanceVariableNames: 'user'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-ListManager-Tests'!
@@ -410,79 +294,56 @@ TestCase subclass: #SPUserTest
 !SPUserTest commentStamp: '<historical>' prior: 0!
 Test SPUser.!
 
-!SPUserTest methodsFor: 'run' stamp: 'as 9/5/2006 17:34'!
-email
-
-	^ '<hal9000@space.xx>'.! !
-
-!SPUserTest methodsFor: 'run' stamp: 'as 9/11/2006 15:11'!
+!SPUserTest methodsFor: 'running' stamp: 'as 4/11/2007 11:54'!
 setUp
 
-	user := SPUser withName: self userName password: self userPassword.
-	address := SPMailAddress fromPath: self email.
-	contact1 := SPContact withAddress: address user: user.
-	contact2 := SPContact withAddress: address user: user.! !
+	user _ SPUser withName: self userName password: self userPassword.! !
 
-!SPUserTest methodsFor: 'test' stamp: 'as 9/18/2006 14:19'!
-testActivation
-
-	user activate.
-	self assert: user isActive.
-	user deactivate.
-	self deny: user isActive.! !
-
-!SPUserTest methodsFor: 'test' stamp: 'as 9/7/2006 16:32'!
-testAddContact
-
-	user addContact: contact1.
-	self assert: (user contact: address) == contact1.
-	user addContact: contact1.
-	self assert: (user contact: address) == contact1.
-	user addContact: contact2.
-	self assert: (user contact: address) == contact1.! !
-
-!SPUserTest methodsFor: 'test' stamp: 'as 9/7/2006 16:38'!
+!SPUserTest methodsFor: 'testing' stamp: 'as 4/11/2007 11:53'!
 testEqual
 
 	| user2 |
-	user2 := SPUser withName: self userName password: self userPassword.
+	user2 _ SPUser withName: self userName password: self userPassword.
 	self assert: user = user2.
+	self deny: user == user2.
+	user2 _ SPUser withName: self userName2 password: self userPassword.
+	self deny: user = user2.
 	self deny: user == user2.! !
 
-!SPUserTest methodsFor: 'test' stamp: 'as 9/12/2006 16:32'!
-testGetContact
+!SPUserTest methodsFor: 'testing' stamp: 'as 4/11/2007 11:56'!
+testNewPassword
 
-	self assert: (user contact: address) = nil.
-	user addContact: contact1.
-	self assert: (user contact: address) == contact1.! !
+	| newPassword |
+	newPassword _ self userPassword, self userPassword.
+	self
+		shouldnt: [ user newPassword: newPassword oldPassword: self userPassword. ]
+		raise: SPWrongPasswordException.
+	self assert: (user verifyPassword: newPassword).
+	
+	self
+		should: [ user newPassword: newPassword oldPassword: self userPassword. ]
+		raise: SPWrongPasswordException.! !
 
-!SPUserTest methodsFor: 'test' stamp: 'as 9/18/2006 15:01'!
-testInitialization
-
-	self assert: user isActive.
-	self assert: user contacts isEmpty.! !
-
-!SPUserTest methodsFor: 'test' stamp: 'as 2/15/2007 12:36'!
+!SPUserTest methodsFor: 'testing' stamp: 'as 4/11/2007 11:43'!
 testPassword
 
-	user verifyPassword: self userPassword.! !
+	self assert: (user verifyPassword: self userPassword).
+	self deny: (user verifyPassword: self userPassword, ' ').! !
 
-!SPUserTest methodsFor: 'test' stamp: 'as 9/12/2006 16:32'!
-testRemoveContact
-
-	user addContact: contact1.
-	user removeContact: contact1.
-	self assert: (user contact: address) = nil.! !
-
-!SPUserTest methodsFor: 'run' stamp: 'as 9/5/2006 17:33'!
+!SPUserTest methodsFor: 'running' stamp: 'as 4/11/2007 11:33'!
 userName
 
-	^ 'hal'.! !
+	^ 'name'.! !
 
-!SPUserTest methodsFor: 'run' stamp: 'as 9/5/2006 17:32'!
+!SPUserTest methodsFor: 'running' stamp: 'as 4/11/2007 11:52'!
+userName2
+
+	^ 'name2'.! !
+
+!SPUserTest methodsFor: 'running' stamp: 'as 4/11/2007 11:33'!
 userPassword
 
-	^ '9000'.! !
+	^ 'password'.! !
 
 Exception subclass: #SPException
 	instanceVariableNames: ''
@@ -3022,6 +2883,52 @@ Object subclass: #SPDocumentation
 
 !SPDocumentation commentStamp: 'as 3/9/2007 15:23' prior: 0!
 Stamp Documentation.!
+
+!SPDocumentation methodsFor: 'setup' stamp: 'as 4/11/2007 11:09'!
+configuring
+
+"
+You may want to change some of Stamps initial configuration to fit your needs:
+
+1) Change the password of the super user.
+2) On the configuration tab, set the listener port, the sender server and the admin address to appropriate values.
+"! !
+
+!SPDocumentation methodsFor: 'setup' stamp: 'as 4/11/2007 11:26'!
+requirements
+
+"
+Stamp needs some additional software packages. It was tested with the following versions:
+
+- Squeak 3.9-7076
+- Dynamic Bindings 1.21
+- KomServices 1.1.2
+- KomHttpServer 7.0.4
+- Seaside 2.6
+- Cryptography 0.3
+- VB-Regex 1.1
+"! !
+
+!SPDocumentation methodsFor: 'setup' stamp: 'as 4/11/2007 11:58'!
+starting
+
+"
+1) To setup Stamp you must first set up your Seaside Installation and start your web server, e.g. WaKom startOn: 8080.
+
+2) Then register the Stamp web application with: SPWeb initialize.
+
+3) Once you accessed Stamps web interface through http://localhost:8080/seaside/stamp you can log in with the super user account. Its name and password are initialized from SPListManager>>superUserName and SPListManager>>superUserInitialPassword.
+
+4) Start the listener from the system tab, by restarting it.
+"! !
+
+!SPDocumentation methodsFor: 'stopping' stamp: 'as 4/11/2007 12:01'!
+stopping
+
+"
+Stamp can be stopped at any time by saving and exiting the image. Existing outgoing or incoming connections might get interrupted. You can watch incoming connections in the web interface on the system tab.
+When the image is opened again Stamp will continue its operation.
+"! !
 
 Object subclass: #SPDummy
 	instanceVariableNames: ''
