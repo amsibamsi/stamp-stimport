@@ -11,6 +11,7 @@ SystemOrganization addCategory: #'Stamp-Mail-Server-Commands'!
 SystemOrganization addCategory: #'Stamp-Mail-Server-States'!
 SystemOrganization addCategory: #'Stamp-Mail-Server-Tests'!
 SystemOrganization addCategory: #'Stamp-Tests'!
+SystemOrganization addCategory: #'Stamp-Documentation'!
 SystemOrganization addCategory: #'Stamp-Web'!
 SystemOrganization addCategory: #'Stamp-Web-Exceptions'!
 
@@ -49,36 +50,6 @@ withoutBlanks
 		
 	"' a  bcd  ' withoutBlanks"! !
 
-!MailMessage methodsFor: '*Stamp' stamp: 'as 9/19/2006 18:11'!
-addField: nameString fromString: valueString
-
-	"Add a field. If any field of the specified name exists, it will not be overwritten."
-
-	| field key value |
-	key := nameString asLowercase.
-	field := fields at: key ifAbsent: [
-		fields at: key put: OrderedCollection new.
-	].
-	value := MIMEHeaderValue forField: nameString fromString: valueString.
-	field add: value.
-	text := nil.
-	tokens := nil.! !
-
-!MailMessage methodsFor: '*Stamp' stamp: 'as 9/19/2006 18:25'!
-received: aString
-
-	self addField: 'received' fromString: aString.! !
-
-!MailMessage methodsFor: '*Stamp' stamp: 'as 10/17/2006 14:17'!
-returnPath: aString
-
-	self setField: 'return-path' toString: aString.! !
-
-!MailMessage methodsFor: '*Stamp' stamp: 'as 10/17/2006 14:19'!
-subject: aString
-
-	self setField: 'subject' toString: aString.! !
-
 TcpService subclass: #SPMailService
 	instanceVariableNames: 'listener'
 	classVariableNames: ''
@@ -108,6 +79,36 @@ serve: aSocket
 	]
 		on: SPTooManyConnectionsException
 		do: [ :ex | ex defaultAction; return. ].! !
+
+!MailMessage methodsFor: '*Stamp' stamp: 'as 9/19/2006 18:11'!
+addField: nameString fromString: valueString
+
+	"Add a field. If any field of the specified name exists, it will not be overwritten."
+
+	| field key value |
+	key := nameString asLowercase.
+	field := fields at: key ifAbsent: [
+		fields at: key put: OrderedCollection new.
+	].
+	value := MIMEHeaderValue forField: nameString fromString: valueString.
+	field add: value.
+	text := nil.
+	tokens := nil.! !
+
+!MailMessage methodsFor: '*Stamp' stamp: 'as 9/19/2006 18:25'!
+received: aString
+
+	self addField: 'received' fromString: aString.! !
+
+!MailMessage methodsFor: '*Stamp' stamp: 'as 10/17/2006 14:17'!
+returnPath: aString
+
+	self setField: 'return-path' toString: aString.! !
+
+!MailMessage methodsFor: '*Stamp' stamp: 'as 10/17/2006 14:19'!
+subject: aString
+
+	self setField: 'subject' toString: aString.! !
 
 TestCase subclass: #SPCodeTest
 	instanceVariableNames: ''
@@ -470,1813 +471,6 @@ userName
 userPassword
 
 	^ '9000'.! !
-
-Exception subclass: #SPException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Core'!
-
-!SPException commentStamp: 'as 2/15/2007 15:49' prior: 0!
-Stamp exception.!
-
-SPException subclass: #SPAlreadySubscribedException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPAlreadySubscribedException commentStamp: 'as 2/15/2007 16:48' prior: 0!
-Subscription already exists.!
-
-SPException subclass: #SPConfigurationException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Configuration'!
-
-!SPConfigurationException commentStamp: 'as 1/15/2007 17:52' prior: 0!
-General configuration exception.!
-
-SPConfigurationException subclass: #SPConfigurationAttributeNotFoundException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Configuration-Attributes'!
-
-!SPConfigurationAttributeNotFoundException commentStamp: 'as 2/15/2007 16:48' prior: 0!
-Configuration attribute or preference not found.!
-
-SPConfigurationException subclass: #SPImmutableConfigurationAttributeException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Configuration-Attributes'!
-
-!SPImmutableConfigurationAttributeException commentStamp: 'as 2/15/2007 16:49' prior: 0!
-I'm immutable.!
-
-SPConfigurationException subclass: #SPInvalidConfigurationAttributeValueException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Configuration-Attributes'!
-
-!SPInvalidConfigurationAttributeValueException commentStamp: 'as 2/15/2007 16:49' prior: 0!
-Invalid value.!
-
-SPException subclass: #SPContactAlreadyExistsException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPContactAlreadyExistsException commentStamp: 'as 2/15/2007 16:50' prior: 0!
-Contact already exists.!
-
-SPException subclass: #SPContactNotFoundException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPContactNotFoundException commentStamp: 'as 2/15/2007 16:50' prior: 0!
-Contact not found.!
-
-SPException subclass: #SPContactNotVerifiedException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPContactNotVerifiedException commentStamp: 'as 2/15/2007 16:50' prior: 0!
-Contact must be verified but is not.!
-
-SPException subclass: #SPContactVerificationFailedException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPContactVerificationFailedException commentStamp: 'as 2/15/2007 16:50' prior: 0!
-Verification failed.!
-
-SPException subclass: #SPEmptyArgumentException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Core'!
-
-!SPEmptyArgumentException commentStamp: 'as 3/1/2007 18:43' prior: 0!
-Argument must not be empty.!
-
-!SPException methodsFor: 'priv handling' stamp: 'as 2/21/2007 13:47'!
-defaultAction
-
-	! !
-
-!SPException methodsFor: 'printing' stamp: 'as 2/15/2007 16:43'!
-description
-
-	^ messageText
-		ifNil: [ self class comment. ]
-		ifNotNil: [ self class comment, ' (', messageText, ')'. ].! !
-
-!SPException methodsFor: 'priv handling' stamp: 'as 8/17/2006 11:04'!
-isResumable
-
-	^ false.! !
-
-SPException subclass: #SPInvalidMailAddressException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPInvalidMailAddressException commentStamp: '<historical>' prior: 0!
-Invalid mail address.!
-
-SPException subclass: #SPListAlreadyExistsException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPListAlreadyExistsException commentStamp: 'as 2/15/2007 16:50' prior: 0!
-List already exists.!
-
-SPException subclass: #SPListNotFoundException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPListNotFoundException commentStamp: 'as 2/15/2007 16:51' prior: 0!
-List not found.!
-
-SPException subclass: #SPPasswordConfirmationException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web-Exceptions'!
-
-!SPPasswordConfirmationException commentStamp: 'as 2/23/2007 15:46' prior: 0!
-Confirmed password does not match.!
-
-SPException subclass: #SPPostingNotAllowedException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPPostingNotAllowedException commentStamp: 'as 2/26/2007 11:57' prior: 0!
-Posting not allowed.!
-
-SPException subclass: #SPQueueFullException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPQueueFullException commentStamp: 'as 2/15/2007 16:52' prior: 0!
-Queue is full.!
-
-SPException subclass: #SPReceiverException
-	instanceVariableNames: 'receiver'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPReceiverException commentStamp: 'as 1/16/2007 14:49' prior: 0!
-General mail receiver exception.!
-
-SPReceiverException subclass: #SPConnectionClosedException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPConnectionClosedException commentStamp: 'as 2/15/2007 16:52' prior: 0!
-Connection unexpectedly closed.!
-
-!SPConnectionClosedException methodsFor: 'priv handling' stamp: 'as 11/16/2006 17:07'!
-defaultAction
-
-	receiver clientQuit.! !
-
-SPReceiverException subclass: #SPConnectionTimedOutException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPConnectionTimedOutException commentStamp: 'as 2/15/2007 16:52' prior: 0!
-Connection timed out.!
-
-!SPConnectionTimedOutException methodsFor: 'priv handling' stamp: 'as 12/11/2006 18:19'!
-defaultAction
-
-	receiver close: 'Connection timed out'.! !
-
-!SPReceiverException class methodsFor: 'instance creation' stamp: 'as 10/18/2006 13:41'!
-withReceiver: aSPMailReceiver
-
-	^ self new
-		receiver: aSPMailReceiver;
-		yourself.! !
-
-!SPReceiverException methodsFor: 'access' stamp: 'as 10/18/2006 13:40'!
-receiver: aSPMailReceiver
-
-	receiver := aSPMailReceiver.! !
-
-SPReceiverException subclass: #SPSmtpException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPSmtpException commentStamp: 'as 2/15/2007 16:52' prior: 0!
-Client SMTP command error.!
-
-SPSmtpException subclass: #SPCommandNotAllowedSmtpException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPCommandNotAllowedSmtpException commentStamp: 'as 2/15/2007 16:53' prior: 0!
-Command not allowed.!
-
-!SPCommandNotAllowedSmtpException methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:04'!
-reply
-
-	^ SPSmtpReply badSequence.! !
-
-SPSmtpException subclass: #SPCommandNotFoundSmtpException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPCommandNotFoundSmtpException commentStamp: 'as 2/15/2007 16:53' prior: 0!
-Command not found.!
-
-!SPCommandNotFoundSmtpException methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:06'!
-reply
-
-	^ SPSmtpReply commandUnrecognized.! !
-
-SPSmtpException subclass: #SPLineTooLongSmtpException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPLineTooLongSmtpException commentStamp: 'as 2/15/2007 16:53' prior: 0!
-Line too long.!
-
-!SPLineTooLongSmtpException methodsFor: 'priv handling' stamp: 'as 10/17/2006 22:43'!
-reply
-
-	^ SPSmtpReply lineTooLong.! !
-
-!SPSmtpException methodsFor: 'priv handling' stamp: 'as 10/3/2006 15:50'!
-defaultAction
-
-	receiver reply: self reply.! !
-
-!SPSmtpException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:05'!
-reply
-
-	"Every command failure should be replied to the client."
-
-	self subclassResponsibility.! !
-
-SPSmtpException subclass: #SPTooManyRecipientsSmtpException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPTooManyRecipientsSmtpException commentStamp: 'as 2/15/2007 16:53' prior: 0!
-Maximum number of recipients reached.!
-
-!SPTooManyRecipientsSmtpException methodsFor: 'priv handling' stamp: 'as 10/18/2006 20:40'!
-reply
-
-	^ SPSmtpReply tooManyRecipients.! !
-
-SPSmtpException subclass: #SPTooMuchMailDataSmtpException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPTooMuchMailDataSmtpException commentStamp: 'as 2/15/2007 16:54' prior: 0!
-Too much mail data.!
-
-!SPTooMuchMailDataSmtpException methodsFor: 'priv handling' stamp: 'as 10/18/2006 17:46'!
-reply
-
-	^ SPSmtpReply tooMuchMailData.! !
-
-SPSmtpException subclass: #SPWrongCommandSmtpException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPWrongCommandSmtpException commentStamp: '<historical>' prior: 0!
-Wrong parameters or arguments. !
-
-!SPWrongCommandSmtpException methodsFor: 'priv handling' stamp: 'as 9/14/2006 13:59'!
-reply
-
-	^ SPSmtpReply wrongParameterOrArgument.! !
-
-SPReceiverException subclass: #SPTooManyConnectionsException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPTooManyConnectionsException commentStamp: 'as 2/15/2007 16:54' prior: 0!
-Too many connections.!
-
-!SPTooManyConnectionsException methodsFor: 'priv handling' stamp: 'as 11/16/2006 17:08'!
-defaultAction
-
-	receiver close: 'Too many connections'.! !
-
-SPException subclass: #SPRootUserException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPRootUserException commentStamp: 'as 2/15/2007 16:54' prior: 0!
-Not allowed for root user.!
-
-SPException subclass: #SPSubscriptionNotFoundException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPSubscriptionNotFoundException commentStamp: 'as 2/15/2007 16:54' prior: 0!
-Subscription not found!
-
-SPException subclass: #SPSyntaxException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Core'!
-
-!SPSyntaxException commentStamp: 'as 2/15/2007 12:49' prior: 0!
-Invalid syntax.!
-
-SPException subclass: #SPTooMuchDataException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server-Exceptions'!
-
-!SPTooMuchDataException commentStamp: 'as 2/15/2007 16:54' prior: 0!
-Too much data.!
-
-SPException subclass: #SPUserAlreadyExistsException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPUserAlreadyExistsException commentStamp: 'as 2/15/2007 16:54' prior: 0!
-User already exists.!
-
-SPException subclass: #SPUserNotFoundException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPUserNotFoundException commentStamp: 'as 2/15/2007 16:55' prior: 0!
-User not found.!
-
-SPException subclass: #SPWrongPasswordException
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager-Exceptions'!
-
-!SPWrongPasswordException commentStamp: 'as 2/15/2007 16:55' prior: 0!
-Wrong password.!
-
-WATask subclass: #SPWebTask
-	instanceVariableNames: 'user'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebTask commentStamp: 'as 2/22/2007 13:55' prior: 0!
-Models the main web application.!
-
-!SPWebTask methodsFor: 'util' stamp: 'as 2/22/2007 14:18'!
-forever: aBlock
-
-	[ true. ] whileTrue: [ aBlock value. ].! !
-
-!SPWebTask methodsFor: 'rendering' stamp: 'as 3/5/2007 10:27'!
-go
-
-	user _ self call: SPWebMain new.
-	self isolate: [ self call: (SPWebMain withUser: user). ].! !
-
-WAComponent subclass: #SPWAComponent
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWAComponent commentStamp: 'as 2/15/2007 14:48' prior: 0!
-Basic web application functionality for Stamp.!
-
-!SPWAComponent methodsFor: 'exception' stamp: 'as 3/1/2007 18:40'!
-do: aBlock catchExceptions: exceptions
-
-	aBlock on: exceptions do: [
-		: ex |
-		self call: (SPWebExceptionDisplay withException: ex).
-	].! !
-
-!SPWAComponent methodsFor: 'rendering' stamp: 'as 2/28/2007 14:36'!
-renderTitle: aString renderer: html
-
-	html heading: aString level: 2.! !
-
-SPWAComponent subclass: #SPWATable
-	instanceVariableNames: 'table'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWATable commentStamp: 'as 2/28/2007 12:51' prior: 0!
-Abstract component for table reports (see WATabelReport).!
-
-!SPWATable methodsFor: 'rendering' stamp: 'as 2/28/2007 12:48'!
-children
-
-	^ Array with: table.! !
-
-!SPWATable methodsFor: 'initialization' stamp: 'as 3/5/2007 12:44'!
-initTable
-
-	table _ WATableReport new.
-	self updateTable.
-	table rowPeriod: 1; rowColors: self rowColors.! !
-
-!SPWATable methodsFor: 'rendering' stamp: 'as 3/9/2007 14:54'!
-renderContentOn: html
-
-	html render: table.! !
-
-!SPWATable methodsFor: 'rendering' stamp: 'as 3/5/2007 10:17'!
-rowColors
-
-	^ #('white' 'lightblue').! !
-
-!SPWATable methodsFor: 'rendering' stamp: 'as 3/5/2007 10:25'!
-tableColumns
-
-	self subclassResponsibility.! !
-
-!SPWATable methodsFor: 'rendering' stamp: 'as 3/5/2007 10:25'!
-tableRows
-
-	self subclassResponsibility.! !
-
-!SPWATable methodsFor: 'initialization' stamp: 'as 3/5/2007 12:45'!
-updateTable
-
-	table rows: (self tableRows); columns: (self tableColumns).! !
-
-SPWATable subclass: #SPWebConfiguration
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebConfiguration commentStamp: 'as 2/28/2007 12:27' prior: 0!
-Configuration editor.!
-
-!SPWebConfiguration methodsFor: 'call/answer' stamp: 'as 3/5/2007 12:57'!
-edit: anAssociation
-
-	self call: (SPWebEditPreference withKey: anAssociation key value: anAssociation value).
-	self updateTable.! !
-
-!SPWebConfiguration methodsFor: 'initialize-release' stamp: 'as 3/5/2007 13:36'!
-initialize
-
-	self initTable.! !
-
-!SPWebConfiguration methodsFor: 'rendering' stamp: 'as 3/1/2007 18:25'!
-renderContentOn: html
-
-	self renderTitle: 'Preferences' renderer: html.
-	super renderContentOn: html.! !
-
-!SPWebConfiguration methodsFor: 'rendering' stamp: 'as 3/5/2007 12:57'!
-tableColumns
-
-	^ OrderedCollection new
-		add: (WAReportColumn selector: #key title: 'Name');
-		add: ((WAReportColumn selector: #value title: 'Value') sortBlock: nil; yourself);
-		add: (WAReportColumn new title: 'Edit'; valueBlock: [ :item | 'edit'. ]; clickBlock: [ :item | self edit: item. ]; sortBlock: nil; yourself);
-		yourself.! !
-
-!SPWebConfiguration methodsFor: 'rendering' stamp: 'as 3/5/2007 10:26'!
-tableRows
-
-	^ OrderedCollection new
-		addAll: (SPKernel instance configurator allPreferences associations);
-		yourself.! !
-
-SPWATable subclass: #SPWebContacts
-	instanceVariableNames: 'user address'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebContacts commentStamp: 'as 2/14/2007 15:11' prior: 0!
-Contact management.!
-
-!SPWebContacts class methodsFor: 'instance creation' stamp: 'as 3/5/2007 13:21'!
-withUser: aSPUser
-
-	^ self new
-		user: aSPUser;
-		yourself.! !
-
-!SPWebContacts methodsFor: 'contacts' stamp: 'as 3/5/2007 13:06'!
-add
-
-	self do: [
-		SPMailNotifier verifyContact:
-			(SPKernel instance manager addContact: address user: user).
-	] catchExceptions: SPException.
-	self updateTable.! !
-
-!SPWebContacts methodsFor: 'rendering' stamp: 'as 2/28/2007 19:04'!
-confirmRemove: aSPContact
-
-	| subscriptions |
-	subscriptions _ self numberOfSubscriptions: aSPContact.
-	subscriptions > 0 ifTrue: [
-		^ self confirm: 'Do you really want to remove the contact ', aSPContact address asString, ' and its ', subscriptions asString, ' subscription(s)?'.
-	] ifFalse: [
-		^ true.
-	].! !
-
-!SPWebContacts methodsFor: 'contacts' stamp: 'as 2/28/2007 18:54'!
-numberOfSubscriptions: aSPContact
-
-	^ SPKernel instance manager numberOfSubscriptionsForContact: aSPContact.! !
-
-!SPWebContacts methodsFor: 'contacts' stamp: 'as 3/5/2007 13:10'!
-remove: aSPContact
-
-	(self confirmRemove: aSPContact) ifTrue: [
-		self do: [ SPKernel instance manager removeContact: aSPContact. ]
-		catchExceptions: SPException.
-	].
-	self updateTable.! !
-
-!SPWebContacts methodsFor: 'rendering' stamp: 'as 3/5/2007 09:06'!
-renderAddContact: html
-
-	self renderTitle: 'Add Address' renderer: html.
-	html form: [
-		html table: [
-			html tableRow: [
-				html textInputWithValue: address callback: [ :v | address _ v. ].
-				html submitButtonWithAction: [ self add. ] text: 'Add'.
-			].
-		].
-	].! !
-
-!SPWebContacts methodsFor: 'rendering' stamp: 'as 3/5/2007 13:37'!
-renderContentOn: html
-
-	self renderTitle: 'Contacts' renderer: html.
-	super renderContentOn: html.
-	self renderAddContact: html.! !
-
-!SPWebContacts methodsFor: 'rendering' stamp: 'as 3/5/2007 13:41'!
-tableColumns
-
-	^ OrderedCollection new
-		add: (WAReportColumn new title: 'Address'; valueBlock: [ :item | item address asString. ]; yourself);
-		add: (WAReportColumn new title: 'Subscriptions'; valueBlock: [ :item | self numberOfSubscriptions: item. ]; yourself);
-		add: (WAReportColumn new title: 'Active'; valueBlock: [ :item | item isActive asString. ]; clickBlock: [ :item | item invertActivation.]; yourself);
-		add: (WAReportColumn new title: 'Verified'; valueBlock: [ :item | item isVerified asString. ]; clickBlock: [ :item | self verify: item.]; yourself);
-		add: (WAReportColumn new title: 'Remove'; valueBlock: [ : item | 'remove'. ]; clickBlock: [ :item | self remove: item.]; sortBlock: nil; yourself);
-		yourself.! !
-
-!SPWebContacts methodsFor: 'rendering' stamp: 'as 3/5/2007 13:37'!
-tableRows
-
-	^ OrderedCollection new
-		addAll: (SPKernel instance manager allContactsForUser: user);
-		yourself.! !
-
-!SPWebContacts methodsFor: 'access' stamp: 'as 3/5/2007 13:37'!
-user: aSPUser
-
-	user _ aSPUser.
-	self initTable.! !
-
-!SPWebContacts methodsFor: 'contacts' stamp: 'as 3/5/2007 13:10'!
-verify: aSPContact
-
-	aSPContact isVerified ifFalse: [
-		self call: (SPWebContactVerification withContact: aSPContact).
-	].
-	self updateTable.! !
-
-SPWATable subclass: #SPWebListAdmin
-	instanceVariableNames: 'name address description'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebListAdmin commentStamp: 'as 2/22/2007 16:10' prior: 0!
-List admin view.!
-
-!SPWebListAdmin methodsFor: 'lists' stamp: 'as 3/5/2007 13:47'!
-add
-
-	self do: [
-		SPKernel instance manager addList: address name: name description: description.
-	] catchExceptions: SPException.
-	self updateTable.! !
-
-!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 2/28/2007 21:36'!
-confirmRemove: aSPList
-
-	| subscriptions |
-	subscriptions _ self numberOfSubscriptions: aSPList.
-	subscriptions > 0 ifTrue: [
-		^ self confirm:  'Do you really want to remove the list ', aSPList name, ' and its ', subscriptions asString, ' subscription(s)?'.
-	] ifFalse: [
-		^ true.
-	].! !
-
-!SPWebListAdmin methodsFor: 'lists' stamp: 'as 3/5/2007 13:47'!
-edit: aSPList
-
-	self call: (SPWebEditList withList: aSPList).
-	self updateTable.! !
-
-!SPWebListAdmin methodsFor: 'initialize-release' stamp: 'as 3/5/2007 13:46'!
-initialize
-
-	self initTable.! !
-
-!SPWebListAdmin methodsFor: 'lists' stamp: 'as 2/28/2007 17:25'!
-numberOfSubscriptions: aSPList
-
-	^ SPKernel instance manager numberOfSubscriptionsForList: aSPList.! !
-
-!SPWebListAdmin methodsFor: 'lists' stamp: 'as 3/5/2007 13:47'!
-remove: aSPList
-
-	(self confirmRemove: aSPList) ifTrue: [
-		self do: [
-			SPKernel instance manager removeList: aSPList.
-		] catchExceptions: SPException.
-	].
-	self updateTable.! !
-
-!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 3/5/2007 09:04'!
-renderAddList: html
-
-	self renderTitle: 'Add List' renderer: html.
-	html form: [
-		html table: [
-			html tableRowWithLabel: 'Name:' column: [
-				html textInputWithValue: name callback: [ :v | name _ v. ]
-			].
-			html tableRowWithLabel: 'Address:' column: [
-				html textInputWithValue: address callback: [ :v | address _ v. ]
-			].
-			html tableRowWithLabel: 'Description:' column: [
-				html textInputWithValue: description callback: [ :v | description _ v. ]
-			].
-			html attributes alignCenter.
-			html tableRowWith: [
-				html submitButtonOn: #add of: self.
-			] span: 3.
-		].
-	].! !
-
-!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 3/5/2007 09:05'!
-renderContentOn: html
-
-	self renderTitle: 'List Administration' renderer: html.
-	super renderContentOn: html.
-	self renderAddList: html.
-	! !
-
-!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 3/9/2007 15:01'!
-tableColumns
-
-	^ OrderedCollection new
-		add: (WAReportColumn selector: #name title: 'Name');
-		add: (WAReportColumn selector: #address title: 'Address');
-		add: (WAReportColumn selector: #admin title: 'Admin');
-		add: (WAReportColumn selector: #description title: 'Description');
-		add: (WAReportColumn new title: 'Subscriptions'; valueBlock: [ :item | self numberOfSubscriptions: item. ]; yourself);
-		add: (WAReportColumn selector: #isLocked title: 'Locked' onClick: [ :item | item invertLocking. ]);
-		add: (WAReportColumn new title: 'Edit'; valueBlock: [ : item | 'edit'. ]; clickBlock: [ :item | self edit: item.]; sortBlock: nil; yourself);
-		add: (WAReportColumn new title: 'Remove'; valueBlock: [ : item | 'remove'. ]; clickBlock: [ :item | self remove: item.]; sortBlock: nil; yourself);
-		yourself.! !
-
-!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 3/5/2007 10:27'!
-tableRows
-
-	^ OrderedCollection new
-		addAll: (SPKernel instance manager allLists);
-		yourself.! !
-
-SPWATable subclass: #SPWebListView
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebListView commentStamp: 'as 2/6/2007 14:56' prior: 0!
-List view.!
-
-SPWebListView subclass: #SPWebListSubscription
-	instanceVariableNames: 'user'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebListSubscription commentStamp: 'as 2/28/2007 18:33' prior: 0!
-List view with subscription button.!
-
-!SPWebListSubscription class methodsFor: 'instance creation' stamp: 'as 2/28/2007 18:37'!
-withUser: aSPUser
-
-	^ self new
-		user: aSPUser;
-		yourself.! !
-
-!SPWebListSubscription methodsFor: 'initialize-release' stamp: 'as 3/7/2007 18:08'!
-initialize
-
-	"clear initialization of super class".! !
-
-!SPWebListSubscription methodsFor: 'subscription' stamp: 'as 2/28/2007 18:38'!
-subscribe: aSPList
-
-	self call: (SPWebSubscribe withUser: user list: aSPList).! !
-
-!SPWebListSubscription methodsFor: 'rendering' stamp: 'as 3/5/2007 13:49'!
-tableColumns
-
-	^ super tableColumns
-		add: (WAReportColumn new title: 'Subscribe'; valueBlock: [ :item | 'subscribe'. ]; clickBlock: [ :item | self subscribe: item. ]; sortBlock: nil; yourself);
-		yourself.! !
-
-!SPWebListSubscription methodsFor: 'access' stamp: 'as 3/5/2007 13:48'!
-user: aSPUser
-
-	user _ aSPUser.
-	self initTable.! !
-
-!SPWebListView methodsFor: 'initialize-release' stamp: 'as 3/7/2007 18:07'!
-initialize
-
-	self initTable.! !
-
-!SPWebListView methodsFor: 'rendering' stamp: 'as 3/8/2007 14:51'!
-renderContentOn: html
-
-	html heading: 'Lists' level: 2.
-	super renderContentOn: html.! !
-
-!SPWebListView methodsFor: 'rendering' stamp: 'as 3/5/2007 13:52'!
-tableColumns
-
-	^ OrderedCollection new 
-		add: (WAReportColumn selector: #name title: 'Name');
-		add: (WAReportColumn new title: 'Address'; valueBlock: [ :item | item address asString. ]; yourself);
-		add: (WAReportColumn selector: #description title: 'Description');
-		add: (WAReportColumn new title: 'Locked'; valueBlock: [ : item | item isLocked asString. ]; yourself);
-		yourself.! !
-
-!SPWebListView methodsFor: 'rendering' stamp: 'as 3/5/2007 10:28'!
-tableRows
-
-	^ OrderedCollection new
-		addAll: (SPKernel instance manager allLists);
-		yourself.! !
-
-SPWATable subclass: #SPWebQueue
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebQueue commentStamp: 'as 2/23/2007 16:38' prior: 0!
-Mail queue view.!
-
-!SPWebQueue methodsFor: 'configuration' stamp: 'as 2/28/2007 23:10'!
-config
-
-	^ SPKernel instance configurator.! !
-
-!SPWebQueue methodsFor: 'initialize-release' stamp: 'as 3/5/2007 13:56'!
-initialize
-
-	self initTable.! !
-
-!SPWebQueue methodsFor: 'configuration' stamp: 'as 2/28/2007 23:11'!
-queueSendAttempts
-
-	^ self config preferenceAt: #queueSendAttempts.! !
-
-!SPWebQueue methodsFor: 'queue' stamp: 'as 3/7/2007 17:23'!
-remove: aSPMailHandler
-
-	aSPMailHandler kill.
-	self updateTable.! !
-
-!SPWebQueue methodsFor: 'rendering' stamp: 'as 2/28/2007 18:27'!
-renderContentOn: html
-
-	self renderTitle: 'Message Queue' renderer: html.
-	super renderContentOn: html.! !
-
-!SPWebQueue methodsFor: 'rendering' stamp: 'as 3/8/2007 17:47'!
-tableColumns
-
-	^ OrderedCollection new
-		add: (WAReportColumn new title: 'Subject'; valueBlock: [ :item | item message subject. ]; yourself);
-		add: (WAReportColumn new title: 'Sender'; valueBlock: [ :item | item message sender asString. ]; yourself);
-		add: (WAReportColumn new title: 'Recipients (1 shown)'; valueBlock: [ :item | | recipients | recipients _ item message recipients. recipients ifEmpty: [ ''. ] ifNotEmpty: [ recipients atRandom asString. ]. ]; yourself);
-		add: (WAReportColumn new title: 'Date'; valueBlock: [ :item | item message date asTimeStamp asString. ]; yourself);
-		add: (WAReportColumn selector: #state title: 'State');
-		add: (WAReportColumn new title: 'Attempts'; valueBlock: [ :item | item attempts asString, '/', self queueSendAttempts asString. ]; yourself);
-		add: (WAReportColumn new title: 'Remove'; valueBlock: [ :item | 'remove'. ]; clickBlock: [ :item | self remove: item. ]; sortBlock: nil; yourself);
-		yourself.! !
-
-!SPWebQueue methodsFor: 'rendering' stamp: 'as 3/5/2007 10:28'!
-tableRows
-
-	^ OrderedCollection new
-		addAll: (SPKernel instance queue handlers);
-		yourself.! !
-
-SPWATable subclass: #SPWebSubscriptionAdmin
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebSubscriptionAdmin commentStamp: 'as 2/27/2007 22:00' prior: 0!
-Subscription administration.!
-
-!SPWebSubscriptionAdmin methodsFor: 'subscription' stamp: 'as 3/5/2007 13:55'!
-accept: aSPSubscription
-
-	self do: [
-		aSPSubscription accepted: true.
-		SPMailNotifier acceptedSubscription: aSPSubscription.
-	] catchExceptions: SPException.
-	self updateTable.! !
-
-!SPWebSubscriptionAdmin methodsFor: 'subscription' stamp: 'as 3/5/2007 13:56'!
-deny: aSPSubscription
-
-	self do: [
-		SPKernel instance manager unsubscribe: aSPSubscription.
-		SPMailNotifier deniedSubscription: aSPSubscription.
-	] catchExceptions: SPException.
-	self updateTable.! !
-
-!SPWebSubscriptionAdmin methodsFor: 'initialize-release' stamp: 'as 3/5/2007 13:56'!
-initialize
-
-	self initTable.! !
-
-!SPWebSubscriptionAdmin methodsFor: 'rendering' stamp: 'as 2/28/2007 18:26'!
-renderContentOn: html
-
-	self renderTitle: 'Pending Subscriptions' renderer: html.
-	super renderContentOn: html.! !
-
-!SPWebSubscriptionAdmin methodsFor: 'rendering' stamp: 'as 3/5/2007 13:54'!
-tableColumns
-
-	^ OrderedCollection new 
-		add: (WAReportColumn new title: 'List'; valueBlock: [ :item | item list address asString. ]; yourself);
-		add: (WAReportColumn new title: 'Contact'; valueBlock: [ :item | item contact address asString. ]; yourself);
-		add: (WAReportColumn new title: 'Accept'; valueBlock: [ :item | 'accept'. ]; clickBlock: [ :item | self accept: item. ]; sortBlock: nil; yourself);
-		add: (WAReportColumn new title: 'Deny'; valueBlock: [ :item | 'deny'. ]; clickBlock: [ :item | self deny: item. ]; sortBlock: nil; yourself);
-		yourself.! !
-
-!SPWebSubscriptionAdmin methodsFor: 'rendering' stamp: 'as 3/5/2007 10:29'!
-tableRows
-
-	^ OrderedCollection new
-		addAll: (SPKernel instance manager pendingSubscriptions);
-		yourself.! !
-
-SPWATable subclass: #SPWebSubscriptions
-	instanceVariableNames: 'user'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebSubscriptions commentStamp: 'as 2/27/2007 17:13' prior: 0!
-Subscriptions management.!
-
-!SPWebSubscriptions class methodsFor: 'instance creation' stamp: 'as 2/27/2007 17:18'!
-withUser: aSPUser
-
-	^ self new
-		user: aSPUser;
-		yourself.! !
-
-!SPWebSubscriptions methodsFor: 'rendering' stamp: 'as 2/28/2007 18:29'!
-renderContentOn: html
-
-	self renderTitle: 'Subscriptions' renderer: html.
-	super renderContentOn: html.! !
-
-!SPWebSubscriptions methodsFor: 'rendering' stamp: 'as 3/5/2007 14:00'!
-tableColumns
-
-	^ OrderedCollection new 
-		add: (WAReportColumn new title: 'List'; valueBlock: [ :item | item list address asString. ]; yourself);
-		add: (WAReportColumn new title: 'Contact'; valueBlock: [ :item | item contact address asString. ]; yourself);
-		add: (WAReportColumn new title: 'Active'; valueBlock: [ :item | item isActive asString. ]; clickBlock: [ :item | item invertActivation. ]; yourself);
-		add: (WAReportColumn new title: 'Accepted'; valueBlock: [ :item | item isAccepted asString. ]; yourself);
-		add: (WAReportColumn new title: 'Remove'; valueBlock: [ :item | 'remove'. ]; clickBlock: [ :item | self unsubscribe: item. ]; sortBlock: nil; yourself);
-		yourself.! !
-
-!SPWebSubscriptions methodsFor: 'rendering' stamp: 'as 3/5/2007 10:29'!
-tableRows
-
-	^ OrderedCollection new
-		addAll: (SPKernel instance manager subscriptionsForUser: user);
-		yourself.! !
-
-!SPWebSubscriptions methodsFor: 'subscription' stamp: 'as 3/5/2007 14:02'!
-unsubscribe: aSPSubscription
-
-	self do: [
-		SPKernel instance manager unsubscribe: aSPSubscription.
-	] catchExceptions: SPException.
-	self updateTable.! !
-
-!SPWebSubscriptions methodsFor: 'access' stamp: 'as 3/5/2007 13:59'!
-user: aSPUser
-
-	user _ aSPUser.
-	self initTable.! !
-
-SPWATable subclass: #SPWebUserAdmin
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebUserAdmin commentStamp: 'as 2/23/2007 14:58' prior: 0!
-User admin view.!
-
-!SPWebUserAdmin methodsFor: 'initialize-release' stamp: 'as 3/5/2007 14:03'!
-initialize
-
-	self initTable.! !
-
-!SPWebUserAdmin methodsFor: 'user' stamp: 'as 2/28/2007 18:05'!
-numberOfContacts: aSPUser
-
-	^ SPKernel instance manager numberOfContactsForUser: aSPUser.! !
-
-!SPWebUserAdmin methodsFor: 'user' stamp: 'as 2/28/2007 18:05'!
-numberOfSubscriptions: aSPUser
-
-	^ SPKernel instance manager numberOfSubscriptionsForUser: aSPUser.! !
-
-!SPWebUserAdmin methodsFor: 'user' stamp: 'as 3/5/2007 14:04'!
-remove: aSPUser
-
-	self call: (SPWebUnregister withUser: aSPUser).
-	self updateTable.! !
-
-!SPWebUserAdmin methodsFor: 'rendering' stamp: 'as 3/9/2007 14:53'!
-renderContentOn: html
-
-	self renderTitle: 'Users' renderer: html.
-	super renderContentOn: html.! !
-
-!SPWebUserAdmin methodsFor: 'rendering' stamp: 'as 3/5/2007 14:03'!
-tableColumns
-
-	^ OrderedCollection new 
-		add: (WAReportColumn selector: #name title: 'Name');
-		add: (WAReportColumn new title: 'Contacts'; valueBlock: [ :item | self numberOfContacts: item.]; yourself);
-		add: (WAReportColumn new title: 'Subscriptions'; valueBlock: [ :item | self numberOfSubscriptions: item.]; yourself);
-		add: (WAReportColumn new title: 'Remove'; valueBlock: [ :item | 'remove'.]; clickBlock: [ :item | self remove: item. ]; sortBlock: nil; yourself);
-		yourself.! !
-
-!SPWebUserAdmin methodsFor: 'rendering' stamp: 'as 3/5/2007 10:30'!
-tableRows
-
-	^ OrderedCollection new
-		addAll: (SPKernel instance manager allUsers);
-		yourself.! !
-
-SPWAComponent subclass: #SPWeb
-	instanceVariableNames: 'main banner'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWeb commentStamp: '<historical>' prior: 0!
-Stamp web interface.!
-
-!SPWeb class methodsFor: 'seaside' stamp: 'as 2/6/2007 12:52'!
-canBeRoot
-
-	^ true.! !
-
-!SPWeb class methodsFor: 'class initialization' stamp: 'as 7/19/2006 10:19'!
-initialize
-
-	"self initialize"
-
-	self registerAsApplication: 'stamp'.! !
-
-!SPWeb methodsFor: 'rendering' stamp: 'as 2/22/2007 14:02'!
-children
-
-	^ Array with: banner with: main.! !
-
-!SPWeb methodsFor: 'initialize-release' stamp: 'as 3/5/2007 11:41'!
-initialize
-
-	banner _ SPWebBanner new.
-	main _ SPWebTask new.! !
-
-!SPWeb methodsFor: 'rendering' stamp: 'as 2/22/2007 14:02'!
-renderContentOn: html
-
-	html divNamed: 'header' with: banner.
-	html divNamed: 'main' with: main.! !
-
-SPWAComponent subclass: #SPWebBanner
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebBanner commentStamp: 'as 2/22/2007 13:56' prior: 0!
-A simple banner used as heading of a site.!
-
-!SPWebBanner methodsFor: 'rendering' stamp: 'as 2/22/2007 13:57'!
-renderContentOn: html
-
-	html divNamed: 'banner' with: [
-		html heading: self title.
-		html paragraph: [ html emphasis: self subtitle. ].
-	].! !
-
-!SPWebBanner methodsFor: 'rendering' stamp: 'as 2/22/2007 13:58'!
-subtitle
-
-	^ 'A Mailing List Manager for Squeak.'.! !
-
-!SPWebBanner methodsFor: 'rendering' stamp: 'as 2/22/2007 13:58'!
-title
-
-	^ 'Stamp'.! !
-
-SPWAComponent subclass: #SPWebChangePassword
-	instanceVariableNames: 'user oldPassword newPassword confirmPassword'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebChangePassword commentStamp: 'as 2/23/2007 15:03' prior: 0!
-Change the password.!
-
-!SPWebChangePassword class methodsFor: 'instance creation' stamp: 'as 2/23/2007 15:11'!
-withUser: aSPUser
-
-	^ self new
-		user: aSPUser;
-		yourself.! !
-
-!SPWebChangePassword methodsFor: 'password' stamp: 'as 2/28/2007 19:09'!
-cancel
-
-	self answer.! !
-
-!SPWebChangePassword methodsFor: 'password' stamp: 'as 2/28/2007 15:05'!
-change
-
-	self do: [
-		newPassword = confirmPassword ifFalse: [
-			SPPasswordConfirmationException signal.
-		].
-		user newPassword: newPassword oldPassword: oldPassword.
-		self answer.
-	] catchExceptions: SPException.! !
-
-!SPWebChangePassword methodsFor: 'rendering' stamp: 'as 2/28/2007 19:09'!
-renderContentOn: html
-
-	self renderTitle: 'Change Password' renderer: html.
-	html form: [
-		html table: [
-			html tableRowWithLabel: 'Old password:' column: [
-				html passwordInputWithCallback: [ :v | oldPassword _ v. ]
-			].
-			html tableRowWithLabel: 'New password:' column: [
-				html passwordInputWithCallback: [ :v | newPassword _ v. ]
-			].
-			html tableRowWithLabel: 'Confirm new password:' column: [
-				html passwordInputWithCallback: [ :v | confirmPassword _ v. ]
-			].
-			html attributes alignCenter.
-			html tableRowWith: [
-				html submitButtonOn: #change of: self.
-				html space.
-				html submitButtonOn: #cancel of: self.
-			] span: 2.
-		].
-	].! !
-
-!SPWebChangePassword methodsFor: 'access' stamp: 'as 2/23/2007 15:17'!
-user: aSPUser
-
-	user _ aSPUser.! !
-
-SPWAComponent subclass: #SPWebContactVerification
-	instanceVariableNames: 'contact code'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebContactVerification commentStamp: 'as 2/23/2007 17:12' prior: 0!
-Verify a contact.!
-
-!SPWebContactVerification class methodsFor: 'instance creation' stamp: 'as 2/23/2007 17:13'!
-withContact: aSPContact
-
-	^ self new
-		contact: aSPContact;
-		yourself.! !
-
-!SPWebContactVerification methodsFor: 'verification' stamp: 'as 2/28/2007 19:10'!
-cancel
-
-	self answer.! !
-
-!SPWebContactVerification methodsFor: 'access' stamp: 'as 2/23/2007 17:13'!
-contact: aSPContact
-
-	contact _ aSPContact.! !
-
-!SPWebContactVerification methodsFor: 'rendering' stamp: 'as 2/28/2007 19:10'!
-renderContentOn: html
-
-	self renderTitle: 'Contact Verification' renderer: html.
-	html paragraph: [ html text: 'Verifification code for '; emphasis: (contact address); text: ':'. ].
-	html form: [
-		html textInputWithValue: code callback: [ :v | code _ v. ].
-		html submitButtonOn: #verify of: self.
-		html submitButtonOn: #cancel of: self.
-	].! !
-
-!SPWebContactVerification methodsFor: 'verification' stamp: 'as 2/27/2007 18:02'!
-verify
-
-	self do: [
-		SPKernel instance manager verifyContact: contact code: code.
-		self answer.
-	] catchExceptions: SPException.! !
-
-SPWAComponent subclass: #SPWebEditList
-	instanceVariableNames: 'list name description admin'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebEditList commentStamp: 'as 3/1/2007 17:52' prior: 0!
-Edit a list.!
-
-!SPWebEditList class methodsFor: 'instance creation' stamp: 'as 3/1/2007 17:27'!
-withList: aSPList
-
-	^ self new
-		list: aSPList;
-		yourself.! !
-
-!SPWebEditList methodsFor: 'call/answer' stamp: 'as 3/1/2007 17:46'!
-cancel
-
-	self answer.! !
-
-!SPWebEditList methodsFor: 'access' stamp: 'as 3/8/2007 15:32'!
-list: aSPList
-
-	list _ aSPList.
-	name _ list name.
-	list admin ifNil: [ admin _ ''. ] ifNotNil: [ admin _ list admin asString. ].
-	list description ifNil: [ description _ ''. ] ifNotNil: [ description _ list description. ].
-	! !
-
-!SPWebEditList methodsFor: 'rendering' stamp: 'as 3/1/2007 17:34'!
-renderContentOn: html
-
-	self renderTitle: 'Edit List' renderer: html.
-	html form: [
-		html table: [
-			html tableRowWithLabel: 'Name:' column: [
-				html textInputWithValue: name callback: [ :v | name _ v. ]
-			].
-			html tableRowWithLabel: 'Address:' column: [
-				html text: list address.
-			].
-			html tableRowWithLabel: 'Admin:' column: [
-				html textInputWithValue: admin callback: [ :v | admin _ v. ]
-			].
-			html tableRowWithLabel: 'Description:' column: [
-				html textInputWithValue: description callback: [ :v | description _ v. ]
-			].
-			html attributes alignCenter.
-			html tableRowWith: [
-				html submitButtonOn: #save of: self.
-				html space.
-				html submitButtonOn: #cancel of: self.
-			] span: 2.
-		].
-	].! !
-
-!SPWebEditList methodsFor: 'call/answer' stamp: 'as 3/8/2007 15:33'!
-save
-
-	self do: [
-		list name: name; description: description.
-		admin isEmpty ifTrue: [
-			list admin: nil.
-		] ifFalse: [
-			list admin: (SPMailAddress fromString: admin).
-		].
-		description isEmpty ifTrue: [
-			list description: nil.
-		] ifFalse: [
-			list description: description.
-		].
-	] catchExceptions: SPException.
-	self answer.! !
-
-SPWAComponent subclass: #SPWebEditPreference
-	instanceVariableNames: 'user list contact preference key value'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebEditPreference commentStamp: 'as 3/1/2007 18:22' prior: 0!
-Edit a configuration preference.!
-
-!SPWebEditPreference class methodsFor: 'instance creation' stamp: 'as 3/1/2007 18:31'!
-withKey: aSymbol value: anObject
-
-	^ self new
-		key: aSymbol;
-		value: anObject;
-		yourself.! !
-
-!SPWebEditPreference methodsFor: 'call/answer' stamp: 'as 3/1/2007 18:22'!
-cancel
-
-	self answer.! !
-
-!SPWebEditPreference methodsFor: 'access' stamp: 'as 3/1/2007 18:27'!
-key: aSymbol
-
-	key _ aSymbol.! !
-
-!SPWebEditPreference methodsFor: 'preferences' stamp: 'as 3/1/2007 18:23'!
-preferenceAt: aSymbol put: aString
-
-	self do: [
-		SPKernel instance configurator preferenceAt: aSymbol putString: aString.
-	] catchExceptions: Exception.! !
-
-!SPWebEditPreference methodsFor: 'rendering' stamp: 'as 3/5/2007 13:05'!
-renderContentOn: html
-
-	self renderTitle: 'Edit Preference' renderer: html.
-	html paragraph: [ html text: 'New value for preference '; emphasis: (key asString); text: ':'. ].
-	html form: [
-		html textInputWithValue: value callback: [ :v | value _ v. ].
-		html submitButtonOn: #save of: self.
-		html submitButtonOn: #cancel of: self.
-	].! !
-
-!SPWebEditPreference methodsFor: 'call/answer' stamp: 'as 3/1/2007 18:33'!
-save
-
-	self do: [
-		self preferenceAt: key put: value.
-		self answer.
-	] catchExceptions: SPException.! !
-
-!SPWebEditPreference methodsFor: 'access' stamp: 'as 3/1/2007 18:30'!
-value: anObject
-
-	value _ anObject asString.! !
-
-SPWAComponent subclass: #SPWebEmpty
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebEmpty commentStamp: 'as 2/6/2007 15:25' prior: 0!
-Dummy page, show nothing.!
-
-!SPWebEmpty methodsFor: 'rendering' stamp: 'as 2/21/2007 12:43'!
-renderContentOn: html
-
-	html whitespace.! !
-
-SPWAComponent subclass: #SPWebExceptionDisplay
-	instanceVariableNames: 'exception'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebExceptionDisplay commentStamp: 'as 2/14/2007 14:29' prior: 0!
-Render a error display for any exception.!
-
-!SPWebExceptionDisplay class methodsFor: 'instance creation' stamp: 'as 2/16/2007 12:31'!
-withException: aException
-
-	^ self new
-		exception: aException;
-		yourself.! !
-
-!SPWebExceptionDisplay methodsFor: 'access' stamp: 'as 2/14/2007 14:42'!
-exception: aException
-
-	exception _ aException.! !
-
-!SPWebExceptionDisplay methodsFor: 'call/answer' stamp: 'as 2/28/2007 17:01'!
-ok
-
-	self answer.! !
-
-!SPWebExceptionDisplay methodsFor: 'rendering' stamp: 'as 2/28/2007 21:37'!
-renderContentOn: html
-
-	self renderTitle: 'Error' renderer: html.
-	html paragraph: [ html emphasis: exception description. ].
-	html form: [
-		html submitButtonOn: #ok of: self.
-	].! !
-
-SPWAComponent subclass: #SPWebLogin
-	instanceVariableNames: 'username password user repeated'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebLogin commentStamp: 'as 2/12/2007 17:13' prior: 0!
-Login dialog.!
-
-!SPWebLogin methodsFor: 'login' stamp: 'as 2/28/2007 19:14'!
-cancel
-
-	self answer: nil.! !
-
-!SPWebLogin methodsFor: 'initialize-release' stamp: 'as 2/22/2007 15:01'!
-initialize
-
-	repeated := false.! !
-
-!SPWebLogin methodsFor: 'login' stamp: 'as 2/22/2007 15:01'!
-login
-
-	self verify ifTrue: [
-		self answer: user.
-	] ifFalse: [
-		repeated _ true.
-	].! !
-
-!SPWebLogin methodsFor: 'rendering' stamp: 'as 2/28/2007 19:13'!
-renderContentOn: html
-
-	self renderTitle: 'Login' renderer: html.
-	repeated ifTrue: [
-		html emphasis: 'Wrong username or password!!'.
-	].
-	html form: [
-		html table: [
-			html tableRowWithLabel: 'Username:' column: [
-				html textInputWithValue: username callback: [ :v | username _ v. ]
-			].
-			html tableRowWithLabel: 'Password:' column: [
-				html passwordInputWithCallback: [ :v | password _ v. ]
-			].
-			html attributes alignCenter.
-			html tableRowWith: [
-				html submitButtonOn: #login of: self.
-				html space.
-				html submitButtonOn: #cancel of: self.
-			] span: 2.
-		].
-	].! !
-
-!SPWebLogin methodsFor: 'login' stamp: 'as 2/21/2007 13:41'!
-verify
-
-	user _ SPKernel instance manager userWithName: username.
-	user ifNil: [
-		^ false.
-	] ifNotNil: [
-		^ user verifyPassword: password.
-	].! !
-
-SPWAComponent subclass: #SPWebMain
-	instanceVariableNames: 'user main body'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebMain commentStamp: 'as 2/22/2007 14:19' prior: 0!
-Main web application component.!
-
-!SPWebMain class methodsFor: 'instance creation' stamp: 'as 2/22/2007 14:27'!
-withUser: aSPUser
-
-	^ self new
-		user: aSPUser;
-		yourself.! !
-
-!SPWebMain methodsFor: 'rendering' stamp: 'as 2/22/2007 14:47'!
-children
-
-	^ Array with: body.! !
-
-!SPWebMain methodsFor: 'initialize-release' stamp: 'as 2/22/2007 15:05'!
-initialize
-
-	body _ SPWebEmpty new.! !
-
-!SPWebMain methodsFor: 'test' stamp: 'as 2/27/2007 14:53'!
-isRootUser
-
-	^ SPKernel instance manager isRootUser: user.! !
-
-!SPWebMain methodsFor: 'call/answer' stamp: 'as 2/28/2007 19:13'!
-login: aSPUser
-
-	aSPUser ifNotNil: [ self answer: aSPUser. ].! !
-
-!SPWebMain methodsFor: 'call/answer' stamp: 'as 2/22/2007 14:47'!
-logout
-
-	self answer.! !
-
-!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 15:58'!
-navigateChangePassword
-
-	body call: (SPWebChangePassword withUser: user).! !
-
-!SPWebMain methodsFor: 'navigation' stamp: 'as 2/28/2007 14:51'!
-navigateConfiguration
-
-	body call: (SPWebConfiguration new).! !
-
-!SPWebMain methodsFor: 'navigation' stamp: 'as 3/5/2007 13:31'!
-navigateContacts
-
-	body call: (SPWebContacts withUser: user).! !
-
-!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 15:59'!
-navigateListAdministration
-
-	body call: (SPWebListAdmin new).! !
-
-!SPWebMain methodsFor: 'navigation' stamp: 'as 2/28/2007 18:39'!
-navigateLists
-
-	body call: (SPWebListSubscription withUser: user).! !
-
-!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 15:56'!
-navigateLogin
-
-	self login: (body call: (SPWebLogin new)).! !
-
-!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 15:59'!
-navigateLogout
-
-	self logout.! !
-
-!SPWebMain methodsFor: 'navigation' stamp: 'as 2/28/2007 12:29'!
-navigatePendingSubscriptions
-
-	body call: (SPWebSubscriptionAdmin new).! !
-
-!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 15:59'!
-navigateQueue
-
-	body call: (SPWebQueue new).! !
-
-!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 15:56'!
-navigateRegister
-
-	self login: (body call: SPWebRegister new).! !
-
-!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 17:30'!
-navigateSubscriptions
-
-	body call: (SPWebSubscriptions withUser: user).! !
-
-!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 16:00'!
-navigateSystem
-
-	body call: (SPWebSystem new).! !
-
-!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 15:58'!
-navigateUnregister
-
-	(body call: (SPWebUnregister withUser: user)) ifTrue: [ self logout. ].! !
-
-!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 15:59'!
-navigateUserAdministration
-
-	body call: (SPWebUserAdmin new).! !
-
-!SPWebMain methodsFor: 'navigation' stamp: 'as 2/28/2007 18:32'!
-navigateViewLists
-
-	body call: (SPWebListView new).! !
-
-!SPWebMain methodsFor: 'rendering' stamp: 'as 2/27/2007 15:21'!
-publicNavigationItems
-
-	^ #('View Lists' 'Login' 'Register').! !
-
-!SPWebMain methodsFor: 'rendering' stamp: 'as 2/22/2007 14:33'!
-renderContentOn: html
-
-	self renderNavigation: html.
-	html divNamed: 'body' with: body.! !
-
-!SPWebMain methodsFor: 'rendering' stamp: 'as 2/27/2007 14:54'!
-renderNavigation: html
-
-	html div: [
-		html cssId: 'navigation'.
-		user ifNotNil: [
-			html paragraph: [ html text: 'Logged in as '; emphasis: user name. ].
-			self isRootUser ifTrue: [
-				self renderNavigation: html items: self rootNavigationItems.
-			] ifFalse: [
-				self renderNavigation: html items: self userNavigationItems.
-			].
-		] ifNil: [
-			self renderNavigation: html items: self publicNavigationItems.
-		].
-	].! !
-
-!SPWebMain methodsFor: 'rendering' stamp: 'as 2/27/2007 15:15'!
-renderNavigation: html items: aCollection
-
-	html unorderedList: [
-		aCollection do: [
-			:each |
-			html listItem: [
-				html anchorWithAction:
-					[ self perform: ('navigate', each) withoutBlanks asSymbol. ]
-				text: each asString.
-			].
-		].
-	].! !
-
-!SPWebMain methodsFor: 'rendering' stamp: 'as 2/28/2007 14:51'!
-rootNavigationItems
-
-	^ #('List Administration' 'User Administration' 'Pending Subscriptions' 'Queue' 'System' 'Configuration' 'Change Password' 'Logout').! !
-
-!SPWebMain methodsFor: 'access' stamp: 'as 2/22/2007 15:06'!
-user: aSPUser
-
-	user _ aSPUser.! !
-
-!SPWebMain methodsFor: 'rendering' stamp: 'as 2/27/2007 17:30'!
-userNavigationItems
-
-	^ #('Lists' 'Subscriptions' 'Contacts' 'Change Password' 'Unregister' 'Logout').! !
-
-SPWAComponent subclass: #SPWebRegister
-	instanceVariableNames: 'username password confirmPassword'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebRegister commentStamp: 'as 2/13/2007 18:04' prior: 0!
-Register as new user.!
-
-!SPWebRegister methodsFor: 'register' stamp: 'as 2/28/2007 19:15'!
-cancel
-
-	self answer: nil.! !
-
-!SPWebRegister methodsFor: 'register' stamp: 'as 2/28/2007 17:45'!
-register
-
-	self do: [
-		password = confirmPassword ifFalse: [
-			SPPasswordConfirmationException signal.
-		].
-		self answer: (SPKernel instance manager addUser: username password: password).
-	] catchExceptions: SPException.! !
-
-!SPWebRegister methodsFor: 'rendering' stamp: 'as 2/28/2007 21:35'!
-renderContentOn: html
-
-	self renderTitle: 'Registration' renderer: html.
-	html form: [
-		html table: [
-			html tableRowWithLabel: 'Username:' column: [
-				html textInputWithValue: username callback: [ :v | username _ v. ]
-			].
-			html tableRowWithLabel: 'Password:' column: [
-				html passwordInputWithCallback: [ :v | password _ v. ]
-			].
-			html tableRowWithLabel: 'Confirm password:' column: [
-				html passwordInputWithCallback: [ :v | confirmPassword _ v. ]
-			].
-			html attributes alignCenter.
-			html tableRowWith: [
-				html submitButtonOn: #register of: self.
-				html space.
-				html submitButtonOn: #cancel of: self.
-			] span: 2.
-		].
-	].! !
-
-SPWAComponent subclass: #SPWebSubscribe
-	instanceVariableNames: 'user list contact'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebSubscribe commentStamp: 'as 2/27/2007 16:08' prior: 0!
-Subscribe a user to a list.!
-
-!SPWebSubscribe class methodsFor: 'instance creation' stamp: 'as 2/27/2007 16:10'!
-withUser: aSPUser list: aSPList
-
-	^ self new
-		user: aSPUser;
-		list: aSPList;
-		yourself.! !
-
-!SPWebSubscribe methodsFor: 'subscription' stamp: 'as 2/28/2007 19:20'!
-cancel
-
-	self answer.! !
-
-!SPWebSubscribe methodsFor: 'contacts' stamp: 'as 2/27/2007 16:39'!
-contacts
-
-	^ SPKernel instance manager contactsForUser: user.! !
-
-!SPWebSubscribe methodsFor: 'access' stamp: 'as 2/27/2007 16:08'!
-list: aSPList
-
-	list _ aSPList.! !
-
-!SPWebSubscribe methodsFor: 'rendering' stamp: 'as 2/28/2007 19:19'!
-renderContentOn: html
-
-	self renderTitle: 'Subscription' renderer: html.
-	html paragraph: [ html text: 'Subscribe '; emphasis: (user name); text: ' to '; emphasis: (list name); text: ' with contact:'. ].
-	html form: [
-		html
-			selectFromList: self contacts
-			selected: contact
-			callback: [ :item | contact _ item. ]
-			labels: [ : item | item address. ].
-		html submitButtonOn: #subscribe of: self.
-		html submitButtonOn: #cancel of: self.
-	].! !
-
-!SPWebSubscribe methodsFor: 'subscription' stamp: 'as 2/27/2007 16:37'!
-subscribe
-
-	self do: [
-		SPKernel instance manager subscribe: contact to: list.
-		self answer.
-	] catchExceptions: SPException.! !
-
-!SPWebSubscribe methodsFor: 'access' stamp: 'as 2/27/2007 16:08'!
-user: aSPUser
-
-	user _ aSPUser.! !
-
-SPWAComponent subclass: #SPWebSystem
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebSystem commentStamp: 'as 2/26/2007 13:16' prior: 0!
-System management.!
-
-!SPWebSystem methodsFor: 'rendering' stamp: 'as 2/26/2007 14:07'!
-renderContentOn: html
-
-	html heading: 'System' level: 2.
-	html paragraph: [
-		html anchorWithAction: [ self restartListener. ] text: 'Restart listener'.
-	].! !
-
-!SPWebSystem methodsFor: 'listener' stamp: 'as 2/28/2007 17:53'!
-restartListener
-
-	SPKernel instance listener restart.! !
-
-SPWAComponent subclass: #SPWebUnregister
-	instanceVariableNames: 'user'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebUnregister commentStamp: 'as 2/21/2007 17:46' prior: 0!
-Unregister (remove) the user.!
-
-!SPWebUnregister class methodsFor: 'instance creation' stamp: 'as 2/21/2007 17:47'!
-withUser: aSPUser
-
-	^ self new
-		user: aSPUser;
-		yourself.! !
-
-!SPWebUnregister methodsFor: 'call/answer' stamp: 'as 3/8/2007 15:00'!
-cancel
-
-	self answer: false.! !
-
-!SPWebUnregister methodsFor: 'user' stamp: 'as 3/7/2007 16:11'!
-numberOfContacts
-
-	^ (SPKernel instance manager numberOfContactsForUser: user) asString.! !
-
-!SPWebUnregister methodsFor: 'user' stamp: 'as 3/7/2007 16:12'!
-numberOfSubscriptions
-
-	^ (SPKernel instance manager numberOfSubscriptionsForUser: user) asString.! !
-
-!SPWebUnregister methodsFor: 'rendering' stamp: 'as 3/8/2007 15:02'!
-renderContentOn: html
-
-	self renderTitle: 'Unregister' renderer: html.
-	html emphasis: 'Do you really want to remove the user ', user name, ' with its ', self numberOfContacts, ' contact(s) and ', self numberOfSubscriptions, ' subscription(s)?'.
-	html paragraph: [
-		html form: [
-			html submitButtonOn: #unregister of: self.
-			html submitButtonOn: #cancel of: self.
-		].
-	].! !
-
-!SPWebUnregister methodsFor: 'call/answer' stamp: 'as 3/8/2007 15:02'!
-unregister
-
-	self do: [
-		SPKernel instance manager removeUser: user.
-		self answer: true.
-	] catchExceptions: SPException.
-	self cancel.! !
-
-!SPWebUnregister methodsFor: 'access' stamp: 'as 2/21/2007 17:53'!
-user: aSPUser
-
-	user _ aSPUser.! !
 
 Object subclass: #SPConfiguration
 	instanceVariableNames: 'attributes'
@@ -2711,6 +905,15 @@ verify: aString
 		verification = aString ifTrue: [ verification _ nil. ].
 	].
 	^ self isVerified.! !
+
+Object subclass: #SPDocumentation
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Documentation'!
+
+!SPDocumentation commentStamp: 'as 3/9/2007 15:23' prior: 0!
+Stamp Documentation.!
 
 Object subclass: #SPDummy
 	instanceVariableNames: ''
@@ -5422,6 +3625,1839 @@ password: aString
 verifyPassword: aString
 
 	^ password check: aString.! !
+
+WAComponent subclass: #SPWAComponent
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWAComponent commentStamp: 'as 2/15/2007 14:48' prior: 0!
+Basic web application functionality for Stamp.!
+
+!SPWAComponent methodsFor: 'exception' stamp: 'as 3/1/2007 18:40'!
+do: aBlock catchExceptions: exceptions
+
+	aBlock on: exceptions do: [
+		: ex |
+		self call: (SPWebExceptionDisplay withException: ex).
+	].! !
+
+!SPWAComponent methodsFor: 'rendering' stamp: 'as 3/9/2007 16:11'!
+renderSubtitle: aString on: html
+
+	html heading: aString level: 3.! !
+
+!SPWAComponent methodsFor: 'rendering' stamp: 'as 3/9/2007 16:07'!
+renderTitle: aString on: html
+
+	html heading: aString level: 2.! !
+
+SPWAComponent subclass: #SPWATable
+	instanceVariableNames: 'table'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWATable commentStamp: 'as 2/28/2007 12:51' prior: 0!
+Abstract component for table reports (see WATabelReport).!
+
+!SPWATable methodsFor: 'rendering' stamp: 'as 2/28/2007 12:48'!
+children
+
+	^ Array with: table.! !
+
+!SPWATable methodsFor: 'initialization' stamp: 'as 3/5/2007 12:44'!
+initTable
+
+	table _ WATableReport new.
+	self updateTable.
+	table rowPeriod: 1; rowColors: self rowColors.! !
+
+!SPWATable methodsFor: 'rendering' stamp: 'as 3/9/2007 14:54'!
+renderContentOn: html
+
+	html render: table.! !
+
+!SPWATable methodsFor: 'rendering' stamp: 'as 3/5/2007 10:17'!
+rowColors
+
+	^ #('white' 'lightblue').! !
+
+!SPWATable methodsFor: 'rendering' stamp: 'as 3/5/2007 10:25'!
+tableColumns
+
+	self subclassResponsibility.! !
+
+!SPWATable methodsFor: 'rendering' stamp: 'as 3/5/2007 10:25'!
+tableRows
+
+	self subclassResponsibility.! !
+
+!SPWATable methodsFor: 'initialization' stamp: 'as 3/5/2007 12:45'!
+updateTable
+
+	table rows: (self tableRows); columns: (self tableColumns).! !
+
+SPWATable subclass: #SPWebConfiguration
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebConfiguration commentStamp: 'as 2/28/2007 12:27' prior: 0!
+Configuration editor.!
+
+!SPWebConfiguration methodsFor: 'call/answer' stamp: 'as 3/5/2007 12:57'!
+edit: anAssociation
+
+	self call: (SPWebEditPreference withKey: anAssociation key value: anAssociation value).
+	self updateTable.! !
+
+!SPWebConfiguration methodsFor: 'initialize-release' stamp: 'as 3/5/2007 13:36'!
+initialize
+
+	self initTable.! !
+
+!SPWebConfiguration methodsFor: 'rendering' stamp: 'as 3/9/2007 16:07'!
+renderContentOn: html
+
+	self renderTitle: 'Preferences' on: html.
+	super renderContentOn: html.! !
+
+!SPWebConfiguration methodsFor: 'rendering' stamp: 'as 3/5/2007 12:57'!
+tableColumns
+
+	^ OrderedCollection new
+		add: (WAReportColumn selector: #key title: 'Name');
+		add: ((WAReportColumn selector: #value title: 'Value') sortBlock: nil; yourself);
+		add: (WAReportColumn new title: 'Edit'; valueBlock: [ :item | 'edit'. ]; clickBlock: [ :item | self edit: item. ]; sortBlock: nil; yourself);
+		yourself.! !
+
+!SPWebConfiguration methodsFor: 'rendering' stamp: 'as 3/5/2007 10:26'!
+tableRows
+
+	^ OrderedCollection new
+		addAll: (SPKernel instance configurator allPreferences associations);
+		yourself.! !
+
+SPWATable subclass: #SPWebContacts
+	instanceVariableNames: 'user address'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebContacts commentStamp: 'as 2/14/2007 15:11' prior: 0!
+Contact management.!
+
+!SPWebContacts class methodsFor: 'instance creation' stamp: 'as 3/5/2007 13:21'!
+withUser: aSPUser
+
+	^ self new
+		user: aSPUser;
+		yourself.! !
+
+!SPWebContacts methodsFor: 'contacts' stamp: 'as 3/5/2007 13:06'!
+add
+
+	self do: [
+		SPMailNotifier verifyContact:
+			(SPKernel instance manager addContact: address user: user).
+	] catchExceptions: SPException.
+	self updateTable.! !
+
+!SPWebContacts methodsFor: 'rendering' stamp: 'as 2/28/2007 19:04'!
+confirmRemove: aSPContact
+
+	| subscriptions |
+	subscriptions _ self numberOfSubscriptions: aSPContact.
+	subscriptions > 0 ifTrue: [
+		^ self confirm: 'Do you really want to remove the contact ', aSPContact address asString, ' and its ', subscriptions asString, ' subscription(s)?'.
+	] ifFalse: [
+		^ true.
+	].! !
+
+!SPWebContacts methodsFor: 'contacts' stamp: 'as 2/28/2007 18:54'!
+numberOfSubscriptions: aSPContact
+
+	^ SPKernel instance manager numberOfSubscriptionsForContact: aSPContact.! !
+
+!SPWebContacts methodsFor: 'contacts' stamp: 'as 3/5/2007 13:10'!
+remove: aSPContact
+
+	(self confirmRemove: aSPContact) ifTrue: [
+		self do: [ SPKernel instance manager removeContact: aSPContact. ]
+		catchExceptions: SPException.
+	].
+	self updateTable.! !
+
+!SPWebContacts methodsFor: 'rendering' stamp: 'as 3/9/2007 16:08'!
+renderAddContact: html
+
+	self renderTitle: 'Add Address' on: html.
+	html form: [
+		html table: [
+			html tableRow: [
+				html textInputWithValue: address callback: [ :v | address _ v. ].
+				html submitButtonWithAction: [ self add. ] text: 'Add'.
+			].
+		].
+	].! !
+
+!SPWebContacts methodsFor: 'rendering' stamp: 'as 3/9/2007 16:08'!
+renderContentOn: html
+
+	self renderTitle: 'Contacts' on: html.
+	super renderContentOn: html.
+	self renderAddContact: html.! !
+
+!SPWebContacts methodsFor: 'rendering' stamp: 'as 3/5/2007 13:41'!
+tableColumns
+
+	^ OrderedCollection new
+		add: (WAReportColumn new title: 'Address'; valueBlock: [ :item | item address asString. ]; yourself);
+		add: (WAReportColumn new title: 'Subscriptions'; valueBlock: [ :item | self numberOfSubscriptions: item. ]; yourself);
+		add: (WAReportColumn new title: 'Active'; valueBlock: [ :item | item isActive asString. ]; clickBlock: [ :item | item invertActivation.]; yourself);
+		add: (WAReportColumn new title: 'Verified'; valueBlock: [ :item | item isVerified asString. ]; clickBlock: [ :item | self verify: item.]; yourself);
+		add: (WAReportColumn new title: 'Remove'; valueBlock: [ : item | 'remove'. ]; clickBlock: [ :item | self remove: item.]; sortBlock: nil; yourself);
+		yourself.! !
+
+!SPWebContacts methodsFor: 'rendering' stamp: 'as 3/5/2007 13:37'!
+tableRows
+
+	^ OrderedCollection new
+		addAll: (SPKernel instance manager allContactsForUser: user);
+		yourself.! !
+
+!SPWebContacts methodsFor: 'access' stamp: 'as 3/5/2007 13:37'!
+user: aSPUser
+
+	user _ aSPUser.
+	self initTable.! !
+
+!SPWebContacts methodsFor: 'contacts' stamp: 'as 3/5/2007 13:10'!
+verify: aSPContact
+
+	aSPContact isVerified ifFalse: [
+		self call: (SPWebContactVerification withContact: aSPContact).
+	].
+	self updateTable.! !
+
+SPWATable subclass: #SPWebListAdmin
+	instanceVariableNames: 'name address description'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebListAdmin commentStamp: 'as 2/22/2007 16:10' prior: 0!
+List admin view.!
+
+!SPWebListAdmin methodsFor: 'lists' stamp: 'as 3/5/2007 13:47'!
+add
+
+	self do: [
+		SPKernel instance manager addList: address name: name description: description.
+	] catchExceptions: SPException.
+	self updateTable.! !
+
+!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 2/28/2007 21:36'!
+confirmRemove: aSPList
+
+	| subscriptions |
+	subscriptions _ self numberOfSubscriptions: aSPList.
+	subscriptions > 0 ifTrue: [
+		^ self confirm:  'Do you really want to remove the list ', aSPList name, ' and its ', subscriptions asString, ' subscription(s)?'.
+	] ifFalse: [
+		^ true.
+	].! !
+
+!SPWebListAdmin methodsFor: 'lists' stamp: 'as 3/5/2007 13:47'!
+edit: aSPList
+
+	self call: (SPWebEditList withList: aSPList).
+	self updateTable.! !
+
+!SPWebListAdmin methodsFor: 'initialize-release' stamp: 'as 3/5/2007 13:46'!
+initialize
+
+	self initTable.! !
+
+!SPWebListAdmin methodsFor: 'lists' stamp: 'as 2/28/2007 17:25'!
+numberOfSubscriptions: aSPList
+
+	^ SPKernel instance manager numberOfSubscriptionsForList: aSPList.! !
+
+!SPWebListAdmin methodsFor: 'lists' stamp: 'as 3/5/2007 13:47'!
+remove: aSPList
+
+	(self confirmRemove: aSPList) ifTrue: [
+		self do: [
+			SPKernel instance manager removeList: aSPList.
+		] catchExceptions: SPException.
+	].
+	self updateTable.! !
+
+!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 3/9/2007 16:08'!
+renderAddList: html
+
+	self renderTitle: 'Add List' on: html.
+	html form: [
+		html table: [
+			html tableRowWithLabel: 'Name:' column: [
+				html textInputWithValue: name callback: [ :v | name _ v. ]
+			].
+			html tableRowWithLabel: 'Address:' column: [
+				html textInputWithValue: address callback: [ :v | address _ v. ]
+			].
+			html tableRowWithLabel: 'Description:' column: [
+				html textInputWithValue: description callback: [ :v | description _ v. ]
+			].
+			html attributes alignCenter.
+			html tableRowWith: [
+				html submitButtonOn: #add of: self.
+			] span: 3.
+		].
+	].! !
+
+!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 3/9/2007 16:08'!
+renderContentOn: html
+
+	self renderTitle: 'List Administration' on: html.
+	super renderContentOn: html.
+	self renderAddList: html.
+	! !
+
+!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 3/9/2007 15:01'!
+tableColumns
+
+	^ OrderedCollection new
+		add: (WAReportColumn selector: #name title: 'Name');
+		add: (WAReportColumn selector: #address title: 'Address');
+		add: (WAReportColumn selector: #admin title: 'Admin');
+		add: (WAReportColumn selector: #description title: 'Description');
+		add: (WAReportColumn new title: 'Subscriptions'; valueBlock: [ :item | self numberOfSubscriptions: item. ]; yourself);
+		add: (WAReportColumn selector: #isLocked title: 'Locked' onClick: [ :item | item invertLocking. ]);
+		add: (WAReportColumn new title: 'Edit'; valueBlock: [ : item | 'edit'. ]; clickBlock: [ :item | self edit: item.]; sortBlock: nil; yourself);
+		add: (WAReportColumn new title: 'Remove'; valueBlock: [ : item | 'remove'. ]; clickBlock: [ :item | self remove: item.]; sortBlock: nil; yourself);
+		yourself.! !
+
+!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 3/5/2007 10:27'!
+tableRows
+
+	^ OrderedCollection new
+		addAll: (SPKernel instance manager allLists);
+		yourself.! !
+
+SPWATable subclass: #SPWebListView
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebListView commentStamp: 'as 2/6/2007 14:56' prior: 0!
+List view.!
+
+SPWebListView subclass: #SPWebListSubscription
+	instanceVariableNames: 'user'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebListSubscription commentStamp: 'as 2/28/2007 18:33' prior: 0!
+List view with subscription button.!
+
+!SPWebListSubscription class methodsFor: 'instance creation' stamp: 'as 2/28/2007 18:37'!
+withUser: aSPUser
+
+	^ self new
+		user: aSPUser;
+		yourself.! !
+
+!SPWebListSubscription methodsFor: 'initialize-release' stamp: 'as 3/7/2007 18:08'!
+initialize
+
+	"clear initialization of super class".! !
+
+!SPWebListSubscription methodsFor: 'subscription' stamp: 'as 2/28/2007 18:38'!
+subscribe: aSPList
+
+	self call: (SPWebSubscribe withUser: user list: aSPList).! !
+
+!SPWebListSubscription methodsFor: 'rendering' stamp: 'as 3/5/2007 13:49'!
+tableColumns
+
+	^ super tableColumns
+		add: (WAReportColumn new title: 'Subscribe'; valueBlock: [ :item | 'subscribe'. ]; clickBlock: [ :item | self subscribe: item. ]; sortBlock: nil; yourself);
+		yourself.! !
+
+!SPWebListSubscription methodsFor: 'access' stamp: 'as 3/5/2007 13:48'!
+user: aSPUser
+
+	user _ aSPUser.
+	self initTable.! !
+
+!SPWebListView methodsFor: 'initialize-release' stamp: 'as 3/7/2007 18:07'!
+initialize
+
+	self initTable.! !
+
+!SPWebListView methodsFor: 'rendering' stamp: 'as 3/8/2007 14:51'!
+renderContentOn: html
+
+	html heading: 'Lists' level: 2.
+	super renderContentOn: html.! !
+
+!SPWebListView methodsFor: 'rendering' stamp: 'as 3/5/2007 13:52'!
+tableColumns
+
+	^ OrderedCollection new 
+		add: (WAReportColumn selector: #name title: 'Name');
+		add: (WAReportColumn new title: 'Address'; valueBlock: [ :item | item address asString. ]; yourself);
+		add: (WAReportColumn selector: #description title: 'Description');
+		add: (WAReportColumn new title: 'Locked'; valueBlock: [ : item | item isLocked asString. ]; yourself);
+		yourself.! !
+
+!SPWebListView methodsFor: 'rendering' stamp: 'as 3/5/2007 10:28'!
+tableRows
+
+	^ OrderedCollection new
+		addAll: (SPKernel instance manager allLists);
+		yourself.! !
+
+SPWATable subclass: #SPWebQueue
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebQueue commentStamp: 'as 2/23/2007 16:38' prior: 0!
+Mail queue view.!
+
+!SPWebQueue methodsFor: 'configuration' stamp: 'as 2/28/2007 23:10'!
+config
+
+	^ SPKernel instance configurator.! !
+
+!SPWebQueue methodsFor: 'initialize-release' stamp: 'as 3/5/2007 13:56'!
+initialize
+
+	self initTable.! !
+
+!SPWebQueue methodsFor: 'configuration' stamp: 'as 2/28/2007 23:11'!
+queueSendAttempts
+
+	^ self config preferenceAt: #queueSendAttempts.! !
+
+!SPWebQueue methodsFor: 'queue' stamp: 'as 3/7/2007 17:23'!
+remove: aSPMailHandler
+
+	aSPMailHandler kill.
+	self updateTable.! !
+
+!SPWebQueue methodsFor: 'rendering' stamp: 'as 3/9/2007 16:08'!
+renderContentOn: html
+
+	self renderTitle: 'Message Queue' on: html.
+	super renderContentOn: html.! !
+
+!SPWebQueue methodsFor: 'rendering' stamp: 'as 3/8/2007 17:47'!
+tableColumns
+
+	^ OrderedCollection new
+		add: (WAReportColumn new title: 'Subject'; valueBlock: [ :item | item message subject. ]; yourself);
+		add: (WAReportColumn new title: 'Sender'; valueBlock: [ :item | item message sender asString. ]; yourself);
+		add: (WAReportColumn new title: 'Recipients (1 shown)'; valueBlock: [ :item | | recipients | recipients _ item message recipients. recipients ifEmpty: [ ''. ] ifNotEmpty: [ recipients atRandom asString. ]. ]; yourself);
+		add: (WAReportColumn new title: 'Date'; valueBlock: [ :item | item message date asTimeStamp asString. ]; yourself);
+		add: (WAReportColumn selector: #state title: 'State');
+		add: (WAReportColumn new title: 'Attempts'; valueBlock: [ :item | item attempts asString, '/', self queueSendAttempts asString. ]; yourself);
+		add: (WAReportColumn new title: 'Remove'; valueBlock: [ :item | 'remove'. ]; clickBlock: [ :item | self remove: item. ]; sortBlock: nil; yourself);
+		yourself.! !
+
+!SPWebQueue methodsFor: 'rendering' stamp: 'as 3/5/2007 10:28'!
+tableRows
+
+	^ OrderedCollection new
+		addAll: (SPKernel instance queue handlers);
+		yourself.! !
+
+SPWATable subclass: #SPWebSubscriptionAdmin
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebSubscriptionAdmin commentStamp: 'as 2/27/2007 22:00' prior: 0!
+Subscription administration.!
+
+!SPWebSubscriptionAdmin methodsFor: 'subscription' stamp: 'as 3/5/2007 13:55'!
+accept: aSPSubscription
+
+	self do: [
+		aSPSubscription accepted: true.
+		SPMailNotifier acceptedSubscription: aSPSubscription.
+	] catchExceptions: SPException.
+	self updateTable.! !
+
+!SPWebSubscriptionAdmin methodsFor: 'subscription' stamp: 'as 3/5/2007 13:56'!
+deny: aSPSubscription
+
+	self do: [
+		SPKernel instance manager unsubscribe: aSPSubscription.
+		SPMailNotifier deniedSubscription: aSPSubscription.
+	] catchExceptions: SPException.
+	self updateTable.! !
+
+!SPWebSubscriptionAdmin methodsFor: 'initialize-release' stamp: 'as 3/5/2007 13:56'!
+initialize
+
+	self initTable.! !
+
+!SPWebSubscriptionAdmin methodsFor: 'rendering' stamp: 'as 3/9/2007 16:08'!
+renderContentOn: html
+
+	self renderTitle: 'Pending Subscriptions' on: html.
+	super renderContentOn: html.! !
+
+!SPWebSubscriptionAdmin methodsFor: 'rendering' stamp: 'as 3/5/2007 13:54'!
+tableColumns
+
+	^ OrderedCollection new 
+		add: (WAReportColumn new title: 'List'; valueBlock: [ :item | item list address asString. ]; yourself);
+		add: (WAReportColumn new title: 'Contact'; valueBlock: [ :item | item contact address asString. ]; yourself);
+		add: (WAReportColumn new title: 'Accept'; valueBlock: [ :item | 'accept'. ]; clickBlock: [ :item | self accept: item. ]; sortBlock: nil; yourself);
+		add: (WAReportColumn new title: 'Deny'; valueBlock: [ :item | 'deny'. ]; clickBlock: [ :item | self deny: item. ]; sortBlock: nil; yourself);
+		yourself.! !
+
+!SPWebSubscriptionAdmin methodsFor: 'rendering' stamp: 'as 3/5/2007 10:29'!
+tableRows
+
+	^ OrderedCollection new
+		addAll: (SPKernel instance manager pendingSubscriptions);
+		yourself.! !
+
+SPWATable subclass: #SPWebSubscriptions
+	instanceVariableNames: 'user'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebSubscriptions commentStamp: 'as 2/27/2007 17:13' prior: 0!
+Subscriptions management.!
+
+!SPWebSubscriptions class methodsFor: 'instance creation' stamp: 'as 2/27/2007 17:18'!
+withUser: aSPUser
+
+	^ self new
+		user: aSPUser;
+		yourself.! !
+
+!SPWebSubscriptions methodsFor: 'rendering' stamp: 'as 3/9/2007 16:09'!
+renderContentOn: html
+
+	self renderTitle: 'Subscriptions' on: html.
+	super renderContentOn: html.! !
+
+!SPWebSubscriptions methodsFor: 'rendering' stamp: 'as 3/5/2007 14:00'!
+tableColumns
+
+	^ OrderedCollection new 
+		add: (WAReportColumn new title: 'List'; valueBlock: [ :item | item list address asString. ]; yourself);
+		add: (WAReportColumn new title: 'Contact'; valueBlock: [ :item | item contact address asString. ]; yourself);
+		add: (WAReportColumn new title: 'Active'; valueBlock: [ :item | item isActive asString. ]; clickBlock: [ :item | item invertActivation. ]; yourself);
+		add: (WAReportColumn new title: 'Accepted'; valueBlock: [ :item | item isAccepted asString. ]; yourself);
+		add: (WAReportColumn new title: 'Remove'; valueBlock: [ :item | 'remove'. ]; clickBlock: [ :item | self unsubscribe: item. ]; sortBlock: nil; yourself);
+		yourself.! !
+
+!SPWebSubscriptions methodsFor: 'rendering' stamp: 'as 3/5/2007 10:29'!
+tableRows
+
+	^ OrderedCollection new
+		addAll: (SPKernel instance manager subscriptionsForUser: user);
+		yourself.! !
+
+!SPWebSubscriptions methodsFor: 'subscription' stamp: 'as 3/5/2007 14:02'!
+unsubscribe: aSPSubscription
+
+	self do: [
+		SPKernel instance manager unsubscribe: aSPSubscription.
+	] catchExceptions: SPException.
+	self updateTable.! !
+
+!SPWebSubscriptions methodsFor: 'access' stamp: 'as 3/5/2007 13:59'!
+user: aSPUser
+
+	user _ aSPUser.
+	self initTable.! !
+
+SPWATable subclass: #SPWebUserAdmin
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebUserAdmin commentStamp: 'as 2/23/2007 14:58' prior: 0!
+User admin view.!
+
+!SPWebUserAdmin methodsFor: 'initialize-release' stamp: 'as 3/5/2007 14:03'!
+initialize
+
+	self initTable.! !
+
+!SPWebUserAdmin methodsFor: 'user' stamp: 'as 2/28/2007 18:05'!
+numberOfContacts: aSPUser
+
+	^ SPKernel instance manager numberOfContactsForUser: aSPUser.! !
+
+!SPWebUserAdmin methodsFor: 'user' stamp: 'as 2/28/2007 18:05'!
+numberOfSubscriptions: aSPUser
+
+	^ SPKernel instance manager numberOfSubscriptionsForUser: aSPUser.! !
+
+!SPWebUserAdmin methodsFor: 'user' stamp: 'as 3/5/2007 14:04'!
+remove: aSPUser
+
+	self call: (SPWebUnregister withUser: aSPUser).
+	self updateTable.! !
+
+!SPWebUserAdmin methodsFor: 'rendering' stamp: 'as 3/9/2007 16:09'!
+renderContentOn: html
+
+	self renderTitle: 'Users' on: html.
+	super renderContentOn: html.! !
+
+!SPWebUserAdmin methodsFor: 'rendering' stamp: 'as 3/5/2007 14:03'!
+tableColumns
+
+	^ OrderedCollection new 
+		add: (WAReportColumn selector: #name title: 'Name');
+		add: (WAReportColumn new title: 'Contacts'; valueBlock: [ :item | self numberOfContacts: item.]; yourself);
+		add: (WAReportColumn new title: 'Subscriptions'; valueBlock: [ :item | self numberOfSubscriptions: item.]; yourself);
+		add: (WAReportColumn new title: 'Remove'; valueBlock: [ :item | 'remove'.]; clickBlock: [ :item | self remove: item. ]; sortBlock: nil; yourself);
+		yourself.! !
+
+!SPWebUserAdmin methodsFor: 'rendering' stamp: 'as 3/5/2007 10:30'!
+tableRows
+
+	^ OrderedCollection new
+		addAll: (SPKernel instance manager allUsers);
+		yourself.! !
+
+SPWAComponent subclass: #SPWeb
+	instanceVariableNames: 'main banner'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWeb commentStamp: '<historical>' prior: 0!
+Stamp web interface.!
+
+!SPWeb class methodsFor: 'seaside' stamp: 'as 2/6/2007 12:52'!
+canBeRoot
+
+	^ true.! !
+
+!SPWeb class methodsFor: 'class initialization' stamp: 'as 7/19/2006 10:19'!
+initialize
+
+	"self initialize"
+
+	self registerAsApplication: 'stamp'.! !
+
+!SPWeb methodsFor: 'rendering' stamp: 'as 2/22/2007 14:02'!
+children
+
+	^ Array with: banner with: main.! !
+
+!SPWeb methodsFor: 'initialize-release' stamp: 'as 3/5/2007 11:41'!
+initialize
+
+	banner _ SPWebBanner new.
+	main _ SPWebTask new.! !
+
+!SPWeb methodsFor: 'rendering' stamp: 'as 2/22/2007 14:02'!
+renderContentOn: html
+
+	html divNamed: 'header' with: banner.
+	html divNamed: 'main' with: main.! !
+
+SPWAComponent subclass: #SPWebBanner
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebBanner commentStamp: 'as 2/22/2007 13:56' prior: 0!
+A simple banner used as heading of a site.!
+
+!SPWebBanner methodsFor: 'rendering' stamp: 'as 2/22/2007 13:57'!
+renderContentOn: html
+
+	html divNamed: 'banner' with: [
+		html heading: self title.
+		html paragraph: [ html emphasis: self subtitle. ].
+	].! !
+
+!SPWebBanner methodsFor: 'rendering' stamp: 'as 2/22/2007 13:58'!
+subtitle
+
+	^ 'A Mailing List Manager for Squeak.'.! !
+
+!SPWebBanner methodsFor: 'rendering' stamp: 'as 2/22/2007 13:58'!
+title
+
+	^ 'Stamp'.! !
+
+SPWAComponent subclass: #SPWebChangePassword
+	instanceVariableNames: 'user oldPassword newPassword confirmPassword'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebChangePassword commentStamp: 'as 2/23/2007 15:03' prior: 0!
+Change the password.!
+
+!SPWebChangePassword class methodsFor: 'instance creation' stamp: 'as 2/23/2007 15:11'!
+withUser: aSPUser
+
+	^ self new
+		user: aSPUser;
+		yourself.! !
+
+!SPWebChangePassword methodsFor: 'password' stamp: 'as 2/28/2007 19:09'!
+cancel
+
+	self answer.! !
+
+!SPWebChangePassword methodsFor: 'password' stamp: 'as 2/28/2007 15:05'!
+change
+
+	self do: [
+		newPassword = confirmPassword ifFalse: [
+			SPPasswordConfirmationException signal.
+		].
+		user newPassword: newPassword oldPassword: oldPassword.
+		self answer.
+	] catchExceptions: SPException.! !
+
+!SPWebChangePassword methodsFor: 'rendering' stamp: 'as 3/9/2007 16:07'!
+renderContentOn: html
+
+	self renderTitle: 'Change Password' on: html.
+	html form: [
+		html table: [
+			html tableRowWithLabel: 'Old password:' column: [
+				html passwordInputWithCallback: [ :v | oldPassword _ v. ]
+			].
+			html tableRowWithLabel: 'New password:' column: [
+				html passwordInputWithCallback: [ :v | newPassword _ v. ]
+			].
+			html tableRowWithLabel: 'Confirm new password:' column: [
+				html passwordInputWithCallback: [ :v | confirmPassword _ v. ]
+			].
+			html attributes alignCenter.
+			html tableRowWith: [
+				html submitButtonOn: #change of: self.
+				html space.
+				html submitButtonOn: #cancel of: self.
+			] span: 2.
+		].
+	].! !
+
+!SPWebChangePassword methodsFor: 'access' stamp: 'as 2/23/2007 15:17'!
+user: aSPUser
+
+	user _ aSPUser.! !
+
+SPWAComponent subclass: #SPWebContactVerification
+	instanceVariableNames: 'contact code'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebContactVerification commentStamp: 'as 2/23/2007 17:12' prior: 0!
+Verify a contact.!
+
+!SPWebContactVerification class methodsFor: 'instance creation' stamp: 'as 2/23/2007 17:13'!
+withContact: aSPContact
+
+	^ self new
+		contact: aSPContact;
+		yourself.! !
+
+!SPWebContactVerification methodsFor: 'verification' stamp: 'as 2/28/2007 19:10'!
+cancel
+
+	self answer.! !
+
+!SPWebContactVerification methodsFor: 'access' stamp: 'as 2/23/2007 17:13'!
+contact: aSPContact
+
+	contact _ aSPContact.! !
+
+!SPWebContactVerification methodsFor: 'rendering' stamp: 'as 3/9/2007 16:07'!
+renderContentOn: html
+
+	self renderTitle: 'Contact Verification' on: html.
+	html paragraph: [ html text: 'Verifification code for '; emphasis: (contact address); text: ':'. ].
+	html form: [
+		html textInputWithValue: code callback: [ :v | code _ v. ].
+		html submitButtonOn: #verify of: self.
+		html submitButtonOn: #cancel of: self.
+	].! !
+
+!SPWebContactVerification methodsFor: 'verification' stamp: 'as 2/27/2007 18:02'!
+verify
+
+	self do: [
+		SPKernel instance manager verifyContact: contact code: code.
+		self answer.
+	] catchExceptions: SPException.! !
+
+SPWAComponent subclass: #SPWebEditList
+	instanceVariableNames: 'list name description admin'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebEditList commentStamp: 'as 3/1/2007 17:52' prior: 0!
+Edit a list.!
+
+!SPWebEditList class methodsFor: 'instance creation' stamp: 'as 3/1/2007 17:27'!
+withList: aSPList
+
+	^ self new
+		list: aSPList;
+		yourself.! !
+
+!SPWebEditList methodsFor: 'call/answer' stamp: 'as 3/1/2007 17:46'!
+cancel
+
+	self answer.! !
+
+!SPWebEditList methodsFor: 'access' stamp: 'as 3/8/2007 15:32'!
+list: aSPList
+
+	list _ aSPList.
+	name _ list name.
+	list admin ifNil: [ admin _ ''. ] ifNotNil: [ admin _ list admin asString. ].
+	list description ifNil: [ description _ ''. ] ifNotNil: [ description _ list description. ].
+	! !
+
+!SPWebEditList methodsFor: 'rendering' stamp: 'as 3/9/2007 16:08'!
+renderContentOn: html
+
+	self renderTitle: 'Edit List' on: html.
+	html form: [
+		html table: [
+			html tableRowWithLabel: 'Name:' column: [
+				html textInputWithValue: name callback: [ :v | name _ v. ]
+			].
+			html tableRowWithLabel: 'Address:' column: [
+				html text: list address.
+			].
+			html tableRowWithLabel: 'Admin:' column: [
+				html textInputWithValue: admin callback: [ :v | admin _ v. ]
+			].
+			html tableRowWithLabel: 'Description:' column: [
+				html textInputWithValue: description callback: [ :v | description _ v. ]
+			].
+			html attributes alignCenter.
+			html tableRowWith: [
+				html submitButtonOn: #save of: self.
+				html space.
+				html submitButtonOn: #cancel of: self.
+			] span: 2.
+		].
+	].! !
+
+!SPWebEditList methodsFor: 'call/answer' stamp: 'as 3/8/2007 15:33'!
+save
+
+	self do: [
+		list name: name; description: description.
+		admin isEmpty ifTrue: [
+			list admin: nil.
+		] ifFalse: [
+			list admin: (SPMailAddress fromString: admin).
+		].
+		description isEmpty ifTrue: [
+			list description: nil.
+		] ifFalse: [
+			list description: description.
+		].
+	] catchExceptions: SPException.
+	self answer.! !
+
+SPWAComponent subclass: #SPWebEditPreference
+	instanceVariableNames: 'user list contact preference key value'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebEditPreference commentStamp: 'as 3/1/2007 18:22' prior: 0!
+Edit a configuration preference.!
+
+!SPWebEditPreference class methodsFor: 'instance creation' stamp: 'as 3/1/2007 18:31'!
+withKey: aSymbol value: anObject
+
+	^ self new
+		key: aSymbol;
+		value: anObject;
+		yourself.! !
+
+!SPWebEditPreference methodsFor: 'call/answer' stamp: 'as 3/1/2007 18:22'!
+cancel
+
+	self answer.! !
+
+!SPWebEditPreference methodsFor: 'access' stamp: 'as 3/1/2007 18:27'!
+key: aSymbol
+
+	key _ aSymbol.! !
+
+!SPWebEditPreference methodsFor: 'preferences' stamp: 'as 3/1/2007 18:23'!
+preferenceAt: aSymbol put: aString
+
+	self do: [
+		SPKernel instance configurator preferenceAt: aSymbol putString: aString.
+	] catchExceptions: Exception.! !
+
+!SPWebEditPreference methodsFor: 'rendering' stamp: 'as 3/9/2007 16:08'!
+renderContentOn: html
+
+	self renderTitle: 'Edit Preference' on: html.
+	html paragraph: [ html text: 'New value for preference '; emphasis: (key asString); text: ':'. ].
+	html form: [
+		html textInputWithValue: value callback: [ :v | value _ v. ].
+		html submitButtonOn: #save of: self.
+		html submitButtonOn: #cancel of: self.
+	].! !
+
+!SPWebEditPreference methodsFor: 'call/answer' stamp: 'as 3/1/2007 18:33'!
+save
+
+	self do: [
+		self preferenceAt: key put: value.
+		self answer.
+	] catchExceptions: SPException.! !
+
+!SPWebEditPreference methodsFor: 'access' stamp: 'as 3/1/2007 18:30'!
+value: anObject
+
+	value _ anObject asString.! !
+
+SPWAComponent subclass: #SPWebEmpty
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebEmpty commentStamp: 'as 2/6/2007 15:25' prior: 0!
+Dummy page, show nothing.!
+
+!SPWebEmpty methodsFor: 'rendering' stamp: 'as 2/21/2007 12:43'!
+renderContentOn: html
+
+	html whitespace.! !
+
+SPWAComponent subclass: #SPWebExceptionDisplay
+	instanceVariableNames: 'exception'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebExceptionDisplay commentStamp: 'as 2/14/2007 14:29' prior: 0!
+Render a error display for any exception.!
+
+!SPWebExceptionDisplay class methodsFor: 'instance creation' stamp: 'as 2/16/2007 12:31'!
+withException: aException
+
+	^ self new
+		exception: aException;
+		yourself.! !
+
+!SPWebExceptionDisplay methodsFor: 'access' stamp: 'as 2/14/2007 14:42'!
+exception: aException
+
+	exception _ aException.! !
+
+!SPWebExceptionDisplay methodsFor: 'call/answer' stamp: 'as 2/28/2007 17:01'!
+ok
+
+	self answer.! !
+
+!SPWebExceptionDisplay methodsFor: 'rendering' stamp: 'as 3/9/2007 16:08'!
+renderContentOn: html
+
+	self renderTitle: 'Error' on: html.
+	html paragraph: [ html emphasis: exception description. ].
+	html form: [
+		html submitButtonOn: #ok of: self.
+	].! !
+
+SPWAComponent subclass: #SPWebHelp
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebHelp commentStamp: 'as 3/9/2007 16:05' prior: 0!
+Web interface help.!
+
+!SPWebHelp methodsFor: 'rendering' stamp: 'as 3/9/2007 16:11'!
+renderContentOn: html
+
+	self renderTitle: 'Help' on: html.
+	self renderSubtitle: 'Contents' on: html.
+	! !
+
+SPWAComponent subclass: #SPWebLogin
+	instanceVariableNames: 'username password user repeated'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebLogin commentStamp: 'as 2/12/2007 17:13' prior: 0!
+Login dialog.!
+
+!SPWebLogin methodsFor: 'login' stamp: 'as 2/28/2007 19:14'!
+cancel
+
+	self answer: nil.! !
+
+!SPWebLogin methodsFor: 'initialize-release' stamp: 'as 2/22/2007 15:01'!
+initialize
+
+	repeated := false.! !
+
+!SPWebLogin methodsFor: 'login' stamp: 'as 2/22/2007 15:01'!
+login
+
+	self verify ifTrue: [
+		self answer: user.
+	] ifFalse: [
+		repeated _ true.
+	].! !
+
+!SPWebLogin methodsFor: 'rendering' stamp: 'as 3/9/2007 16:08'!
+renderContentOn: html
+
+	self renderTitle: 'Login' on: html.
+	repeated ifTrue: [
+		html emphasis: 'Wrong username or password!!'.
+	].
+	html form: [
+		html table: [
+			html tableRowWithLabel: 'Username:' column: [
+				html textInputWithValue: username callback: [ :v | username _ v. ]
+			].
+			html tableRowWithLabel: 'Password:' column: [
+				html passwordInputWithCallback: [ :v | password _ v. ]
+			].
+			html attributes alignCenter.
+			html tableRowWith: [
+				html submitButtonOn: #login of: self.
+				html space.
+				html submitButtonOn: #cancel of: self.
+			] span: 2.
+		].
+	].! !
+
+!SPWebLogin methodsFor: 'login' stamp: 'as 2/21/2007 13:41'!
+verify
+
+	user _ SPKernel instance manager userWithName: username.
+	user ifNil: [
+		^ false.
+	] ifNotNil: [
+		^ user verifyPassword: password.
+	].! !
+
+SPWAComponent subclass: #SPWebMain
+	instanceVariableNames: 'user main body'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebMain commentStamp: 'as 2/22/2007 14:19' prior: 0!
+Main web application component.!
+
+!SPWebMain class methodsFor: 'instance creation' stamp: 'as 2/22/2007 14:27'!
+withUser: aSPUser
+
+	^ self new
+		user: aSPUser;
+		yourself.! !
+
+!SPWebMain methodsFor: 'rendering' stamp: 'as 2/22/2007 14:47'!
+children
+
+	^ Array with: body.! !
+
+!SPWebMain methodsFor: 'initialize-release' stamp: 'as 2/22/2007 15:05'!
+initialize
+
+	body _ SPWebEmpty new.! !
+
+!SPWebMain methodsFor: 'test' stamp: 'as 2/27/2007 14:53'!
+isRootUser
+
+	^ SPKernel instance manager isRootUser: user.! !
+
+!SPWebMain methodsFor: 'call/answer' stamp: 'as 2/28/2007 19:13'!
+login: aSPUser
+
+	aSPUser ifNotNil: [ self answer: aSPUser. ].! !
+
+!SPWebMain methodsFor: 'call/answer' stamp: 'as 2/22/2007 14:47'!
+logout
+
+	self answer.! !
+
+!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 15:58'!
+navigateChangePassword
+
+	body call: (SPWebChangePassword withUser: user).! !
+
+!SPWebMain methodsFor: 'navigation' stamp: 'as 2/28/2007 14:51'!
+navigateConfiguration
+
+	body call: (SPWebConfiguration new).! !
+
+!SPWebMain methodsFor: 'navigation' stamp: 'as 3/5/2007 13:31'!
+navigateContacts
+
+	body call: (SPWebContacts withUser: user).! !
+
+!SPWebMain methodsFor: 'navigation' stamp: 'as 3/9/2007 15:26'!
+navigateHelp
+
+	body call: (SPWebHelp new).! !
+
+!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 15:59'!
+navigateListAdministration
+
+	body call: (SPWebListAdmin new).! !
+
+!SPWebMain methodsFor: 'navigation' stamp: 'as 2/28/2007 18:39'!
+navigateLists
+
+	body call: (SPWebListSubscription withUser: user).! !
+
+!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 15:56'!
+navigateLogin
+
+	self login: (body call: (SPWebLogin new)).! !
+
+!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 15:59'!
+navigateLogout
+
+	self logout.! !
+
+!SPWebMain methodsFor: 'navigation' stamp: 'as 2/28/2007 12:29'!
+navigatePendingSubscriptions
+
+	body call: (SPWebSubscriptionAdmin new).! !
+
+!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 15:59'!
+navigateQueue
+
+	body call: (SPWebQueue new).! !
+
+!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 15:56'!
+navigateRegister
+
+	self login: (body call: SPWebRegister new).! !
+
+!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 17:30'!
+navigateSubscriptions
+
+	body call: (SPWebSubscriptions withUser: user).! !
+
+!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 16:00'!
+navigateSystem
+
+	body call: (SPWebSystem new).! !
+
+!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 15:58'!
+navigateUnregister
+
+	(body call: (SPWebUnregister withUser: user)) ifTrue: [ self logout. ].! !
+
+!SPWebMain methodsFor: 'navigation' stamp: 'as 2/27/2007 15:59'!
+navigateUserAdministration
+
+	body call: (SPWebUserAdmin new).! !
+
+!SPWebMain methodsFor: 'navigation' stamp: 'as 2/28/2007 18:32'!
+navigateViewLists
+
+	body call: (SPWebListView new).! !
+
+!SPWebMain methodsFor: 'rendering' stamp: 'as 3/9/2007 15:28'!
+publicNavigationItems
+
+	^ #('View Lists' 'Login' 'Help' 'Register').! !
+
+!SPWebMain methodsFor: 'rendering' stamp: 'as 2/22/2007 14:33'!
+renderContentOn: html
+
+	self renderNavigation: html.
+	html divNamed: 'body' with: body.! !
+
+!SPWebMain methodsFor: 'rendering' stamp: 'as 2/27/2007 14:54'!
+renderNavigation: html
+
+	html div: [
+		html cssId: 'navigation'.
+		user ifNotNil: [
+			html paragraph: [ html text: 'Logged in as '; emphasis: user name. ].
+			self isRootUser ifTrue: [
+				self renderNavigation: html items: self rootNavigationItems.
+			] ifFalse: [
+				self renderNavigation: html items: self userNavigationItems.
+			].
+		] ifNil: [
+			self renderNavigation: html items: self publicNavigationItems.
+		].
+	].! !
+
+!SPWebMain methodsFor: 'rendering' stamp: 'as 2/27/2007 15:15'!
+renderNavigation: html items: aCollection
+
+	html unorderedList: [
+		aCollection do: [
+			:each |
+			html listItem: [
+				html anchorWithAction:
+					[ self perform: ('navigate', each) withoutBlanks asSymbol. ]
+				text: each asString.
+			].
+		].
+	].! !
+
+!SPWebMain methodsFor: 'rendering' stamp: 'as 3/9/2007 15:29'!
+rootNavigationItems
+
+	^ #('List Administration' 'User Administration' 'Pending Subscriptions' 'Queue' 'System' 'Configuration' 'Logout' 'Help' 'Change Password').! !
+
+!SPWebMain methodsFor: 'access' stamp: 'as 2/22/2007 15:06'!
+user: aSPUser
+
+	user _ aSPUser.! !
+
+!SPWebMain methodsFor: 'rendering' stamp: 'as 3/9/2007 15:29'!
+userNavigationItems
+
+	^ #('Lists' 'Subscriptions' 'Contacts' 'Logout' 'Help' 'Change Password' 'Unregister').! !
+
+SPWAComponent subclass: #SPWebRegister
+	instanceVariableNames: 'username password confirmPassword'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebRegister commentStamp: 'as 2/13/2007 18:04' prior: 0!
+Register as new user.!
+
+!SPWebRegister methodsFor: 'register' stamp: 'as 2/28/2007 19:15'!
+cancel
+
+	self answer: nil.! !
+
+!SPWebRegister methodsFor: 'register' stamp: 'as 2/28/2007 17:45'!
+register
+
+	self do: [
+		password = confirmPassword ifFalse: [
+			SPPasswordConfirmationException signal.
+		].
+		self answer: (SPKernel instance manager addUser: username password: password).
+	] catchExceptions: SPException.! !
+
+!SPWebRegister methodsFor: 'rendering' stamp: 'as 3/9/2007 16:08'!
+renderContentOn: html
+
+	self renderTitle: 'Registration' on: html.
+	html form: [
+		html table: [
+			html tableRowWithLabel: 'Username:' column: [
+				html textInputWithValue: username callback: [ :v | username _ v. ]
+			].
+			html tableRowWithLabel: 'Password:' column: [
+				html passwordInputWithCallback: [ :v | password _ v. ]
+			].
+			html tableRowWithLabel: 'Confirm password:' column: [
+				html passwordInputWithCallback: [ :v | confirmPassword _ v. ]
+			].
+			html attributes alignCenter.
+			html tableRowWith: [
+				html submitButtonOn: #register of: self.
+				html space.
+				html submitButtonOn: #cancel of: self.
+			] span: 2.
+		].
+	].! !
+
+SPWAComponent subclass: #SPWebSubscribe
+	instanceVariableNames: 'user list contact'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebSubscribe commentStamp: 'as 2/27/2007 16:08' prior: 0!
+Subscribe a user to a list.!
+
+!SPWebSubscribe class methodsFor: 'instance creation' stamp: 'as 2/27/2007 16:10'!
+withUser: aSPUser list: aSPList
+
+	^ self new
+		user: aSPUser;
+		list: aSPList;
+		yourself.! !
+
+!SPWebSubscribe methodsFor: 'subscription' stamp: 'as 2/28/2007 19:20'!
+cancel
+
+	self answer.! !
+
+!SPWebSubscribe methodsFor: 'contacts' stamp: 'as 2/27/2007 16:39'!
+contacts
+
+	^ SPKernel instance manager contactsForUser: user.! !
+
+!SPWebSubscribe methodsFor: 'access' stamp: 'as 2/27/2007 16:08'!
+list: aSPList
+
+	list _ aSPList.! !
+
+!SPWebSubscribe methodsFor: 'rendering' stamp: 'as 3/9/2007 16:08'!
+renderContentOn: html
+
+	self renderTitle: 'Subscription' on: html.
+	html paragraph: [ html text: 'Subscribe '; emphasis: (user name); text: ' to '; emphasis: (list name); text: ' with contact:'. ].
+	html form: [
+		html
+			selectFromList: self contacts
+			selected: contact
+			callback: [ :item | contact _ item. ]
+			labels: [ : item | item address. ].
+		html submitButtonOn: #subscribe of: self.
+		html submitButtonOn: #cancel of: self.
+	].! !
+
+!SPWebSubscribe methodsFor: 'subscription' stamp: 'as 2/27/2007 16:37'!
+subscribe
+
+	self do: [
+		SPKernel instance manager subscribe: contact to: list.
+		self answer.
+	] catchExceptions: SPException.! !
+
+!SPWebSubscribe methodsFor: 'access' stamp: 'as 2/27/2007 16:08'!
+user: aSPUser
+
+	user _ aSPUser.! !
+
+SPWAComponent subclass: #SPWebSystem
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebSystem commentStamp: 'as 2/26/2007 13:16' prior: 0!
+System management.!
+
+!SPWebSystem methodsFor: 'rendering' stamp: 'as 2/26/2007 14:07'!
+renderContentOn: html
+
+	html heading: 'System' level: 2.
+	html paragraph: [
+		html anchorWithAction: [ self restartListener. ] text: 'Restart listener'.
+	].! !
+
+!SPWebSystem methodsFor: 'listener' stamp: 'as 2/28/2007 17:53'!
+restartListener
+
+	SPKernel instance listener restart.! !
+
+SPWAComponent subclass: #SPWebUnregister
+	instanceVariableNames: 'user'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebUnregister commentStamp: 'as 2/21/2007 17:46' prior: 0!
+Unregister (remove) the user.!
+
+!SPWebUnregister class methodsFor: 'instance creation' stamp: 'as 2/21/2007 17:47'!
+withUser: aSPUser
+
+	^ self new
+		user: aSPUser;
+		yourself.! !
+
+!SPWebUnregister methodsFor: 'call/answer' stamp: 'as 3/8/2007 15:00'!
+cancel
+
+	self answer: false.! !
+
+!SPWebUnregister methodsFor: 'user' stamp: 'as 3/7/2007 16:11'!
+numberOfContacts
+
+	^ (SPKernel instance manager numberOfContactsForUser: user) asString.! !
+
+!SPWebUnregister methodsFor: 'user' stamp: 'as 3/7/2007 16:12'!
+numberOfSubscriptions
+
+	^ (SPKernel instance manager numberOfSubscriptionsForUser: user) asString.! !
+
+!SPWebUnregister methodsFor: 'rendering' stamp: 'as 3/9/2007 16:09'!
+renderContentOn: html
+
+	self renderTitle: 'Unregister' on: html.
+	html emphasis: 'Do you really want to remove the user ', user name, ' with its ', self numberOfContacts, ' contact(s) and ', self numberOfSubscriptions, ' subscription(s)?'.
+	html paragraph: [
+		html form: [
+			html submitButtonOn: #unregister of: self.
+			html submitButtonOn: #cancel of: self.
+		].
+	].! !
+
+!SPWebUnregister methodsFor: 'call/answer' stamp: 'as 3/8/2007 15:02'!
+unregister
+
+	self do: [
+		SPKernel instance manager removeUser: user.
+		self answer: true.
+	] catchExceptions: SPException.
+	self cancel.! !
+
+!SPWebUnregister methodsFor: 'access' stamp: 'as 2/21/2007 17:53'!
+user: aSPUser
+
+	user _ aSPUser.! !
+
+Exception subclass: #SPException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Core'!
+
+!SPException commentStamp: 'as 2/15/2007 15:49' prior: 0!
+Stamp exception.!
+
+SPException subclass: #SPAlreadySubscribedException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPAlreadySubscribedException commentStamp: 'as 2/15/2007 16:48' prior: 0!
+Subscription already exists.!
+
+SPException subclass: #SPConfigurationException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration'!
+
+!SPConfigurationException commentStamp: 'as 1/15/2007 17:52' prior: 0!
+General configuration exception.!
+
+SPConfigurationException subclass: #SPConfigurationAttributeNotFoundException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration-Attributes'!
+
+!SPConfigurationAttributeNotFoundException commentStamp: 'as 2/15/2007 16:48' prior: 0!
+Configuration attribute or preference not found.!
+
+SPConfigurationException subclass: #SPImmutableConfigurationAttributeException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration-Attributes'!
+
+!SPImmutableConfigurationAttributeException commentStamp: 'as 2/15/2007 16:49' prior: 0!
+I'm immutable.!
+
+SPConfigurationException subclass: #SPInvalidConfigurationAttributeValueException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration-Attributes'!
+
+!SPInvalidConfigurationAttributeValueException commentStamp: 'as 2/15/2007 16:49' prior: 0!
+Invalid value.!
+
+SPException subclass: #SPContactAlreadyExistsException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPContactAlreadyExistsException commentStamp: 'as 2/15/2007 16:50' prior: 0!
+Contact already exists.!
+
+SPException subclass: #SPContactNotFoundException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPContactNotFoundException commentStamp: 'as 2/15/2007 16:50' prior: 0!
+Contact not found.!
+
+SPException subclass: #SPContactNotVerifiedException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPContactNotVerifiedException commentStamp: 'as 2/15/2007 16:50' prior: 0!
+Contact must be verified but is not.!
+
+SPException subclass: #SPContactVerificationFailedException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPContactVerificationFailedException commentStamp: 'as 2/15/2007 16:50' prior: 0!
+Verification failed.!
+
+SPException subclass: #SPEmptyArgumentException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Core'!
+
+!SPEmptyArgumentException commentStamp: 'as 3/1/2007 18:43' prior: 0!
+Argument must not be empty.!
+
+!SPException methodsFor: 'priv handling' stamp: 'as 2/21/2007 13:47'!
+defaultAction
+
+	! !
+
+!SPException methodsFor: 'printing' stamp: 'as 2/15/2007 16:43'!
+description
+
+	^ messageText
+		ifNil: [ self class comment. ]
+		ifNotNil: [ self class comment, ' (', messageText, ')'. ].! !
+
+!SPException methodsFor: 'priv handling' stamp: 'as 8/17/2006 11:04'!
+isResumable
+
+	^ false.! !
+
+SPException subclass: #SPInvalidMailAddressException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPInvalidMailAddressException commentStamp: '<historical>' prior: 0!
+Invalid mail address.!
+
+SPException subclass: #SPListAlreadyExistsException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPListAlreadyExistsException commentStamp: 'as 2/15/2007 16:50' prior: 0!
+List already exists.!
+
+SPException subclass: #SPListNotFoundException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPListNotFoundException commentStamp: 'as 2/15/2007 16:51' prior: 0!
+List not found.!
+
+SPException subclass: #SPPasswordConfirmationException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web-Exceptions'!
+
+!SPPasswordConfirmationException commentStamp: 'as 2/23/2007 15:46' prior: 0!
+Confirmed password does not match.!
+
+SPException subclass: #SPPostingNotAllowedException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPPostingNotAllowedException commentStamp: 'as 2/26/2007 11:57' prior: 0!
+Posting not allowed.!
+
+SPException subclass: #SPQueueFullException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPQueueFullException commentStamp: 'as 2/15/2007 16:52' prior: 0!
+Queue is full.!
+
+SPException subclass: #SPReceiverException
+	instanceVariableNames: 'receiver'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPReceiverException commentStamp: 'as 1/16/2007 14:49' prior: 0!
+General mail receiver exception.!
+
+SPReceiverException subclass: #SPConnectionClosedException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPConnectionClosedException commentStamp: 'as 2/15/2007 16:52' prior: 0!
+Connection unexpectedly closed.!
+
+!SPConnectionClosedException methodsFor: 'priv handling' stamp: 'as 11/16/2006 17:07'!
+defaultAction
+
+	receiver clientQuit.! !
+
+SPReceiverException subclass: #SPConnectionTimedOutException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPConnectionTimedOutException commentStamp: 'as 2/15/2007 16:52' prior: 0!
+Connection timed out.!
+
+!SPConnectionTimedOutException methodsFor: 'priv handling' stamp: 'as 12/11/2006 18:19'!
+defaultAction
+
+	receiver close: 'Connection timed out'.! !
+
+!SPReceiverException class methodsFor: 'instance creation' stamp: 'as 10/18/2006 13:41'!
+withReceiver: aSPMailReceiver
+
+	^ self new
+		receiver: aSPMailReceiver;
+		yourself.! !
+
+!SPReceiverException methodsFor: 'access' stamp: 'as 10/18/2006 13:40'!
+receiver: aSPMailReceiver
+
+	receiver := aSPMailReceiver.! !
+
+SPReceiverException subclass: #SPSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPSmtpException commentStamp: 'as 2/15/2007 16:52' prior: 0!
+Client SMTP command error.!
+
+SPSmtpException subclass: #SPCommandNotAllowedSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPCommandNotAllowedSmtpException commentStamp: 'as 2/15/2007 16:53' prior: 0!
+Command not allowed.!
+
+!SPCommandNotAllowedSmtpException methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:04'!
+reply
+
+	^ SPSmtpReply badSequence.! !
+
+SPSmtpException subclass: #SPCommandNotFoundSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPCommandNotFoundSmtpException commentStamp: 'as 2/15/2007 16:53' prior: 0!
+Command not found.!
+
+!SPCommandNotFoundSmtpException methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:06'!
+reply
+
+	^ SPSmtpReply commandUnrecognized.! !
+
+SPSmtpException subclass: #SPLineTooLongSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPLineTooLongSmtpException commentStamp: 'as 2/15/2007 16:53' prior: 0!
+Line too long.!
+
+!SPLineTooLongSmtpException methodsFor: 'priv handling' stamp: 'as 10/17/2006 22:43'!
+reply
+
+	^ SPSmtpReply lineTooLong.! !
+
+!SPSmtpException methodsFor: 'priv handling' stamp: 'as 10/3/2006 15:50'!
+defaultAction
+
+	receiver reply: self reply.! !
+
+!SPSmtpException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:05'!
+reply
+
+	"Every command failure should be replied to the client."
+
+	self subclassResponsibility.! !
+
+SPSmtpException subclass: #SPTooManyRecipientsSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPTooManyRecipientsSmtpException commentStamp: 'as 2/15/2007 16:53' prior: 0!
+Maximum number of recipients reached.!
+
+!SPTooManyRecipientsSmtpException methodsFor: 'priv handling' stamp: 'as 10/18/2006 20:40'!
+reply
+
+	^ SPSmtpReply tooManyRecipients.! !
+
+SPSmtpException subclass: #SPTooMuchMailDataSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPTooMuchMailDataSmtpException commentStamp: 'as 2/15/2007 16:54' prior: 0!
+Too much mail data.!
+
+!SPTooMuchMailDataSmtpException methodsFor: 'priv handling' stamp: 'as 10/18/2006 17:46'!
+reply
+
+	^ SPSmtpReply tooMuchMailData.! !
+
+SPSmtpException subclass: #SPWrongCommandSmtpException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPWrongCommandSmtpException commentStamp: '<historical>' prior: 0!
+Wrong parameters or arguments. !
+
+!SPWrongCommandSmtpException methodsFor: 'priv handling' stamp: 'as 9/14/2006 13:59'!
+reply
+
+	^ SPSmtpReply wrongParameterOrArgument.! !
+
+SPReceiverException subclass: #SPTooManyConnectionsException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPTooManyConnectionsException commentStamp: 'as 2/15/2007 16:54' prior: 0!
+Too many connections.!
+
+!SPTooManyConnectionsException methodsFor: 'priv handling' stamp: 'as 11/16/2006 17:08'!
+defaultAction
+
+	receiver close: 'Too many connections'.! !
+
+SPException subclass: #SPRootUserException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPRootUserException commentStamp: 'as 2/15/2007 16:54' prior: 0!
+Not allowed for root user.!
+
+SPException subclass: #SPSubscriptionNotFoundException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPSubscriptionNotFoundException commentStamp: 'as 2/15/2007 16:54' prior: 0!
+Subscription not found!
+
+SPException subclass: #SPSyntaxException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Core'!
+
+!SPSyntaxException commentStamp: 'as 2/15/2007 12:49' prior: 0!
+Invalid syntax.!
+
+SPException subclass: #SPTooMuchDataException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server-Exceptions'!
+
+!SPTooMuchDataException commentStamp: 'as 2/15/2007 16:54' prior: 0!
+Too much data.!
+
+SPException subclass: #SPUserAlreadyExistsException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPUserAlreadyExistsException commentStamp: 'as 2/15/2007 16:54' prior: 0!
+User already exists.!
+
+SPException subclass: #SPUserNotFoundException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPUserNotFoundException commentStamp: 'as 2/15/2007 16:55' prior: 0!
+User not found.!
+
+SPException subclass: #SPWrongPasswordException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager-Exceptions'!
+
+!SPWrongPasswordException commentStamp: 'as 2/15/2007 16:55' prior: 0!
+Wrong password.!
+
+WATask subclass: #SPWebTask
+	instanceVariableNames: 'user'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebTask commentStamp: 'as 2/22/2007 13:55' prior: 0!
+Models the main web application.!
+
+!SPWebTask methodsFor: 'util' stamp: 'as 2/22/2007 14:18'!
+forever: aBlock
+
+	[ true. ] whileTrue: [ aBlock value. ].! !
+
+!SPWebTask methodsFor: 'rendering' stamp: 'as 3/5/2007 10:27'!
+go
+
+	user _ self call: SPWebMain new.
+	self isolate: [ self call: (SPWebMain withUser: user). ].! !
 
 SMTPClient subclass: #SPSmtpClient
 	instanceVariableNames: ''
