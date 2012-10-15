@@ -1,86 +1,7 @@
 SystemOrganization addCategory: #'Stamp-Tests'!
 SystemOrganization addCategory: #'Stamp-Exceptions'!
+SystemOrganization addCategory: #'Stamp-Testing'!
 SystemOrganization addCategory: #'Stamp-Mail'!
-
-String subclass: #SPSmtpReply
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail'!
-
-!SPSmtpReply commentStamp: '<historical>' prior: 0!
-SMTP replies are sent from the server to the client and are just strings.!
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 22:01'!
-badSequence
-
-	^ '503'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/12/2006 12:19'!
-cannotVerify
-	^ '252'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:48'!
-commandUnrecognized
-
-	^ '500'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/11/2006 16:03'!
-notImplemented
-
-	^ '502'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:09'!
-okay
-
-	^ '250'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 22:05'!
-ready
-
-	^ '220 anonymous.xx'.! !
-
-Exception subclass: #SPSmtpCommandFailed
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Exceptions'!
-
-Exception subclass: #SPSmtpCommandNotAllowed
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Exceptions'!
-
-Exception subclass: #SPSmtpCommandNotFound
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Exceptions'!
-
-TestCase subclass: #CodeTest
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Tests'!
-
-!CodeTest commentStamp: '<historical>' prior: 0!
-Test different aspects of the Smalltalk code in my implementation.!
-
-!CodeTest methodsFor: 'configuration' stamp: 'as 1/11/2006 17:03'!
-packageName
-
-	^ 'Stamp'.! !
-
-!CodeTest methodsFor: 'testing' stamp: 'as 1/11/2006 17:03'!
-testClassComment
-
-	"Each class should have a comment."
-
-	(PackageInfo named: self packageName) classes do: [
-		:each |
-		self assert: each hasComment.
-	].! !
 
 Object subclass: #SPMailReceiver
 	instanceVariableNames: 'state stream message'
@@ -92,51 +13,30 @@ Object subclass: #SPMailReceiver
 Minimalistic mail server following RFC 2821 that only receives mail.
 The current state is tracked in the state variable that holds a symbol. State symbols should be obtained via the appropriate method.!
 
-!SPMailReceiver class methodsFor: 'states' stamp: 'as 1/11/2006 14:04'!
-initialState
-
-	"The initial state before any communication with the client has been done."
-
-	^ #initial.! !
-
-!SPMailReceiver class methodsFor: 'states' stamp: 'as 1/11/2006 16:18'!
-mailState
-
-	^ #mail.! !
-
-!SPMailReceiver class methodsFor: 'instance creation' stamp: 'as 1/12/2006 13:42'!
+!SPMailReceiver class methodsFor: 'instance creation' stamp: 'as 1/12/2006 21:14'!
 on: aSocketStream
 
-	"Return a new instance receiving/sending on the given stream"
+	"Return a new instance receiving/sending on the given stream."
 
 	^ self new
 		stream: aSocketStream;
-		state: self initialState;
-		message: MailMessage new;
 		yourself.! !
 
-!SPMailReceiver class methodsFor: 'states' stamp: 'as 1/11/2006 14:26'!
-resetState
-
-	"The state before starting a new mail transaction."
-
-	^ #reset.! !
-
-!SPMailReceiver methodsFor: 'message' stamp: 'as 1/11/2006 16:28'!
-from: aString
-
-	message from: aString.! !
-
-!SPMailReceiver methodsFor: 'state' stamp: 'as 1/12/2006 16:49'!
+!SPMailReceiver methodsFor: 'state' stamp: 'as 1/12/2006 21:38'!
 gotoState: aSPMailReceiverState
 
-	state := aSPMailReceiverState.
-	state owner: self.! !
+	state := aSPMailReceiverState.! !
 
-!SPMailReceiver methodsFor: 'accessing' stamp: 'as 1/11/2006 16:20'!
-message: aMailMessage
+!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 1/12/2006 21:57'!
+initialize
 
-	message := aMailMessage.! !
+	message := MailMessage new.
+	state := SPReadyMailReceiverState on: self.! !
+
+!SPMailReceiver methodsFor: 'message' stamp: 'as 1/12/2006 21:48'!
+mailFrom: aString
+
+	message from: aString.! !
 
 !SPMailReceiver methodsFor: 'private' stamp: 'as 1/12/2006 17:39'!
 processLine: aString
@@ -182,21 +82,46 @@ Object subclass: #SPMailReceiverState
 	poolDictionaries: ''
 	category: 'Stamp-Mail'!
 
+SPMailReceiverState subclass: #SPMailMailReceiverState
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail'!
+
 !SPMailReceiverState class methodsFor: 'commands' stamp: 'as 1/12/2006 16:42'!
 allowedCommands
 
 	^ self transitions keys.! !
 
-!SPMailReceiverState class methodsFor: 'commands' stamp: 'as 1/12/2006 16:43'!
-nextStateFor: aSPSmtpCommand
+!SPMailReceiverState class methodsFor: 'commands' stamp: 'as 1/12/2006 21:09'!
+defaultTransitions
+
+	"Transitions that are usually always possible."
+
+	^ Dictionary new
+		at: SPVerifySmtpCommand put: self;
+		at: SPNoopSmtpCommand put: self;
+		at: SPQuitSmtpCommand put: self;
+		yourself.! !
+
+!SPMailReceiverState class methodsFor: 'commands' stamp: 'as 1/12/2006 21:45'!
+nextStateClassFor: aSPSmtpCommand
 
 	^ self transitions at: aSPSmtpCommand class.! !
 
-!SPMailReceiverState class methodsFor: 'commands' stamp: 'as 1/12/2006 16:47'!
+!SPMailReceiverState class methodsFor: 'instance creation' stamp: 'as 1/12/2006 21:37'!
+on: aSPMailReceiver
+
+	self new
+		owner: aSPMailReceiver;
+		yourself.! !
+
+!SPMailReceiverState class methodsFor: 'commands' stamp: 'as 1/12/2006 21:10'!
 transitions
 
-	"must return a dictionary with mappings: 'command class' -> 'state class'
-	 means: 'command class' is allowed command and has next state 'state class'"
+	"This must return a dictionary with mappings: 'command class' -> 'state class'.
+	 The meaning is: 'command class' is an allowed command in this state and has
+	 next state 'state class'."
 
 	self subclassResponsibility.! !
 
@@ -210,25 +135,45 @@ commandAllowed: aSPSmtpCommand
 
 	^ self allowedCommands includes: aSPSmtpCommand class.! !
 
-!SPMailReceiverState methodsFor: 'commands' stamp: 'as 1/12/2006 17:37'!
+!SPMailReceiverState methodsFor: 'commands' stamp: 'as 1/12/2006 21:54'!
 execute: aSPSmtpCommand
 
 	(self commandAllowed: aSPSmtpCommand) ifTrue: [
 		aSPSmtpCommand execute.
-		owner gotoState: (self nextStateFor: aSPSmtpCommand) new.
+		owner gotoState: (self nextStateFor: aSPSmtpCommand).
 	] ifFalse: [
-		"throw exception"
+		SPSmtpCommandNotAllowed signal.
 	].! !
 
-!SPMailReceiverState methodsFor: 'commands' stamp: 'as 1/12/2006 16:09'!
+!SPMailReceiverState methodsFor: 'commands' stamp: 'as 1/12/2006 21:44'!
 nextStateFor: aSPSmtpCommand
 
-	^ self class nextStateFor: aSPSmtpCommand.! !
+	^ (self class nextStateClassFor: aSPSmtpCommand) on: owner.! !
 
 !SPMailReceiverState methodsFor: 'accessing' stamp: 'as 1/12/2006 15:57'!
 owner: aSPMailReceiver
 
 	owner := aSPMailReceiver.! !
+
+SPMailReceiverState subclass: #SPReadyMailReceiverState
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail'!
+
+!SPReadyMailReceiverState class methodsFor: 'commands' stamp: 'as 1/12/2006 21:59'!
+transitions
+
+	^ self defaultTransitions
+		at: SPHeloSmtpCommand put: SPResetMailReceiverState;
+		at: SPEhloSmtpCommand put: self;
+		yourself.! !
+
+SPMailReceiverState subclass: #SPResetMailReceiverState
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail'!
 
 Object subclass: #SPSmtpCommand
 	instanceVariableNames: 'argument target'
@@ -249,23 +194,20 @@ SPSmtpCommand subclass: #SPEhloSmtpCommand
 !SPEhloSmtpCommand commentStamp: '<historical>' prior: 0!
 The EHLO command is like HELO but allows to use service extensions. These extension are not needed and therefor the command is rejected.!
 
-!SPEhloSmtpCommand class methodsFor: 'state' stamp: 'as 1/11/2006 15:59'!
-inStates
-
-	^ OrderedCollection new
-		add: SPMailReceiver initialState;
-		yourself.! !
-
 !SPEhloSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/11/2006 16:00'!
 verb
 
 	^ 'ehlo'.! !
 
-!SPEhloSmtpCommand methodsFor: 'executing' stamp: 'as 1/11/2006 16:03'!
+!SPEhloSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 22:07'!
 doExecute
 
-	outState := SPMailReceiver resetState.
-	reply := SPSmtpReply notImplemented.! !
+	"nothing to do"! !
+
+!SPEhloSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 22:08'!
+reply
+
+	^ SPSmtpReply notImplemented.! !
 
 SPSmtpCommand subclass: #SPHeloSmtpCommand
 	instanceVariableNames: ''
@@ -276,23 +218,20 @@ SPSmtpCommand subclass: #SPHeloSmtpCommand
 !SPHeloSmtpCommand commentStamp: '<historical>' prior: 0!
 HELO command ist used by the client to initiate a new session with the server.!
 
-!SPHeloSmtpCommand class methodsFor: 'state' stamp: 'as 1/10/2006 21:14'!
-inStates
-
-	^ OrderedCollection new
-		add: SPMailReceiver initialState;
-		yourself.! !
-
 !SPHeloSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/10/2006 21:46'!
 verb
 
 	^ 'helo'.! !
 
-!SPHeloSmtpCommand methodsFor: 'executing' stamp: 'as 1/10/2006 16:41'!
+!SPHeloSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 22:12'!
 doExecute
 
-	outState := SPMailReceiver resetState.
-	reply := SPSmtpReply okay.! !
+	"nothing to do"! !
+
+!SPHeloSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 22:12'!
+reply
+
+	^ SPSmtpReply okay.! !
 
 SPSmtpCommand subclass: #SPMailSmtpCommand
 	instanceVariableNames: ''
@@ -303,24 +242,47 @@ SPSmtpCommand subclass: #SPMailSmtpCommand
 !SPMailSmtpCommand commentStamp: '<historical>' prior: 0!
 The MAIL command specifies the sender address.!
 
-!SPMailSmtpCommand class methodsFor: 'state' stamp: 'as 1/11/2006 16:13'!
-inStates
-
-	^ OrderedCollection new
-		add: SPMailReceiver resetState;
-		yourself.! !
-
 !SPMailSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/11/2006 16:08'!
 verb
 
 	^ 'mail from:'.! !
 
-!SPMailSmtpCommand methodsFor: 'executing' stamp: 'as 1/11/2006 16:18'!
+!SPMailSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 22:15'!
 doExecute
 
-	receiver from: argument.
-	reply := SPSmtpReply okay.
-	outState := SPMailReceiver mailState.! !
+	target mailFrom: argument.! !
+
+!SPMailSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 22:18'!
+reply
+
+	^ SPSmtpReply okay.! !
+
+SPSmtpCommand subclass: #SPNoopSmtpCommand
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail'!
+
+!SPNoopSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/12/2006 22:18'!
+verb
+
+	^ 'noop'.! !
+
+!SPNoopSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 22:19'!
+doExecute
+
+	"nothing to do"! !
+
+!SPNoopSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 22:20'!
+reply
+
+	^ SPSmtpReply okay.! !
+
+SPSmtpCommand subclass: #SPQuitSmtpCommand
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail'!
 
 !SPSmtpCommand class methodsFor: 'private' stamp: 'as 1/12/2006 17:18'!
 argumentFor: aString command: aSmtpCommand
@@ -343,22 +305,10 @@ commandFor: aString
 	].
 	^ class new.! !
 
-!SPSmtpCommand class methodsFor: 'instance creation' stamp: 'as 1/12/2006 17:33'!
-fromString: aString
-
-	"Return new command created from a given string."
-
-	| command argument |
-	command := self commandFor: aString.
-	self assert: [ command notNil. ].
-	argument := self argumentFor: aString command: command.
-	command argument: argument.
-	^ command.! !
-
-!SPSmtpCommand class methodsFor: 'instance creation' stamp: 'as 1/12/2006 17:36'!
+!SPSmtpCommand class methodsFor: 'instance creation' stamp: 'as 1/12/2006 21:46'!
 fromString: aString target: aSPMailReceiver
 
-	"Return new command created from a given string."
+	"Return a new command created from a given string."
 
 	| command argument |
 	command := self commandFor: aString.
@@ -419,23 +369,121 @@ SPSmtpCommand subclass: #SPVerifySmtpCommand
 !SPVerifySmtpCommand commentStamp: '<historical>' prior: 0!
 VRFY allows clients to verify addresses. This is disabled for security reasons.!
 
-!SPVerifySmtpCommand class methodsFor: 'state' stamp: 'as 1/12/2006 13:35'!
-inStates
-
-	^ OrderedCollection new
-		add: SPMailReceiver initialState;
-		yourself.! !
-
 !SPVerifySmtpCommand class methodsFor: 'smtp' stamp: 'as 1/12/2006 12:21'!
 verb
 
 	^ 'vrfy'.! !
 
-!SPVerifySmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 13:39'!
+!SPVerifySmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 22:13'!
 doExecute
 
-	outState := receiver state.
-	reply := SPSmtpReply cannotVerify.! !
+	"nothing to do"! !
+
+!SPVerifySmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 22:14'!
+reply
+
+	^ SPSmtpReply cannotVerify.! !
+
+Object subclass: #TestingSelf
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Testing'!
+
+!TestingSelf class methodsFor: 'as yet unclassified' stamp: 'as 1/12/2006 21:40'!
+method
+
+	^ self.! !
+
+!TestingSelf methodsFor: 'as yet unclassified' stamp: 'as 1/12/2006 21:40'!
+method
+
+	^ self.! !
+
+!TestingSelf methodsFor: 'as yet unclassified' stamp: 'as 1/12/2006 21:42'!
+test
+
+	^ self method class == self class method.! !
+
+Exception subclass: #SPSmtpCommandFailed
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Exceptions'!
+
+Exception subclass: #SPSmtpCommandNotAllowed
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Exceptions'!
+
+Exception subclass: #SPSmtpCommandNotFound
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Exceptions'!
+
+TestCase subclass: #CodeTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Tests'!
+
+!CodeTest commentStamp: '<historical>' prior: 0!
+Test different aspects of the Smalltalk code in my implementation.!
+
+!CodeTest methodsFor: 'configuration' stamp: 'as 1/11/2006 17:03'!
+packageName
+
+	^ 'Stamp'.! !
+
+!CodeTest methodsFor: 'testing' stamp: 'as 1/11/2006 17:03'!
+testClassComment
+
+	"Each class should have a comment."
+
+	(PackageInfo named: self packageName) classes do: [
+		:each |
+		self assert: each hasComment.
+	].! !
+
+String subclass: #SPSmtpReply
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail'!
+
+!SPSmtpReply commentStamp: '<historical>' prior: 0!
+SMTP replies are sent from the server to the client and are just strings.!
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 22:01'!
+badSequence
+
+	^ '503'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/12/2006 12:19'!
+cannotVerify
+	^ '252'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:48'!
+commandUnrecognized
+
+	^ '500'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/11/2006 16:03'!
+notImplemented
+
+	^ '502'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:09'!
+okay
+
+	^ '250'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 22:05'!
+ready
+
+	^ '220 anonymous.xx'.! !
 
 TcpService subclass: #SPMailListener
 	instanceVariableNames: ''
