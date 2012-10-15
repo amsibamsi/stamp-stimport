@@ -52,36 +52,6 @@ withoutBlanks
 		
 	"' a  bcd  ' withoutBlanks"! !
 
-TcpService subclass: #SPMailService
-	instanceVariableNames: 'listener'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server'!
-
-!SPMailService commentStamp: '<historical>' prior: 0!
-A TCP service listening for incoming SMTP connections.!
-
-!SPMailService class methodsFor: 'instance creation' stamp: 'as 12/13/2006 11:01'!
-withListener: aSPMailListener
-
-	^ self new
-		listener: aSPMailListener;
-		yourself.! !
-
-!SPMailService methodsFor: 'accessing' stamp: 'as 5/30/2006 09:17'!
-listener: aSPMailListener
-
-	listener := aSPMailListener.! !
-
-!SPMailService methodsFor: 'conversation' stamp: 'as 1/16/2007 14:48'!
-serve: aSocket
-
-	[
-		(SPMailReceiver withStream: (SocketStream on: aSocket)) receive.
-	]
-		on: SPTooManyConnectionsException
-		do: [ :ex | ex defaultAction; return. ].! !
-
 !MailMessage methodsFor: '*Stamp' stamp: 'as 9/19/2006 18:11'!
 addField: nameString fromString: valueString
 
@@ -111,6 +81,45 @@ returnPath: aString
 subject: aString
 
 	self setField: 'subject' toString: aString.! !
+
+TcpService subclass: #SPMailService
+	instanceVariableNames: 'listener kernel'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPMailService commentStamp: '<historical>' prior: 0!
+A TCP service listening for incoming SMTP connections.!
+
+!SPMailService class methodsFor: 'instance creation' stamp: 'as 3/14/2007 15:35'!
+withListener: aSPMailListener kernel: aSPKernel
+
+	^ self new
+		listener: aSPMailListener;
+		kernel: aSPKernel;
+		yourself.! !
+
+!SPMailService methodsFor: 'accessing' stamp: 'as 3/14/2007 15:36'!
+kernel: aSPKernel
+
+	kernel _ aSPKernel.! !
+
+!SPMailService methodsFor: 'accessing' stamp: 'as 5/30/2006 09:17'!
+listener: aSPMailListener
+
+	listener := aSPMailListener.! !
+
+!SPMailService methodsFor: 'conversation' stamp: 'as 3/14/2007 15:36'!
+serve: aSocket
+
+	[
+		(SPMailReceiver
+			withStream: (SocketStream on: aSocket)
+			kernel: kernel
+		) receive.
+	]
+		on: SPTooManyConnectionsException
+		do: [ :ex | ex defaultAction; return. ].! !
 
 TestCase subclass: #SPCodeTest
 	instanceVariableNames: ''
@@ -606,12 +615,11 @@ withUser: aSPUser
 		user: aSPUser;
 		yourself.! !
 
-!SPWebContacts methodsFor: 'call/answer' stamp: 'as 3/5/2007 13:06'!
+!SPWebContacts methodsFor: 'call/answer' stamp: 'as 3/14/2007 11:36'!
 add
 
 	self do: [
-		SPMailNotifier verifyContact:
-			(SPKernel instance manager addContact: address user: user).
+		SPKernel instance manager addContact: address user: user.
 	] catchExceptions: SPException.
 	self updateTable.! !
 
@@ -941,21 +949,19 @@ SPWATable subclass: #SPWebSubscriptionAdmin
 !SPWebSubscriptionAdmin commentStamp: 'as 2/27/2007 22:00' prior: 0!
 Subscription administration.!
 
-!SPWebSubscriptionAdmin methodsFor: 'call/answer' stamp: 'as 3/5/2007 13:55'!
+!SPWebSubscriptionAdmin methodsFor: 'call/answer' stamp: 'as 3/14/2007 11:41'!
 accept: aSPSubscription
 
 	self do: [
-		aSPSubscription accepted: true.
-		SPMailNotifier acceptedSubscription: aSPSubscription.
+		SPKernel instance manager acceptSubscription: aSPSubscription.
 	] catchExceptions: SPException.
 	self updateTable.! !
 
-!SPWebSubscriptionAdmin methodsFor: 'call/answer' stamp: 'as 3/5/2007 13:56'!
+!SPWebSubscriptionAdmin methodsFor: 'call/answer' stamp: 'as 3/14/2007 11:50'!
 deny: aSPSubscription
 
 	self do: [
-		SPKernel instance manager unsubscribe: aSPSubscription.
-		SPMailNotifier deniedSubscription: aSPSubscription.
+		SPKernel instance manager denySubscription: aSPSubscription.
 	] catchExceptions: SPException.
 	self updateTable.! !
 
@@ -1888,21 +1894,6 @@ user: aSPUser
 
 	user _ aSPUser.! !
 
-WATask subclass: #SPWebTask
-	instanceVariableNames: 'user'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Web'!
-
-!SPWebTask commentStamp: 'as 2/22/2007 13:55' prior: 0!
-Models the main web application.!
-
-!SPWebTask methodsFor: 'rendering' stamp: 'as 3/5/2007 10:27'!
-go
-
-	user _ self call: SPWebMain new.
-	self isolate: [ self call: (SPWebMain withUser: user). ].! !
-
 Object subclass: #SPConfiguration
 	instanceVariableNames: 'attributes'
 	classVariableNames: ''
@@ -2432,7 +2423,7 @@ doesNotUnderstand: aMessage
 	^ self.! !
 
 Object subclass: #SPKernel
-	instanceVariableNames: 'listener manager queue archive configurator'
+	instanceVariableNames: 'listener manager queue config'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Core'!
@@ -2447,6 +2438,14 @@ Holds references to all important components and the base attributes for the dat
 SPKernel class
 	instanceVariableNames: 'instance'!
 
+!SPKernel class methodsFor: 'instance creation' stamp: 'as 3/13/2007 16:59'!
+destroy
+
+	instance ifNotNil: [
+		instance stop.
+		instance _ nil.
+	].! !
+
 !SPKernel class methodsFor: 'instance creation' stamp: 'as 1/24/2007 15:15'!
 instance
 
@@ -2457,20 +2456,20 @@ new
 
 	self shouldNotImplement.! !
 
-!SPKernel methodsFor: 'accessing' stamp: 'as 12/12/2006 17:32'!
-configurator
+!SPKernel methodsFor: 'accessing' stamp: 'as 3/14/2007 15:31'!
+config
 
-	^ configurator.! !
+	^ config.! !
 
-!SPKernel methodsFor: 'initialize-release' stamp: 'as 3/12/2007 16:20'!
+!SPKernel methodsFor: 'initialize-release' stamp: 'as 3/14/2007 15:32'!
 initialize
 
-	configurator _ SPConfigurator new.
-	listener _ SPMailListener new.
-	manager _ SPListManager withConfig: configurator.
-	queue _ SPMailQueue new.! !
+	config _ SPConfigurator new.
+	queue _ SPMailQueue withConfig: config.
+	manager _ SPListManager withKernel: self.
+	listener _ SPMailListener withKernel: self.! !
 
-!SPKernel methodsFor: 'accessing' stamp: 'as 3/10/2006 16:19'!
+!SPKernel methodsFor: 'accessing' stamp: 'as 3/13/2007 17:33'!
 listener
 
 	^ listener.! !
@@ -2584,7 +2583,7 @@ name: aString
 	name _ aString.! !
 
 Object subclass: #SPListManager
-	instanceVariableNames: 'users lists subscriptions monitor contacts newContacts config'
+	instanceVariableNames: 'users lists subscriptions monitor contacts newContacts config queue'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-ListManager'!
@@ -2592,14 +2591,25 @@ Object subclass: #SPListManager
 !SPListManager commentStamp: 'as 12/4/2006 12:39' prior: 0!
 Access/modify lists, users, contacts and subscriptions.!
 
-!SPListManager class methodsFor: 'instance creation' stamp: 'as 3/12/2007 14:43'!
-withConfig: aSPConfigurator
+!SPListManager class methodsFor: 'instance creation' stamp: 'as 3/14/2007 15:30'!
+withKernel: aSPKernel
 
 	self new
-		config: aSPConfigurator;
+		config: aSPKernel config;
+		queue: aSPKernel queue;
 		yourself.! !
 
-!SPListManager methodsFor: 'adding' stamp: 'as 3/12/2007 20:29'!
+!SPListManager methodsFor: 'subscriptions' stamp: 'as 3/14/2007 11:50'!
+acceptSubscription: aSPSubscription
+
+	aSPSubscription isAccepted ifFalse: [
+		monitor critical: [
+			aSPSubscription accepted: true.
+			self notifyAcceptedSubscription: aSPSubscription.
+		].
+	].! !
+
+!SPListManager methodsFor: 'adding' stamp: 'as 3/14/2007 11:48'!
 addContact: addressString user: aSPUser
 
 	| address contact |
@@ -2609,6 +2619,7 @@ addContact: addressString user: aSPUser
 	monitor critical: [
 		self checkUserIsAvailable: aSPUser.
 		newContacts add: contact.
+		self notifyContactVerification: contact.
 	].
 	^ contact.! !
 
@@ -2797,6 +2808,16 @@ contactsForUser: aSPUser
 		].
 	].! !
 
+!SPListManager methodsFor: 'subscriptions' stamp: 'as 3/14/2007 13:32'!
+denySubscription: aSPSubscription
+
+	aSPSubscription isAccepted ifFalse: [
+		monitor critical: [
+			self notifyDeniedSubscription: aSPSubscription.
+			self unsubscribe: aSPSubscription.
+		].
+	].! !
+
 !SPListManager methodsFor: 'initialize-release' stamp: 'as 3/12/2007 17:53'!
 initialize
 
@@ -2850,6 +2871,57 @@ listWithAddress: aSPMailAddress
 			ifNone: [ nil. ].
 	].! !
 
+!SPListManager methodsFor: 'notifications' stamp: 'as 3/14/2007 13:51'!
+mailAcceptedSubscription: aSPSubscription
+
+^ MailMessage from:
+'From: ', (self adminForList: aSPSubscription list) asString, '
+To: ', aSPSubscription contact address asString, '
+Subject: Subscription accepted
+Date: ', MailMessage dateStampNow, ' ', self timezone, '
+
+Hi, this is Stamp, the mailing list manager at ', self serverName, '.
+
+Your subscription from for the list ', aSPSubscription list address asString,' was accepted.
+
+Sincerly,
+Stamp Mailing List Manager
+'.! !
+
+!SPListManager methodsFor: 'notifications' stamp: 'as 3/14/2007 13:51'!
+mailDeniedSubscription: aSPSubscription
+
+^ MailMessage from:
+'From: ', (self adminForList: aSPSubscription list) asString, '
+To: ', aSPSubscription contact address asString, '
+Subject: Subscription accepted
+Date: ', MailMessage dateStampNow, ' ', self timezone, '
+
+Hi, this is Stamp, the mailing list manager at ', self serverName, '.
+
+Your subscription for the list ', aSPSubscription list address asString,' was denied.
+
+Sincerly,
+Stamp Mailing List Manager
+'.! !
+
+!SPListManager methodsFor: 'notifications' stamp: 'as 3/14/2007 13:55'!
+mailPendingSubscription: aSPSubscription
+
+^ MailMessage from:
+'From: ', (self adminForList: aSPSubscription list) asString, '
+To: ', (self adminForList: aSPSubscription list) asString, '
+Subject: Subscription accepted
+Date: ', MailMessage dateStampNow, ' ', self timezone, '
+
+Hi, this is Stamp, the mailing list manager at ', self serverName, '.
+
+There is a new subscription request from ', aSPSubscription contact address asString, ' for the list ', aSPSubscription list address asString,' which needs your approval.
+
+Sincerly,
+Stamp Mailing List Manager
+'.! !
+
 !SPListManager methodsFor: 'testing' stamp: 'as 2/21/2007 14:47'!
 newContactExists: aSPContact
 
@@ -2873,6 +2945,46 @@ newContactsForUser: aSPUser
 			each user == aSPUser.
 		].
 	].! !
+
+!SPListManager methodsFor: 'notifications' stamp: 'as 3/14/2007 13:40'!
+notifyAcceptedSubscription: aSPSubscription
+
+	queue add: (
+		SPMailMessage
+			sender: (self adminForList: aSPSubscription list)
+			recipient: aSPSubscription contact address
+			mail: (self mailAcceptedSubscription: aSPSubscription)
+	).! !
+
+!SPListManager methodsFor: 'notifications' stamp: 'as 3/14/2007 13:45'!
+notifyContactVerification: aSPContact
+
+	queue add: (
+		SPMailMessage
+			sender: self adminAddress
+			recipient: aSPContact address
+			mail: (self mailContactVerification: aSPContact)
+	).! !
+
+!SPListManager methodsFor: 'notifications' stamp: 'as 3/14/2007 13:40'!
+notifyDeniedSubscription: aSPSubscription
+
+	queue add: (
+		SPMailMessage
+			sender: (self adminForList: aSPSubscription list)
+			recipient: aSPSubscription contact address
+			mail: (self mailDeniedSubscription: aSPSubscription)
+	).! !
+
+!SPListManager methodsFor: 'notifications' stamp: 'as 3/14/2007 13:41'!
+notifyPendingSubscription: aSPSubscription
+
+	queue add: (
+		SPMailMessage
+			sender: (self adminForList: aSPSubscription list)
+			recipient: (self adminForList: aSPSubscription list)
+			mail: (self mailPendingSubscription: aSPSubscription)
+	).! !
 
 !SPListManager methodsFor: 'contacts' stamp: 'as 2/28/2007 18:05'!
 numberOfContactsForUser: aSPUser
@@ -2903,6 +3015,11 @@ pendingSubscriptions
 			each isAccepted not.
 		].
 	].! !
+
+!SPListManager methodsFor: 'accessing' stamp: 'as 3/14/2007 13:35'!
+queue: aSPMailQueue
+
+	queue _ aSPMailQueue.! !
 
 !SPListManager methodsFor: 'recipients' stamp: 'as 3/8/2007 15:26'!
 recipientsForList: aSPList
@@ -2949,7 +3066,12 @@ removeUser: aSPUser
 		users remove: aSPUser.
 	].! !
 
-!SPListManager methodsFor: 'subscription' stamp: 'as 3/12/2007 20:45'!
+!SPListManager methodsFor: 'configuration' stamp: 'as 3/14/2007 13:56'!
+serverName
+
+	^ config preferenceAt: #serverName.! !
+
+!SPListManager methodsFor: 'subscriptions' stamp: 'as 3/14/2007 11:49'!
 subscribe: aSPContact to: aSPList
 
 	| subscription |
@@ -2960,8 +3082,9 @@ subscribe: aSPContact to: aSPList
 		subscription accepted: (aSPList isLocked not).
 		self checkSubscriptionIsAvailable: subscription.
 		subscriptions add: subscription.
-		subscription isAccepted ifFalse: [ SPMailNotifier pendingSubscription: subscription. ].
-	].! !
+		subscription isAccepted ifFalse: [ self notifyPendingSubscription: subscription. ].
+	].
+	^ subscription.! !
 
 !SPListManager methodsFor: 'testing' stamp: 'as 3/12/2007 19:53'!
 subscriptionExists: aSPSubscription
@@ -3021,7 +3144,12 @@ superUserName
 
 	^ 'root'.! !
 
-!SPListManager methodsFor: 'subscription' stamp: 'as 2/15/2007 13:59'!
+!SPListManager methodsFor: 'configuration' stamp: 'as 3/14/2007 13:57'!
+timezone
+
+	^ config preferenceAt: #timezone.! !
+
+!SPListManager methodsFor: 'subscriptions' stamp: 'as 3/14/2007 11:45'!
 unsubscribe: aSPSubscription
 
 	monitor critical: [
@@ -3165,7 +3293,7 @@ path
 	^ '<', localPart, '@', domain, '>'.! !
 
 Object subclass: #SPMailHandler
-	instanceVariableNames: 'process message state attempts sent monitor'
+	instanceVariableNames: 'process message state attempts sent monitor queue config'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
@@ -3173,11 +3301,13 @@ Object subclass: #SPMailHandler
 !SPMailHandler commentStamp: 'as 1/25/2007 11:32' prior: 0!
 Each incoming mail is wrapped in it's own mail handler that runs its own process to handle the message.!
 
-!SPMailHandler class methodsFor: 'instance creation' stamp: 'as 2/16/2007 12:31'!
-withMessage: aSPMailMessage
+!SPMailHandler class methodsFor: 'instance creation' stamp: 'as 3/13/2007 17:01'!
+withMessage: aSPMailMessage queue: aSPQueue config: aSPConfigurator
 
 	^ self new
 		message: aSPMailMessage;
+		queue: aSPQueue;
+		config: aSPConfigurator;
 		yourself.! !
 
 !SPMailHandler methodsFor: 'processing' stamp: 'as 2/28/2007 21:57'!
@@ -3190,12 +3320,12 @@ attempts
 
 	^ attempts.! !
 
-!SPMailHandler methodsFor: 'configuration' stamp: 'as 2/28/2007 22:20'!
-config
+!SPMailHandler methodsFor: 'accessing' stamp: 'as 3/13/2007 16:56'!
+config: aSPConfigurator
 
-	^ SPKernel instance configurator.! !
+	config _ aSPConfigurator.! !
 
-!SPMailHandler methodsFor: 'processing' stamp: 'as 3/11/2007 17:23'!
+!SPMailHandler methodsFor: 'processing' stamp: 'as 3/13/2007 16:59'!
 delay
 
 	(Delay forSeconds: self queueDelay) wait.! !
@@ -3208,7 +3338,7 @@ initialize
 	monitor _ Monitor new.
 	process _ [ self run. ] newProcess.! !
 
-!SPMailHandler methodsFor: 'processing' stamp: 'as 2/28/2007 22:13'!
+!SPMailHandler methodsFor: 'processing' stamp: 'as 3/13/2007 17:00'!
 isFinished
 
 	^ sent or: [ attempts >= self queueSendAttempts. ].! !
@@ -3225,10 +3355,11 @@ message
 
 	^ message.! !
 
-!SPMailHandler methodsFor: 'accessing' stamp: 'as 1/30/2007 10:22'!
+!SPMailHandler methodsFor: 'accessing' stamp: 'as 3/14/2007 14:17'!
 message: aSPMailMessage
 
-	message _ aSPMailMessage.! !
+	message _ aSPMailMessage.
+	message ensureMessageId: self serverName.! !
 
 !SPMailHandler methodsFor: 'processing' stamp: 'as 2/28/2007 22:41'!
 processMessage
@@ -3239,30 +3370,35 @@ processMessage
 		ex return.
 	].! !
 
-!SPMailHandler methodsFor: 'configuration' stamp: 'as 3/11/2007 17:23'!
+!SPMailHandler methodsFor: 'accessing' stamp: 'as 3/13/2007 15:12'!
+queue: aSPMailQueue
+
+	queue _ aSPMailQueue.! !
+
+!SPMailHandler methodsFor: 'configuration' stamp: 'as 3/13/2007 16:56'!
 queueDelay
 
-	^ self config preferenceAt: #queueDelay.! !
+	^ config preferenceAt: #queueDelay.! !
 
-!SPMailHandler methodsFor: 'configuration' stamp: 'as 2/28/2007 21:59'!
+!SPMailHandler methodsFor: 'configuration' stamp: 'as 3/13/2007 16:56'!
 queueSendAttempts
 
-	^ self config preferenceAt: #queueSendAttempts.! !
+	^ config preferenceAt: #queueSendAttempts.! !
 
-!SPMailHandler methodsFor: 'processing' stamp: 'as 2/28/2007 22:38'!
+!SPMailHandler methodsFor: 'processing' stamp: 'as 3/13/2007 16:49'!
 run
 
 	[
 		self processMessage.
 		[ self isFinished. ] whileFalse: [ self delay; processMessage. ].
-	] ensure: [ SPKernel instance queue removeHandler: self. ].! !
+	] ensure: [ queue removeHandler: self. ].! !
 
-!SPMailHandler methodsFor: 'processing' stamp: 'as 3/8/2007 15:12'!
+!SPMailHandler methodsFor: 'processing' stamp: 'as 3/13/2007 17:00'!
 sendMessage
 
 	monitor critical: [
 		self attempting.
-		SPSmtpClient new sendMessage: message.
+		(SPSmtpClient withConfig: config) sendMessage: message.
 		self sent.
 	].! !
 
@@ -3270,6 +3406,11 @@ sendMessage
 sent
 
 	sent _ true.! !
+
+!SPMailHandler methodsFor: 'configuration' stamp: 'as 3/14/2007 14:22'!
+serverName
+
+	^ config preferenceAt: #serverName.! !
 
 !SPMailHandler methodsFor: 'processing' stamp: 'as 2/7/2007 00:00'!
 start
@@ -3283,13 +3424,22 @@ state
 	state ifNil: [ ^ 'new'. ] ifNotNil: [ ^ state. ].! !
 
 Object subclass: #SPMailListener
-	instanceVariableNames: 'service connections monitor'
+	instanceVariableNames: 'service connections config monitor kernel'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
 
-!SPMailListener commentStamp: '<historical>' prior: 0!
-Listens for incoming SMTP connections and treats them appropriately.!
+!SPMailListener commentStamp: 'as 3/14/2007 15:02' prior: 0!
+Listens for incoming SMTP connections.!
+
+!SPMailListener class methodsFor: 'instance creation' stamp: 'as 3/14/2007 15:33'!
+withKernel: aSPKernel
+
+	^ self new
+		config: aSPKernel config;
+		kernel: aSPKernel;
+		initService;
+		yourself.! !
 
 !SPMailListener methodsFor: 'connections' stamp: 'as 11/8/2006 11:09'!
 addConnection: aSPMailReceiver
@@ -3299,34 +3449,52 @@ addConnection: aSPMailReceiver
 		connections add: aSPMailReceiver.
 	].! !
 
-!SPMailListener methodsFor: 'checking' stamp: 'as 11/8/2006 22:11'!
+!SPMailListener methodsFor: 'checking' stamp: 'as 3/14/2007 13:58'!
 checkConnections: aSPMailReceiver
 
-	connections size >= self listenerMaxConnections ifTrue: [
-		(SPTooManyConnectionsException withReceiver: aSPMailReceiver) signal.
+	monitor critical: [
+		connections size >= self listenerMaxConnections ifTrue: [
+			(SPTooManyConnectionsException withReceiver: aSPMailReceiver) signal.
+		].
 	].! !
 
-!SPMailListener methodsFor: 'configuration' stamp: 'as 1/15/2007 11:31'!
-config
+!SPMailListener methodsFor: 'accessing' stamp: 'as 3/13/2007 14:44'!
+config: aSPConfigurator
 
-	^ SPKernel instance configurator.! !
+	config _ aSPConfigurator.! !
 
-!SPMailListener methodsFor: 'initialize-release' stamp: 'as 12/13/2006 11:02'!
+!SPMailListener methodsFor: 'connections' stamp: 'as 3/14/2007 15:41'!
+connections
+
+	^ monitor critical: [
+		connections copy.
+	].! !
+
+!SPMailListener methodsFor: 'initialize-release' stamp: 'as 3/14/2007 15:34'!
+initService
+
+	service _ SPMailService withListener: self kernel: kernel.! !
+
+!SPMailListener methodsFor: 'initialize-release' stamp: 'as 3/14/2007 14:36'!
 initialize
 
-	service _ SPMailService withListener: self.
 	monitor _ Monitor new.
 	connections _ IdentitySet new.! !
 
-!SPMailListener methodsFor: 'configuration' stamp: 'as 1/15/2007 11:31'!
+!SPMailListener methodsFor: 'accessing' stamp: 'as 3/14/2007 15:33'!
+kernel: aSPKernel
+
+	kernel _ aSPKernel.! !
+
+!SPMailListener methodsFor: 'configuration' stamp: 'as 3/13/2007 14:44'!
 listenerMaxConnections
 
-	^ self config preferenceAt: #listenerMaxConnections.! !
+	^ config preferenceAt: #listenerMaxConnections.! !
 
-!SPMailListener methodsFor: 'configuration' stamp: 'as 1/15/2007 11:31'!
+!SPMailListener methodsFor: 'configuration' stamp: 'as 3/13/2007 14:44'!
 listenerPort
 
-	^ self config preferenceAt: #listenerPort.! !
+	^ config preferenceAt: #listenerPort.! !
 
 !SPMailListener methodsFor: 'connections' stamp: 'as 11/8/2006 11:04'!
 removeConnection: aSPMailReceiver
@@ -3343,15 +3511,15 @@ service
 
 	^ service.! !
 
-!SPMailListener methodsFor: 'start-stop' stamp: 'as 12/13/2006 11:02'!
+!SPMailListener methodsFor: 'start-stop' stamp: 'as 3/13/2007 14:45'!
 start
 
-	service startOn: self listenerPort.! !
+	monitor critical: [ service startOn: self listenerPort. ].! !
 
-!SPMailListener methodsFor: 'start-stop' stamp: 'as 12/4/2006 15:28'!
+!SPMailListener methodsFor: 'start-stop' stamp: 'as 3/13/2007 14:45'!
 stop
 
-	service stop.! !
+	monitor critical: [ service stop. ].! !
 
 !SPMailListener methodsFor: 'start-stop' stamp: 'as 12/5/2006 14:08'!
 waitForStop
@@ -3406,14 +3574,21 @@ monitor
 
 	^ monitor ifNil: [ monitor _ Monitor new. ].! !
 
-!SPMailMessage class methodsFor: 'instance creation' stamp: 'as 2/26/2007 13:37'!
+!SPMailMessage class methodsFor: 'instance creation' stamp: 'as 3/14/2007 14:08'!
+sender: fromSPMailAddress recipient: recipientSPMailAddress mail: aMailMessage
+
+	^ self new
+		sender: fromSPMailAddress;
+		recipients: (Array with: recipientSPMailAddress);
+		mail: aMailMessage.! !
+
+!SPMailMessage class methodsFor: 'instance creation' stamp: 'as 3/14/2007 14:08'!
 sender: fromSPMailAddress recipients: collectionOfSPMailAddress mail: aMailMessage
 
 	^ self new
 		sender: fromSPMailAddress;
 		recipients: collectionOfSPMailAddress;
-		mail: aMailMessage;
-		ensureMessageId.! !
+		mail: aMailMessage.! !
 
 !SPMailMessage class methodsFor: 'id' stamp: 'as 3/8/2007 17:18'!
 uniqueMessageId
@@ -3423,21 +3598,16 @@ uniqueMessageId
 		^ messageId.
 	].! !
 
-!SPMailMessage methodsFor: 'configuration' stamp: 'as 1/15/2007 11:32'!
-config
-
-	^ SPKernel instance configurator.! !
-
 !SPMailMessage methodsFor: 'accessing' stamp: 'as 1/30/2007 10:26'!
 date
 
 	^ date.! !
 
-!SPMailMessage methodsFor: 'inserting' stamp: 'as 2/26/2007 10:15'!
-ensureMessageId
+!SPMailMessage methodsFor: 'inserting' stamp: 'as 3/14/2007 14:07'!
+ensureMessageId: aString
 
 	mail fieldNamed: 'message-id' ifAbsent: [
-		mail setField: 'message-id' toString: '<', self class uniqueMessageId asString, '@', self serverName, '>'.
+		mail setField: 'message-id' toString: '<', self class uniqueMessageId asString, '@', aString, '>'.
 	].! !
 
 !SPMailMessage methodsFor: 'initialize-release' stamp: 'as 2/26/2007 10:12'!
@@ -3475,18 +3645,13 @@ sender: aSPMailAddress
 
 	sender := aSPMailAddress.! !
 
-!SPMailMessage methodsFor: 'configuration' stamp: 'as 2/26/2007 10:14'!
-serverName
-
-	^ self config preferenceAt: #serverName.! !
-
 !SPMailMessage methodsFor: 'mail' stamp: 'as 2/23/2007 16:44'!
 subject
 
 	^ mail subject.! !
 
 SPMailMessage subclass: #SPMailPosting
-	instanceVariableNames: ''
+	instanceVariableNames: 'manager'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
@@ -3495,10 +3660,17 @@ SPMailMessage subclass: #SPMailPosting
 A mail message dedicated for postings to mailing lists.
 Only the first recipient is used and is interpreted as list address.!
 
-!SPMailPosting methodsFor: 'posting' stamp: 'as 2/26/2007 11:23'!
+!SPMailPosting class methodsFor: 'instance creation' stamp: 'as 3/14/2007 15:46'!
+withManager: aSPListManager from: senderString to: recipientString mail: mailString
+
+	^ (self from: senderString to: recipientString mail: mailString)
+		manager: aSPListManager;
+		yourself.! !
+
+!SPMailPosting methodsFor: 'posting' stamp: 'as 3/14/2007 14:31'!
 admin
 
-	^ SPKernel instance manager adminForList: self recipientList.! !
+	^ manager adminForList: self recipientList.! !
 
 !SPMailPosting methodsFor: 'checking' stamp: 'as 2/26/2007 11:58'!
 checkIsAllowed
@@ -3507,15 +3679,15 @@ checkIsAllowed
 		^ SPPostingNotAllowedException signal.
 	].! !
 
-!SPMailPosting methodsFor: 'testing' stamp: 'as 3/8/2007 15:45'!
+!SPMailPosting methodsFor: 'testing' stamp: 'as 3/14/2007 14:32'!
 isAllowed
 	
-	^ SPKernel instance manager isAllowed: self senderUser toPostTo: self recipientList.! !
+	^ manager isAllowed: self senderUser toPostTo: self recipientList.! !
 
-!SPMailPosting methodsFor: 'posting' stamp: 'as 3/8/2007 15:26'!
+!SPMailPosting methodsFor: 'posting' stamp: 'as 3/14/2007 14:31'!
 listRecipients
 
-	^ SPKernel instance manager recipientsForList: self recipientList.! !
+	^ manager recipientsForList: self recipientList.! !
 
 !SPMailPosting methodsFor: 'accessing' stamp: 'as 3/8/2007 17:37'!
 mail
@@ -3526,11 +3698,16 @@ mail
 	message subject: '[', self recipientList name, '] ', mail subject.
 	^ message.! !
 
-!SPMailPosting methodsFor: 'posting' stamp: 'as 3/8/2007 17:31'!
+!SPMailPosting methodsFor: 'accessing' stamp: 'as 3/14/2007 14:30'!
+manager: aSPListManager
+
+	manager _ aSPListManager.! !
+
+!SPMailPosting methodsFor: 'posting' stamp: 'as 3/14/2007 14:31'!
 recipientList
 
 	| list |
-	list _ SPKernel instance manager listWithAddress: recipients atRandom.
+	list _ manager listWithAddress: recipients atRandom.
 	list ifNil: [ SPListNotFoundException signal. ].
 	^ list.! !
 
@@ -3540,198 +3717,42 @@ recipients
 	self checkIsAllowed.
 	^ self listRecipients.! !
 
-!SPMailPosting methodsFor: 'posting' stamp: 'as 3/8/2007 15:41'!
+!SPMailPosting methodsFor: 'posting' stamp: 'as 3/14/2007 14:31'!
 senderUser
 
 	| user |
-	user _ SPKernel instance manager userWithAddress: sender.
+	user _ manager userWithAddress: sender.
 	user ifNil: [ SPUserNotFoundException signal. ].
 	^ user.! !
 
-Object subclass: #SPMailNotifier
-	instanceVariableNames: 'message'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Client'!
-
-!SPMailNotifier commentStamp: 'as 2/26/2007 13:28' prior: 0!
-Send pre-defined mail notifications.!
-
-!SPMailNotifier class methodsFor: 'notifications' stamp: 'as 3/7/2007 17:50'!
-acceptedSubscription: aSPSubscription
-
-	self send: (
-		SPMailMessage
-			from: (self listAdmin: aSPSubscription) asString
-			to: aSPSubscription contact address asString
-			mail: (self textAcceptedSubscription: aSPSubscription)
-	).! !
-
-!SPMailNotifier class methodsFor: 'configuration' stamp: 'as 2/26/2007 15:20'!
-adminAddress
-
-	^ self config preferenceAt: #adminAddress.! !
-
-!SPMailNotifier class methodsFor: 'configuration' stamp: 'as 2/26/2007 13:59'!
-config
-
-	^ SPKernel instance configurator.! !
-
-!SPMailNotifier class methodsFor: 'notifications' stamp: 'as 3/7/2007 17:50'!
-deniedSubscription: aSPSubscription
-
-	self send: (
-		SPMailMessage
-			from: (self listAdmin: aSPSubscription) asString
-			to: aSPSubscription contact address asString
-			mail: (self textDeniedSubscription: aSPSubscription)
-	).! !
-
-!SPMailNotifier class methodsFor: 'texts' stamp: 'as 2/27/2007 12:49'!
-greetingText
-
-^
-'Hi, this is Stamp, the mailing list manager at ', self serverName, '.'.! !
-
-!SPMailNotifier class methodsFor: 'lists' stamp: 'as 3/7/2007 17:46'!
-listAdmin: aSPSubscription
-
-	^ SPKernel instance manager adminForList: aSPSubscription list.! !
-
-!SPMailNotifier class methodsFor: 'notifications' stamp: 'as 3/7/2007 17:47'!
-pendingSubscription: aSPSubscription
-
-	self send: (
-		SPMailMessage
-			from: (self listAdmin: aSPSubscription) asString
-			to: (self listAdmin: aSPSubscription) asString
-			mail: (self textPendingSubscription: aSPSubscription)
-	).! !
-
-!SPMailNotifier class methodsFor: 'sending' stamp: 'as 2/26/2007 13:40'!
-send: aSPMailMessage
-
-	SPKernel instance queue addMessage: aSPMailMessage.! !
-
-!SPMailNotifier class methodsFor: 'configuration' stamp: 'as 2/27/2007 12:42'!
-serverName
-
-	^ self config preferenceAt: #serverName.! !
-
-!SPMailNotifier class methodsFor: 'texts' stamp: 'as 3/7/2007 17:50'!
-textAcceptedSubscription: aSPSubscription
-
-^ (self
-	textFrom: (self listAdmin: aSPSubscription) asString
-	to: aSPSubscription contact address asString
-	subject: 'Subscription Accepted'),
-self greetingText, '
-
-Your subscription from ', aSPSubscription contact address asString, ' for the list ', aSPSubscription list address asString,' was accepted.
-
-
-', self textFooter.! !
-
-!SPMailNotifier class methodsFor: 'texts' stamp: 'as 3/7/2007 17:51'!
-textDeniedSubscription: aSPSubscription
-
-^ (self
-	textFrom: (self listAdmin: aSPSubscription) asString
-	to: aSPSubscription contact address asString
-	subject: 'Subscription Denied'),
-self greetingText, '
-
-Your subscription from ', aSPSubscription contact address asString, ' for the list ', aSPSubscription list address asString,' was denied.
-
-
-', self textFooter.! !
-
-!SPMailNotifier class methodsFor: 'texts' stamp: 'as 2/27/2007 12:48'!
-textFooter
-
-^
-'Sincerly,
-Stamp Mailing List Manager'.! !
-
-!SPMailNotifier class methodsFor: 'texts' stamp: 'as 2/27/2007 12:49'!
-textFrom: fromString to: toString subject: subjectString
-
-^
-'From: ', fromString, '
-To: ', toString, '
-Subject: ', subjectString, '
-Date: ', MailMessage dateStampNow, ' ', self timezone, '
-
-'.! !
-
-!SPMailNotifier class methodsFor: 'texts' stamp: 'as 3/7/2007 17:48'!
-textPendingSubscription: aSPSubscription
-
-^ (self
-	textFrom: (self listAdmin: aSPSubscription) asString
-	to: (self listAdmin: aSPSubscription) asString
-	subject: 'New Subscription'),
-self greetingText, '
-
-There is a new subscription request from ', aSPSubscription contact address asString, ' for the list ', aSPSubscription list address asString,' which needs your approval.
-
-
-', self textFooter.! !
-
-!SPMailNotifier class methodsFor: 'texts' stamp: 'as 2/27/2007 12:52'!
-textVerifyContact: aSPContact
-
-^ (self
-	textFrom: self adminAddress asString
-	to: aSPContact address asString
-	subject: 'Contact Verification'),
-self greetingText, '
-
-Your email address was registered and this is the code to verify it in your user profile:
-
-', aSPContact verification, '
-
-If you have received this message by mistake, ignore it.
-
-
-', self textFooter.! !
-
-!SPMailNotifier class methodsFor: 'configuration' stamp: 'as 2/26/2007 13:59'!
-timezone
-
-	^ self config preferenceAt: #timezone.! !
-
-!SPMailNotifier class methodsFor: 'notifications' stamp: 'as 2/27/2007 12:49'!
-verifyContact: aSPContact
-
-	self send: (
-		SPMailMessage
-			from: self adminAddress asString
-			to: aSPContact address asString
-			mail: (self textVerifyContact: aSPContact)
-	).! !
-
 Object subclass: #SPMailQueue
-	instanceVariableNames: 'queue monitor'
+	instanceVariableNames: 'queue monitor config'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
 
-!SPMailQueue commentStamp: '<historical>' prior: 0!
-Mail queue.!
+!SPMailQueue commentStamp: 'as 3/14/2007 15:02' prior: 0!
+All outgoing mail should go through the mail queue.!
 
-!SPMailQueue methodsFor: 'queueing' stamp: 'as 2/26/2007 15:49'!
+!SPMailQueue class methodsFor: 'instance creation' stamp: 'as 3/13/2007 14:52'!
+withConfig: aSPConfigurator
+
+	^ self new
+		config: aSPConfigurator;
+		yourself.! !
+
+!SPMailQueue methodsFor: 'queueing' stamp: 'as 3/13/2007 15:38'!
 addMessage: aSPMailMessage 
 
 	| handler |
-	handler _ (SPMailHandler withMessage: aSPMailMessage).
+	handler _ self newHandler: aSPMailMessage.
 	monitor critical: [
 		self checkFreeQueueSize: 1.
 		queue add: handler.
 		handler start.
 	].! !
 
-!SPMailQueue methodsFor: 'queueing' stamp: 'as 2/7/2007 00:14'!
+!SPMailQueue methodsFor: 'queueing' stamp: 'as 3/13/2007 15:37'!
 addMessages: aCollection
 
 	| handlers |
@@ -3740,7 +3761,7 @@ addMessages: aCollection
 		self checkFreeQueueSize: aCollection size.
 		aCollection do: [
 			:each |
-			handlers add: (SPMailHandler withMessage: each).
+			handlers add: (self newHandler: each).
 		].
 		queue addAll: handlers.
 		handlers do: [ :each | each start. ].
@@ -3753,10 +3774,10 @@ checkFreeQueueSize: aNumber
 		SPQueueFullException signal.
 	].! !
 
-!SPMailQueue methodsFor: 'configuration' stamp: 'as 1/15/2007 18:14'!
-config
+!SPMailQueue methodsFor: 'accessing' stamp: 'as 3/13/2007 14:53'!
+config: aSPConfigurator
 
-	^ SPKernel instance configurator.! !
+	config _ aSPConfigurator.! !
 
 !SPMailQueue methodsFor: 'queueing' stamp: 'as 2/23/2007 16:40'!
 handlers
@@ -3771,10 +3792,15 @@ initialize
 	queue _ IdentitySet new.
 	monitor _ Monitor new.! !
 
-!SPMailQueue methodsFor: 'configuration' stamp: 'as 1/30/2007 15:51'!
+!SPMailQueue methodsFor: 'queueing' stamp: 'as 3/13/2007 17:01'!
+newHandler: aSPMailMessage 
+
+	^ SPMailHandler withMessage: aSPMailMessage queue: self config: config.! !
+
+!SPMailQueue methodsFor: 'configuration' stamp: 'as 3/13/2007 14:53'!
 queueSize
 
-	^ self config preferenceAt: #queueSize.! !
+	^ config preferenceAt: #queueSize.! !
 
 !SPMailQueue methodsFor: 'queueing' stamp: 'as 2/7/2007 00:00'!
 removeHandler: aSPMailHandler
@@ -3784,21 +3810,23 @@ removeHandler: aSPMailHandler
 	].! !
 
 Object subclass: #SPMailReceiver
-	instanceVariableNames: 'state stream quit sender recipients mail'
+	instanceVariableNames: 'state stream quit sender recipients mail config manager listener queue'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
 
-!SPMailReceiver commentStamp: '<historical>' prior: 0!
-Minimalistic mail server trying to follow RFC 2821. It only receives mail. One receiver serves one client connection, and the whole will usually be multithreaded.
+!SPMailReceiver commentStamp: 'as 3/14/2007 15:03' prior: 0!
+Minimalistic mail server trying to follow RFC 2821. It only receives mail. One receiver serves one client connection, and the whole will usually be multithreaded.!
 
-A SPMailReceiver is created on a socket. Mail reception starts with the receive method. After its return received data is available in the message.!
-
-!SPMailReceiver class methodsFor: 'instance creation' stamp: 'as 1/15/2007 17:37'!
-withStream: aSocketStream
+!SPMailReceiver class methodsFor: 'instance creation' stamp: 'as 3/14/2007 15:38'!
+withStream: aSocketStream listener: aSPMailListener kernel: aSPKernel
 
 	^ self new
 		stream: aSocketStream;
+		listener: aSPMailListener;
+		config: aSPKernel config;
+		manager: aSPKernel manager;
+		queue: aSPKernel queue;
 		postInit;
 		yourself.! !
 
@@ -3820,10 +3848,10 @@ close: aString
 	self replyClosing: aString.
 	stream close.! !
 
-!SPMailReceiver methodsFor: 'configuration' stamp: 'as 1/17/2007 13:39'!
-config
+!SPMailReceiver methodsFor: 'accessing' stamp: 'as 3/14/2007 14:38'!
+config: aSPConfigurator
 
-	^ SPKernel instance configurator.! !
+	config _ aSPConfigurator.! !
 
 !SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 3/7/2007 18:13'!
 initRecipients
@@ -3876,6 +3904,16 @@ mailDelimiter
 
 	^ '.', String crlf.! !
 
+!SPMailReceiver methodsFor: 'accessing' stamp: 'as 3/14/2007 15:01'!
+manager
+
+	^ manager.! !
+
+!SPMailReceiver methodsFor: 'accessing' stamp: 'as 3/14/2007 14:38'!
+manager: aSPListManager
+
+	manager _ aSPListManager.! !
+
 !SPMailReceiver methodsFor: 'limits' stamp: 'as 10/18/2006 17:30'!
 maxCommandLineLength
 
@@ -3896,12 +3934,17 @@ nameForAddress: addressString
 
 	^ NetNameResolver nameForAddress: addressString timeout: self resolverTimeout.! !
 
-!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 1/15/2007 17:34'!
+!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 3/14/2007 14:45'!
 postInit
 
-	SPKernel instance listener addConnection: self.! !
+	listener addConnection: self.! !
 
-!SPMailReceiver methodsFor: 'message' stamp: 'as 2/26/2007 15:38'!
+!SPMailReceiver methodsFor: 'accessing' stamp: 'as 3/14/2007 15:38'!
+queue: aSPQueue
+
+	queue _ aSPQueue.! !
+
+!SPMailReceiver methodsFor: 'message' stamp: 'as 3/14/2007 15:44'!
 queueMessages
 
 	| messages |
@@ -3909,15 +3952,21 @@ queueMessages
 	recipients do: [
 		:each |
 		"ensure unique copy for each posting"
-		messages add: (SPMailPosting from: sender asString to: each asString mail: mail text).
+		messages add: (
+			SPMailPosting
+				withManager: manager
+				from: sender asString
+				to: each asString
+				mail: mail text
+		).
 	].
-	SPKernel instance queue addMessages: messages.! !
+	queue addMessages: messages.! !
 
-!SPMailReceiver methodsFor: 'quiting' stamp: 'as 1/15/2007 17:35'!
+!SPMailReceiver methodsFor: 'quiting' stamp: 'as 3/14/2007 15:51'!
 quit
 
 	stream close.
-	SPKernel instance listener removeConnection: self.! !
+	listener removeConnection: self.! !
 
 !SPMailReceiver methodsFor: 'receiving' stamp: 'as 3/8/2007 17:34'!
 receive
@@ -4015,15 +4064,15 @@ receiveUpTo: aString maxSize: aNumber
 	data := self receiveTo: aString maxSize: aNumber.
 	^ data first: (data size - aString size).! !
 
-!SPMailReceiver methodsFor: 'configuration' stamp: 'as 1/15/2007 17:36'!
+!SPMailReceiver methodsFor: 'configuration' stamp: 'as 3/14/2007 14:56'!
 receiverMaxMailSize
 
-	^ self config preferenceAt: #receiverMaxMailSize.! !
+	^ config preferenceAt: #receiverMaxMailSize.! !
 
-!SPMailReceiver methodsFor: 'configuration' stamp: 'as 1/15/2007 17:36'!
+!SPMailReceiver methodsFor: 'configuration' stamp: 'as 3/14/2007 14:56'!
 receiverMaxRecipients
 
-	^ self config preferenceAt: #receiverMaxRecipients.! !
+	^ config preferenceAt: #receiverMaxRecipients.! !
 
 !SPMailReceiver methodsFor: 'message' stamp: 'as 2/6/2007 23:41'!
 recipient: aSPMailAddress
@@ -4065,20 +4114,20 @@ reset
 	self initRecipients.
 	self state: SPResetSmtpState.! !
 
-!SPMailReceiver methodsFor: 'configuration' stamp: 'as 1/15/2007 17:36'!
+!SPMailReceiver methodsFor: 'configuration' stamp: 'as 3/14/2007 14:56'!
 resolverTimeout
 
-	^ self config preferenceAt: #resolverTimeout.! !
+	^ config preferenceAt: #resolverTimeout.! !
 
 !SPMailReceiver methodsFor: 'message' stamp: 'as 2/26/2007 10:46'!
 sender: aSPMailAddress
 
 	 sender _ aSPMailAddress.! !
 
-!SPMailReceiver methodsFor: 'configuration' stamp: 'as 1/15/2007 17:36'!
+!SPMailReceiver methodsFor: 'configuration' stamp: 'as 3/14/2007 14:56'!
 serverName
 
-	^ self config preferenceAt: #serverName.! !
+	^ config preferenceAt: #serverName.! !
 
 !SPMailReceiver methodsFor: 'accessing' stamp: 'as 1/11/2006 14:34'!
 state
@@ -4095,10 +4144,10 @@ stream: aStream
 
 	stream := aStream.! !
 
-!SPMailReceiver methodsFor: 'configuration' stamp: 'as 2/26/2007 11:43'!
+!SPMailReceiver methodsFor: 'configuration' stamp: 'as 3/14/2007 14:56'!
 timezone
 
-	^ self config preferenceAt: #timezone.! !
+	^ config preferenceAt: #timezone.! !
 
 Object subclass: #SPPassword
 	instanceVariableNames: 'password'
@@ -4316,8 +4365,8 @@ SPSmtpCommand subclass: #SPNoopSmtpCommand
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server-Commands'!
 
-!SPNoopSmtpCommand commentStamp: '<historical>' prior: 0!
-NOOP means no operation. This command is recognized but ignored and has no effect on the server.!
+!SPNoopSmtpCommand commentStamp: 'as 3/14/2007 15:05' prior: 0!
+NOOP means no operation. This command is recognized but has no effect on the server.!
 
 !SPNoopSmtpCommand class methodsFor: 'state' stamp: 'as 2/28/2007 11:15'!
 states
@@ -4396,11 +4445,11 @@ verb
 
 	^ 'rcpt to:'.! !
 
-!SPRecipientSmtpCommand methodsFor: 'executing' stamp: 'as 1/15/2007 17:44'!
+!SPRecipientSmtpCommand methodsFor: 'executing' stamp: 'as 3/14/2007 15:00'!
 doExecute
 
 	| list |
-	list _ SPKernel instance manager listWithAddress: recipient.
+	list _ target manager listWithAddress: recipient.
 	list ifNil: [
 		self reply: SPSmtpReply noSuchUser.
 	] ifNotNil: [
@@ -5122,6 +5171,21 @@ verifyPassword: aString
 
 	^ password check: aString.! !
 
+WATask subclass: #SPWebTask
+	instanceVariableNames: 'user'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebTask commentStamp: 'as 2/22/2007 13:55' prior: 0!
+Models the main web application.!
+
+!SPWebTask methodsFor: 'rendering' stamp: 'as 3/5/2007 10:27'!
+go
+
+	user _ self call: SPWebMain new.
+	self isolate: [ self call: (SPWebMain withUser: user). ].! !
+
 Exception subclass: #SPException
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -5587,18 +5651,26 @@ SPException subclass: #SPWrongPasswordException
 Wrong password.!
 
 SMTPClient subclass: #SPSmtpClient
-	instanceVariableNames: ''
+	instanceVariableNames: 'config'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Client'!
 
-!SPSmtpClient commentStamp: '<historical>' prior: 0!
-A smtp client with anonymous login.!
+!SPSmtpClient commentStamp: 'as 3/14/2007 15:01' prior: 0!
+An SMTP client with anonymous login.!
 
-!SPSmtpClient methodsFor: 'configuration' stamp: 'as 1/24/2007 16:27'!
-config
+!SPSmtpClient class methodsFor: 'instance creation' stamp: 'as 3/13/2007 16:44'!
+withConfig: aSPConfigurator
 
-	^ SPKernel instance configurator.! !
+	^ self new
+		config: aSPConfigurator;
+		yourself.! !
+
+!SPSmtpClient methodsFor: 'accessing' stamp: 'as 3/13/2007 16:53'!
+config: aSPConfigurator
+
+	config _ aSPConfigurator.
+	self initServer.! !
 
 !SPSmtpClient methodsFor: 'smtp' stamp: 'as 11/17/2006 13:27'!
 from: aSPMailAddress
@@ -5606,8 +5678,8 @@ from: aSPMailAddress
 	self sendCommand: 'mail from:', aSPMailAddress path.
 	self checkResponse.! !
 
-!SPSmtpClient methodsFor: 'initialize-release' stamp: 'as 1/24/2007 16:27'!
-initialize
+!SPSmtpClient methodsFor: 'initialize-release' stamp: 'as 3/13/2007 16:53'!
+initServer
 
 	| hostIP |
 	hostIP _ NetNameResolver
@@ -5640,10 +5712,10 @@ reset
 	self sendCommand: 'rset'.
 	self checkResponse.! !
 
-!SPSmtpClient methodsFor: 'configuration' stamp: 'as 1/24/2007 16:27'!
+!SPSmtpClient methodsFor: 'configuration' stamp: 'as 3/13/2007 16:52'!
 resolverTimeout
 
-	^ self config preferenceAt: #resolverTimeout.! !
+	^ config preferenceAt: #resolverTimeout.! !
 
 !SPSmtpClient methodsFor: 'smtp' stamp: 'as 2/28/2007 22:09'!
 sendMessage: aSPMailMessage
@@ -5662,15 +5734,15 @@ sendMessage: aMailMessage from: aSPMailAddress to: aCollection
 		self data: aMailMessage text; quit.
 	] ensure: [ self close. ].! !
 
-!SPSmtpClient methodsFor: 'configuration' stamp: 'as 1/24/2007 16:27'!
+!SPSmtpClient methodsFor: 'configuration' stamp: 'as 3/13/2007 16:52'!
 senderPort
 
-	^ self config preferenceAt: #senderPort.! !
+	^ config preferenceAt: #senderPort.! !
 
-!SPSmtpClient methodsFor: 'configuration' stamp: 'as 1/24/2007 16:27'!
+!SPSmtpClient methodsFor: 'configuration' stamp: 'as 3/13/2007 16:52'!
 senderServer
 
-	^ self config preferenceAt: #senderServer.! !
+	^ config preferenceAt: #senderServer.! !
 
 !SPSmtpClient methodsFor: 'smtp' stamp: 'as 11/17/2006 13:28'!
 to: aSPMailAddress
