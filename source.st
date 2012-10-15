@@ -52,12 +52,6 @@ reply
 
 	self subclassResponsibility.! !
 
-SPSmtpCommandException subclass: #SPSmtpCommandFailed
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Exceptions'!
-
 SPSmtpCommandException subclass: #SPSmtpCommandNotAllowed
 	instanceVariableNames: ''
 	classVariableNames: ''
@@ -533,10 +527,10 @@ SPSmtpState subclass: #SPReadySmtpState
 	poolDictionaries: ''
 	category: 'Stamp-Mail'!
 
-!SPReadySmtpState class methodsFor: 'commands' stamp: 'as 1/18/2006 17:58'!
+!SPReadySmtpState class methodsFor: 'commands' stamp: 'as 1/19/2006 00:20'!
 transitions
 
-	^ self defaultTransitions
+	^ self anytimeTransitions
 		at: SPResetSmtpCommand put: self;
 		at: SPHeloSmtpCommand put: SPResetSmtpState;
 		at: SPEhloSmtpCommand put: self;
@@ -571,10 +565,10 @@ anytimeTransitions
 		at: SPQuitSmtpCommand put: self;
 		yourself.! !
 
-!SPSmtpState class methodsFor: 'commands' stamp: 'as 1/18/2006 17:57'!
+!SPSmtpState class methodsFor: 'commands' stamp: 'as 1/19/2006 00:18'!
 defaultTransitions
 
-	"Transitions that are usually always possible."
+	"Default set of transitions, often used by other states."
 
 	^ self anytimeTransitions
 		at: SPResetSmtpCommand put: SPResetSmtpState;
