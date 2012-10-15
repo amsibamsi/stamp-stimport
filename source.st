@@ -1589,11 +1589,11 @@ tableColumns
 		add: (WAReportColumn new title: 'Port'; valueBlock: [ :item | item remotePort asString. ]; yourself);
 		yourself.! !
 
-!SPWebSystem methodsFor: 'rendering' stamp: 'as 3/14/2007 17:02'!
+!SPWebSystem methodsFor: 'rendering' stamp: 'as 3/29/2007 10:15'!
 tableRows
 
 	^ OrderedCollection new
-		addAll: (SPKernel instance listener connections);
+		addAll: (self listener connections);
 		yourself.! !
 
 SPWATable subclass: #SPWebUserAdmin
@@ -2125,10 +2125,10 @@ initialize
 
 	body _ SPWebEmpty new.! !
 
-!SPWebMain methodsFor: 'testing' stamp: 'as 3/12/2007 17:29'!
+!SPWebMain methodsFor: 'testing' stamp: 'as 3/29/2007 10:15'!
 isRootUser
 
-	^ SPKernel instance manager isSuperUser: user.! !
+	^ self manager isSuperUser: user.! !
 
 !SPWebMain methodsFor: 'call/answer' stamp: 'as 2/28/2007 19:13'!
 login: aSPUser
