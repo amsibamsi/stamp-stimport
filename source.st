@@ -1051,14 +1051,15 @@ remove: aSPContact
 		catchExceptions: SPException.
 	].! !
 
-!SPWebContacts methodsFor: 'rendering' stamp: 'as 2/21/2007 13:48'!
+!SPWebContacts methodsFor: 'rendering' stamp: 'as 3/5/2007 09:06'!
 renderAddContact: html
 
+	self renderTitle: 'Add Address' renderer: html.
 	html form: [
 		html table: [
 			html tableRow: [
 				html textInputWithValue: address callback: [ :v | address _ v. ].
-				html submitButtonWithAction: [ self add. ] text: 'Add address'.
+				html submitButtonWithAction: [ self add. ] text: 'Add'.
 			].
 		].
 	].! !
@@ -1150,9 +1151,10 @@ remove: aSPList
 		] catchExceptions: SPException.
 	].! !
 
-!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 2/28/2007 17:28'!
+!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 3/5/2007 09:04'!
 renderAddList: html
 
+	self renderTitle: 'Add List' renderer: html.
 	html form: [
 		html table: [
 			html tableRowWithLabel: 'Name:' column: [
@@ -1171,12 +1173,11 @@ renderAddList: html
 		].
 	].! !
 
-!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 2/28/2007 17:15'!
+!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 3/5/2007 09:05'!
 renderContentOn: html
 
 	self renderTitle: 'List Administration' renderer: html.
 	super renderContentOn: html.
-	html horizontalRule.
 	self renderAddList: html.
 	! !
 
@@ -2789,10 +2790,10 @@ description: aString
 
 	^ description _ aString.! !
 
-!SPList methodsFor: 'compare' stamp: 'as 3/9/2006 16:50'!
+!SPList methodsFor: 'compare' stamp: 'as 3/5/2007 09:19'!
 hash
 
-	^ name hash.! !
+	^ address hash.! !
 
 !SPList methodsFor: 'initialize-release' stamp: 'as 2/27/2007 15:45'!
 initialize
@@ -2879,12 +2880,10 @@ addList: addressString name: nameString
 	].
 	^ list.! !
 
-!SPListManager methodsFor: 'add-remove' stamp: 'as 2/22/2007 16:18'!
+!SPListManager methodsFor: 'add-remove' stamp: 'as 3/5/2007 09:17'!
 addList: addressString name: nameString description: descriptionString
 
-	monitor critical: [
-		(self addList: addressString name: nameString) description: descriptionString.
-	].! !
+	(self addList: addressString name: nameString) description: descriptionString.! !
 
 !SPListManager methodsFor: 'add-remove' stamp: 'as 2/22/2007 15:31'!
 addUser: nameString password: passwordString
@@ -2971,9 +2970,9 @@ checkListExists: aSPList
 		SPListNotFoundException signal.
 	].! !
 
-!SPListManager methodsFor: 'check' stamp: 'as 2/15/2007 13:13'!
+!SPListManager methodsFor: 'check' stamp: 'as 3/5/2007 09:28'!
 checkListExistsNot: aSPList
-
+	
 	(self listExists: aSPList) ifTrue: [
 		SPListAlreadyExistsException signal.
 	].! !
