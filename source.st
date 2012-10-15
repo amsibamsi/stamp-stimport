@@ -446,7 +446,7 @@ localPart: aString
 	^ self address = aSPMailAddress address.! !
 
 Object subclass: #SPMailMessage
-	instanceVariableNames: 'mail sender recipients lists user'
+	instanceVariableNames: 'mail lists user sender'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
@@ -463,15 +463,10 @@ addList: aSPList
 
 	lists add: aSPList.! !
 
-!SPMailMessage methodsFor: 'accessing' stamp: 'as 9/14/2006 14:49'!
-addRecipient: aSPMailAddress
-
-	recipients add: aSPMailAddress.! !
-
-!SPMailMessage methodsFor: 'initialize-release' stamp: 'as 9/14/2006 14:53'!
+!SPMailMessage methodsFor: 'initialize-release' stamp: 'as 9/26/2006 16:14'!
 initialize
 
-	recipients := Set new.! !
+	lists := Set new.! !
 
 !SPMailMessage methodsFor: 'accessing' stamp: 'as 9/26/2006 13:50'!
 lists
@@ -488,20 +483,20 @@ mail: aString
 
 	mail := MailMessage from: aString.! !
 
-!SPMailMessage methodsFor: 'accessing' stamp: 'as 9/19/2006 14:44'!
-recipients
-
-	^ recipients.! !
-
-!SPMailMessage methodsFor: 'accessing' stamp: 'as 6/12/2006 12:29'!
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 9/26/2006 16:13'!
 sender
 
 	^ sender.! !
 
-!SPMailMessage methodsFor: 'accessing' stamp: 'as 9/26/2006 13:59'!
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 9/26/2006 16:29'!
 sender: aSPMailAddress
 
 	sender := aSPMailAddress.! !
+
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 9/26/2006 16:02'!
+user
+
+	^ user.! !
 
 !SPMailMessage methodsFor: 'accessing' stamp: 'as 9/26/2006 13:50'!
 user: aSPUser
@@ -622,6 +617,12 @@ handleOutbox
 
 	! !
 
+!SPMailQueue methodsFor: 'operations' stamp: 'as 9/26/2006 16:31'!
+incoming: aSPMailMessage
+
+	self addInbox: aSPMailMessage.
+	inProcess isSuspended ifTrue: [ inProcess resume. ].! !
+
 !SPMailQueue methodsFor: 'initialize-release' stamp: 'as 9/19/2006 13:06'!
 initialize
 
@@ -637,14 +638,8 @@ insertReturnPath
 
 	message mail returnPath: message mail sender address.! !
 
-!SPMailQueue methodsFor: 'operations' stamp: 'as 9/22/2006 17:28'!
-in: aSPMailMessage
-
-	self addInbox: aSPMailMessage.
-	inProcess isSuspended ifTrue: [ inProcess resume. ].! !
-
-!SPMailQueue methodsFor: 'operations' stamp: 'as 9/22/2006 17:28'!
-out: aSPMailMessage
+!SPMailQueue methodsFor: 'operations' stamp: 'as 9/26/2006 16:31'!
+outgoing: aSPMailMessage
 
 	self addOutbox: aSPMailMessage.
 	outProcess isSuspended ifTrue: [ outProcess resume. ].! !
@@ -682,10 +677,10 @@ withKernel: aSPKernel stream: aSocketStream
 		stream: aSocketStream;
 		yourself.! !
 
-!SPMailReceiver methodsFor: 'message' stamp: 'as 9/14/2006 14:50'!
-addRecipient: aSPMailAddress
+!SPMailReceiver methodsFor: 'message' stamp: 'as 9/26/2006 15:59'!
+addList: aSPList
 
-	message addRecipient: aSPMailAddress.! !
+	message addList: aSPList.! !
 
 !SPMailReceiver methodsFor: 'private' stamp: 'as 2/6/2006 15:19'!
 dataDelimiter
@@ -710,6 +705,11 @@ insertReturnPath
 insertTrace
 
 	self mail received: 'from ', self remoteName, ' by ', self localName, '; ', MailMessage dateStampNow.! !
+
+!SPMailReceiver methodsFor: 'message' stamp: 'as 9/26/2006 16:15'!
+lists
+
+	message lists.! !
 
 !SPMailReceiver methodsFor: 'operations' stamp: 'as 9/20/2006 14:39'!
 localAddress
@@ -744,10 +744,10 @@ nameForAddress: addressString
 	name ifNil: [ name := 'UNRESOLVED'. ].
 	^ name.! !
 
-!SPMailReceiver methodsFor: 'operations' stamp: 'as 9/18/2006 17:20'!
+!SPMailReceiver methodsFor: 'operations' stamp: 'as 9/26/2006 16:31'!
 queueMail
 
-	kernel queue in: message.! !
+	kernel queue incoming: message.! !
 
 !SPMailReceiver methodsFor: 'operations' stamp: 'as 5/4/2006 15:42'!
 receive
@@ -837,6 +837,16 @@ state: aSPSmtpState
 stream: aStream
 
 	stream := aStream.! !
+
+!SPMailReceiver methodsFor: 'message' stamp: 'as 9/26/2006 16:15'!
+user
+
+	^ message user.! !
+
+!SPMailReceiver methodsFor: 'message' stamp: 'as 9/26/2006 15:59'!
+user: aSPUser
+
+	message user: aSPUser.! !
 
 !SPObject class methodsFor: 'configuration' stamp: 'as 5/30/2006 16:08'!
 configuration
@@ -1046,7 +1056,7 @@ doValidate
 	"do hostname verification?"! !
 
 SPSmtpCommand subclass: #SPMailSmtpCommand
-	instanceVariableNames: ''
+	instanceVariableNames: 'sender'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server-Commands'!
@@ -1068,16 +1078,19 @@ verb
 
 	^ 'mail from:'.! !
 
-!SPMailSmtpCommand methodsFor: 'executing' stamp: 'as 9/11/2006 15:11'!
+!SPMailSmtpCommand methodsFor: 'executing' stamp: 'as 9/26/2006 16:17'!
 doExecute
 
-	target sender: (SPMailAddress fromPath: argument).
+	target sender: sender.
+	target user: (target kernel manager user: sender).
 	self state: SPMailSmtpState.! !
 
-!SPMailSmtpCommand methodsFor: 'executing' stamp: 'as 4/21/2006 10:54'!
+!SPMailSmtpCommand methodsFor: 'executing' stamp: 'as 9/26/2006 15:27'!
 doValidate
 
-	"is sender a subscribed user?"! !
+	[ sender := SPMailAddress fromPath: argument. ]
+		on: SPInvalidMailAddressException
+		do: [ SPWrongSmtpCommandException signal. ].! !
 
 SPSmtpCommand subclass: #SPNoopSmtpCommand
 	instanceVariableNames: ''
@@ -1169,15 +1182,15 @@ verb
 
 	^ 'rcpt to:'.! !
 
-!SPRecipientSmtpCommand methodsFor: 'executing' stamp: 'as 9/14/2006 14:52'!
+!SPRecipientSmtpCommand methodsFor: 'executing' stamp: 'as 9/26/2006 15:25'!
 doExecute
 
 	| list |
-	list := target kernel manager list: recipient localPart.
+	list := target kernel manager list: recipient.
 	list isNil ifTrue: [
 		self reply: SPSmtpReply noSuchUser.
 	] ifFalse: [
-		target addRecipient: recipient.
+		target addList: list.
 		self state: SPRecipientSmtpState.
 	].! !
 
@@ -2144,6 +2157,9 @@ SPException subclass: #SPWrongPasswordException
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-ListManager'!
+
+!SPWrongPasswordException commentStamp: '<historical>' prior: 0!
+The given password is not correct.!
 
 SMTPClient subclass: #SPMailSender
 	instanceVariableNames: ''
