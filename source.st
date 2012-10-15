@@ -129,6 +129,13 @@ on: aSocketStream
 		stream: aSocketStream;
 		yourself.! !
 
+!SPMailReceiver methodsFor: 'settings' stamp: 'as 2/6/2006 15:19'!
+dataDelimiter
+
+	"The delimiter string that will end mail data input."
+
+	^ String crlf, '.', String crlf.! !
+
 !SPMailReceiver methodsFor: 'actions' stamp: 'as 1/14/2006 22:03'!
 enterCommandMode
 
@@ -189,12 +196,12 @@ receiveCommand
 		on: SPSmtpCommandException
 		do: [ :ex | ex defaultAction. ex return. ].! !
 
-!SPMailReceiver methodsFor: 'private' stamp: 'as 1/31/2006 15:04'!
+!SPMailReceiver methodsFor: 'private' stamp: 'as 2/6/2006 15:20'!
 receiveData
 
 	"Receive mail data as specified by the DATA SMTP command."
 
-	message from: (stream upToAll: String crlf, '.', String crlf).
+	message from: (stream upToAll: self dataDelimiter).
 	self reply: SPSmtpReply okay.
 	message inspect.
 	self reset.! !
@@ -706,35 +713,35 @@ String subclass: #SPSmtpReply
 !SPSmtpReply commentStamp: '<historical>' prior: 0!
 SMTP replies are sent from the server to the client and are just strings.!
 
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 22:01'!
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:05'!
 badSequence
 
-	^ '503'.! !
+	^ '503 Bad sequence of commands'.! !
 
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/14/2006 13:02'!
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:15'!
 cannotVerify
 
-	^ '252'.! !
+	^ '252 Verification is disabled'.! !
 
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:48'!
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:16'!
 commandUnrecognized
 
-	^ '500'.! !
+	^ '500 Syntax error or command unrecognized'.! !
 
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/14/2006 22:15'!
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:21'!
 mailInput
 
-	^ '354'.! !
+	^ '354 Start mail input; end with <CRLF>.<CRLF>'.! !
 
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/11/2006 16:03'!
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:22'!
 notImplemented
 
-	^ '502'.! !
+	^ '502 Command not implemented'.! !
 
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/10/2006 21:09'!
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:23'!
 okay
 
-	^ '250'.! !
+	^ '250 Okay'.! !
 
 !SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/17/2006 16:09'!
 ready
