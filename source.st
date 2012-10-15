@@ -397,6 +397,16 @@ verb
 
 	^ 'rset'.! !
 
+!SPResetSmtpCommand methodsFor: 'executing' stamp: 'as 1/18/2006 17:59'!
+doExecute
+
+	target reset.! !
+
+!SPResetSmtpCommand methodsFor: 'executing' stamp: 'as 1/18/2006 17:27'!
+reply
+
+	^ SPSmtpReply okay.! !
+
 !SPSmtpCommand class methodsFor: 'private' stamp: 'as 1/12/2006 17:18'!
 argumentFor: aString command: aSmtpCommand
 
@@ -523,10 +533,11 @@ SPSmtpState subclass: #SPReadySmtpState
 	poolDictionaries: ''
 	category: 'Stamp-Mail'!
 
-!SPReadySmtpState class methodsFor: 'commands' stamp: 'as 1/13/2006 15:40'!
+!SPReadySmtpState class methodsFor: 'commands' stamp: 'as 1/18/2006 17:58'!
 transitions
 
 	^ self defaultTransitions
+		at: SPResetSmtpCommand put: self;
 		at: SPHeloSmtpCommand put: SPResetSmtpState;
 		at: SPEhloSmtpCommand put: self;
 		yourself.! !
@@ -549,15 +560,24 @@ allowedCommands
 
 	^ self transitions keys.! !
 
-!SPSmtpState class methodsFor: 'commands' stamp: 'as 1/12/2006 21:09'!
-defaultTransitions
+!SPSmtpState class methodsFor: 'commands' stamp: 'as 1/18/2006 17:57'!
+anytimeTransitions
 
-	"Transitions that are usually always possible."
+	"Transitions that are always possible."
 
 	^ Dictionary new
 		at: SPVerifySmtpCommand put: self;
 		at: SPNoopSmtpCommand put: self;
 		at: SPQuitSmtpCommand put: self;
+		yourself.! !
+
+!SPSmtpState class methodsFor: 'commands' stamp: 'as 1/18/2006 17:57'!
+defaultTransitions
+
+	"Transitions that are usually always possible."
+
+	^ self anytimeTransitions
+		at: SPResetSmtpCommand put: SPResetSmtpState;
 		yourself.! !
 
 !SPSmtpState class methodsFor: 'commands' stamp: 'as 1/12/2006 21:45'!
