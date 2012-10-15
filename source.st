@@ -3501,10 +3501,10 @@ sendMessage
 	SPSmtpClient new sendMessage: message.
 	self sent.! !
 
-!SPMailHandler methodsFor: 'processing' stamp: 'as 2/26/2007 18:27'!
+!SPMailHandler methodsFor: 'processing' stamp: 'as 3/5/2007 14:20'!
 sent
 
-	state _ 'sent'.! !
+	sent _ true.! !
 
 !SPMailHandler methodsFor: 'processing' stamp: 'as 2/7/2007 00:00'!
 start
