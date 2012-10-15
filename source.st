@@ -1842,14 +1842,14 @@ addContact: addressString user: aSPUser
 		newContacts add: contact.
 	].! !
 
-!SPListManager methodsFor: 'add-remove' stamp: 'as 2/15/2007 13:13'!
+!SPListManager methodsFor: 'add-remove' stamp: 'as 2/21/2007 11:50'!
 addList: addressString name: nameString
 
 	| list address |
 	address _ SPMailAddress fromString: addressString.
 	list _ SPList withAddress: address name: nameString.
 	monitor critical: [
-		self checkListExistsNot.
+		self checkListExistsNot: list.
 		lists add: list.
 	].! !
 
@@ -1868,20 +1868,26 @@ adminAddress
 
 	^ SPKernel instance configurator preferenceAt: #adminAddress.! !
 
-!SPListManager methodsFor: 'get-list' stamp: 'as 2/15/2007 14:18'!
+!SPListManager methodsFor: 'get-list' stamp: 'as 2/21/2007 11:49'!
 allLists
 
-	^ lists.! !
+	^ monitor critical: [
+		lists copy.
+	].! !
 
-!SPListManager methodsFor: 'get-subscription' stamp: 'as 2/19/2007 01:48'!
+!SPListManager methodsFor: 'get-subscription' stamp: 'as 2/21/2007 11:50'!
 allSubscriptions
 
-	^ subscriptions.! !
+	^ monitor critical: [
+		subscriptions copy.
+	].! !
 
-!SPListManager methodsFor: 'get-user' stamp: 'as 2/15/2007 14:18'!
+!SPListManager methodsFor: 'get-user' stamp: 'as 2/21/2007 12:03'!
 allUsers
 
-	^ users.! !
+	^ monitor critical: [
+		users copy.
+	].! !
 
 !SPListManager methodsFor: 'check' stamp: 'as 2/15/2007 13:49'!
 checkContactExists: aSPContact
@@ -1960,6 +1966,14 @@ contactExists: aSPContact
 
 	^ monitor critical: [
 		(contacts includes: aSPContact) or: [ newContacts includes: aSPContact. ].
+	].! !
+
+!SPListManager methodsFor: 'get-contact' stamp: 'as 2/21/2007 12:00'!
+contactsForUser: aSPUser
+
+	^ monitor critical: [
+		(self verifiedContactsForUser: aSPUser) addAll:
+			(self unverifiedContactsForUser: aSPUser).
 	].! !
 
 !SPListManager methodsFor: 'initialize-release' stamp: 'as 2/15/2007 12:43'!
@@ -2051,14 +2065,14 @@ removeList: aSPList
 		subscriptions removeAll: (self subscriptionsForList: aSPList).
 	].! !
 
-!SPListManager methodsFor: 'add-remove' stamp: 'as 2/15/2007 13:53'!
+!SPListManager methodsFor: 'add-remove' stamp: 'as 2/21/2007 12:02'!
 removeUser: aSPUser
 
 	self checkNotRootUser.
-
 	monitor critical: [
 		self checkUserExists: aSPUser.
 		subscriptions removeAll: (self subscriptionsForUser: aSPUser).
+		contacts removeAll: (self contactsForUser: aSPUser).
 	].! !
 
 !SPListManager methodsFor: 'settings' stamp: 'as 2/13/2007 17:22'!
@@ -2071,11 +2085,13 @@ rootUsername
 
 	^ 'root'.! !
 
-!SPListManager methodsFor: 'subscription' stamp: 'as 2/15/2007 13:57'!
+!SPListManager methodsFor: 'subscription' stamp: 'as 2/21/2007 12:05'!
 subscribe: aSPContact to: aSPList
 
 	| subscription |
 	monitor critical: [
+		self checkContactExists: aSPContact.
+		self checkListExists: aSPList.
 		self checkContactVerified: aSPContact.
 		subscription _ SPSubscription withList: aSPList contact: aSPContact.
 		self checkSubscriptionExistsNot: subscription.
@@ -2109,6 +2125,16 @@ unsubscribe: aSPSubscription
 	monitor critical: [
 		self checkSubscriptionExists: aSPSubscription.
 		subscriptions remove: aSPSubscription.
+	].! !
+
+!SPListManager methodsFor: 'get-contact' stamp: 'as 2/21/2007 11:59'!
+unverifiedContactsForUser: aSPUser
+
+	^ monitor critical: [
+		newContacts select: [
+			:each |
+			each user = aSPUser.
+		].
 	].! !
 
 !SPListManager methodsFor: 'test' stamp: 'as 2/14/2007 22:22'!
@@ -2147,6 +2173,16 @@ verifiedContactExists: aSPContact
 verifiedContacts
 
 	^ contacts.! !
+
+!SPListManager methodsFor: 'get-contact' stamp: 'as 2/21/2007 11:58'!
+verifiedContactsForUser: aSPUser
+
+	^ monitor critical: [
+		contacts select: [
+			:each |
+			each user = aSPUser.
+		].
+	].! !
 
 !SPListManager methodsFor: 'verification' stamp: 'as 2/15/2007 14:23'!
 verifyContact: aSPContact code: aString
