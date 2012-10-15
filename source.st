@@ -1,119 +1,23 @@
-SystemOrganization addCategory: #'Stamp-Tests'!
-SystemOrganization addCategory: #'Stamp-Exceptions'!
+SystemOrganization addCategory: #'Stamp-Mail-Client'!
+SystemOrganization addCategory: #'Stamp-Mail-Server'!
+SystemOrganization addCategory: #'Stamp-Model'!
 SystemOrganization addCategory: #'Stamp-Testing'!
-SystemOrganization addCategory: #'Stamp-Mail'!
+SystemOrganization addCategory: #'Stamp-Tests'!
 
-TcpService subclass: #SPMailListener
-	instanceVariableNames: ''
+Object subclass: #SPList
+	instanceVariableNames: 'id name users'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail'!
+	category: 'Stamp-Model'!
 
-!SPMailListener commentStamp: '<historical>' prior: 0!
-A TCP service accepting SMTP connections.!
-
-!SPMailListener methodsFor: 'conversation' stamp: 'as 1/31/2006 14:37'!
-serve: aSocket
-
-	| server |
-	server := SPMailReceiver on: (SocketStream on: aSocket).
-	server receive.! !
-
-Exception subclass: #SPSmtpCommandException
-	instanceVariableNames: 'server'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Exceptions'!
-
-!SPSmtpCommandException commentStamp: '<historical>' prior: 0!
-Indicates that an SMTP command from the client failed on the server.!
-
-!SPSmtpCommandException class methodsFor: 'instance creation' stamp: 'as 1/31/2006 11:22'!
-on: aSPMailReceiver
-
-	^ self new
-		server: aSPMailReceiver;
-		yourself.! !
-
-!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:21'!
-defaultAction
-
-	server reply: self reply.! !
-
-!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/17/2006 17:55'!
-isResumable
-
-	^ false.! !
-
-!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:05'!
-reply
-
-	"Every command failure should be replied to the client."
-
-	self subclassResponsibility.! !
-
-!SPSmtpCommandException methodsFor: 'accessing' stamp: 'as 1/31/2006 11:24'!
-server: aSPMailReceiver
-
-	server := aSPMailReceiver.! !
-
-SPSmtpCommandException subclass: #SPSmtpCommandNotAllowed
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Exceptions'!
-
-!SPSmtpCommandNotAllowed commentStamp: '<historical>' prior: 0!
-The command is not allowed in the current state of the server.!
-
-!SPSmtpCommandNotAllowed methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:04'!
-reply
-
-	^ SPSmtpReply badSequence.! !
-
-SPSmtpCommandException subclass: #SPSmtpCommandNotFound
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Exceptions'!
-
-!SPSmtpCommandNotFound commentStamp: '<historical>' prior: 0!
-The specified command was not found.!
-
-!SPSmtpCommandNotFound methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:06'!
-reply
-
-	^ SPSmtpReply commandUnrecognized.! !
-
-TestCase subclass: #CodeTest
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Tests'!
-
-!CodeTest commentStamp: '<historical>' prior: 0!
-Test different aspects of the Smalltalk code in my implementation.!
-
-!CodeTest methodsFor: 'configuration' stamp: 'as 1/11/2006 17:03'!
-packageName
-
-	^ 'Stamp'.! !
-
-!CodeTest methodsFor: 'testing' stamp: 'as 1/11/2006 17:03'!
-testClassComment
-
-	"Each class should have a comment."
-
-	(PackageInfo named: self packageName) classes do: [
-		:each |
-		self assert: each hasComment.
-	].! !
+!SPList commentStamp: '<historical>' prior: 0!
+A Stamp mailing list.!
 
 Object subclass: #SPMailReceiver
 	instanceVariableNames: 'state stream message sender recipient dataMode quit'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail'!
+	category: 'Stamp-Mail-Server'!
 
 !SPMailReceiver commentStamp: '<historical>' prior: 0!
 Minimalistic mail server following RFC 2821 that only receives mail. One receiver serves one client connection, and the whole will usually be multithreaded.
@@ -196,14 +100,13 @@ receiveCommand
 		on: SPSmtpCommandException
 		do: [ :ex | ex defaultAction. ex return. ].! !
 
-!SPMailReceiver methodsFor: 'private' stamp: 'as 2/6/2006 15:20'!
+!SPMailReceiver methodsFor: 'private' stamp: 'as 2/21/2006 09:38'!
 receiveData
 
 	"Receive mail data as specified by the DATA SMTP command."
 
 	message from: (stream upToAll: self dataDelimiter).
 	self reply: SPSmtpReply okay.
-	message inspect.
 	self reset.! !
 
 !SPMailReceiver methodsFor: 'actions' stamp: 'as 1/31/2006 15:01'!
@@ -240,7 +143,7 @@ Object subclass: #SPSmtpCommand
 	instanceVariableNames: 'argument target'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail'!
+	category: 'Stamp-Mail-Server'!
 
 !SPSmtpCommand commentStamp: '<historical>' prior: 0!
 SMTP commands are received by the server from the client.
@@ -251,7 +154,7 @@ SPSmtpCommand subclass: #SPDataSmtpCommand
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail'!
+	category: 'Stamp-Mail-Server'!
 
 !SPDataSmtpCommand commentStamp: '<historical>' prior: 0!
 The client wants to submit the mail message in data mode.!
@@ -275,10 +178,10 @@ SPSmtpCommand subclass: #SPEhloSmtpCommand
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail'!
+	category: 'Stamp-Mail-Server'!
 
 !SPEhloSmtpCommand commentStamp: '<historical>' prior: 0!
-The EHLO command is like HELO but allows to use service extensions. These extension are not needed and therefor the command is rejected.!
+The EHLO command is accepted but no service extensions are implemented.!
 
 !SPEhloSmtpCommand class methodsFor: 'smtp' stamp: 'as 1/11/2006 16:00'!
 verb
@@ -290,16 +193,16 @@ doExecute
 
 	"nothing to do"! !
 
-!SPEhloSmtpCommand methodsFor: 'executing' stamp: 'as 1/12/2006 22:08'!
+!SPEhloSmtpCommand methodsFor: 'executing' stamp: 'as 2/20/2006 17:09'!
 reply
 
-	^ SPSmtpReply notImplemented.! !
+	^ SPSmtpReply okay.! !
 
 SPSmtpCommand subclass: #SPHeloSmtpCommand
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail'!
+	category: 'Stamp-Mail-Server'!
 
 !SPHeloSmtpCommand commentStamp: '<historical>' prior: 0!
 HELO command is used by the client to initiate a new session with the server.!
@@ -323,7 +226,7 @@ SPSmtpCommand subclass: #SPMailSmtpCommand
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail'!
+	category: 'Stamp-Mail-Server'!
 
 !SPMailSmtpCommand commentStamp: '<historical>' prior: 0!
 The MAIL command specifies the sender address.!
@@ -347,7 +250,7 @@ SPSmtpCommand subclass: #SPNoopSmtpCommand
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail'!
+	category: 'Stamp-Mail-Server'!
 
 !SPNoopSmtpCommand commentStamp: '<historical>' prior: 0!
 NOOP means no operation. This command is ignored and has no effect on the server.!
@@ -371,7 +274,7 @@ SPSmtpCommand subclass: #SPQuitSmtpCommand
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail'!
+	category: 'Stamp-Mail-Server'!
 
 !SPQuitSmtpCommand commentStamp: '<historical>' prior: 0!
 The client wants to quit the session.!
@@ -395,7 +298,7 @@ SPSmtpCommand subclass: #SPRecipientSmtpCommand
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail'!
+	category: 'Stamp-Mail-Server'!
 
 !SPRecipientSmtpCommand commentStamp: '<historical>' prior: 0!
 Spcifies a recipient address.!
@@ -419,7 +322,7 @@ SPSmtpCommand subclass: #SPResetSmtpCommand
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail'!
+	category: 'Stamp-Mail-Server'!
 
 !SPResetSmtpCommand commentStamp: '<historical>' prior: 0!
 Resets the server to start from beginning.!
@@ -511,11 +414,16 @@ target: aSPMailReceiver
 
 	target := aSPMailReceiver.! !
 
+!SPSmtpCommand methodsFor: 'accessing' stamp: 'as 2/15/2006 18:16'!
+verb
+
+	^ self class verb.! !
+
 SPSmtpCommand subclass: #SPVerifySmtpCommand
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail'!
+	category: 'Stamp-Mail-Server'!
 
 !SPVerifySmtpCommand commentStamp: '<historical>' prior: 0!
 VRFY allows clients to verify addresses. This is disabled for security reasons.!
@@ -539,7 +447,7 @@ Object subclass: #SPSmtpState
 	instanceVariableNames: 'owner'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail'!
+	category: 'Stamp-Mail-Server'!
 
 !SPSmtpState commentStamp: '<historical>' prior: 0!
 The state a SPMailReceiver is in when serving a client.!
@@ -548,36 +456,61 @@ SPSmtpState subclass: #SPMailSmtpState
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail'!
+	category: 'Stamp-Mail-Server'!
 
-!SPMailSmtpState methodsFor: 'transitions' stamp: 'as 1/31/2006 17:09'!
+!SPMailSmtpState commentStamp: '<historical>' prior: 0!
+The server has received the mail command.!
+
+!SPMailSmtpState methodsFor: 'transitions' stamp: 'as 2/15/2006 20:08'!
 transitions
 
 	^ self defaultTransitions
-		at: SPRecipientSmtpCommand put: self;
-		at: SPDataSmtpCommand put: SPResetSmtpState;
+		at: SPRecipientSmtpCommand put: SPRecipientSmtpState;
 		yourself.! !
 
 SPSmtpState subclass: #SPReadySmtpState
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail'!
+	category: 'Stamp-Mail-Server'!
 
-!SPReadySmtpState methodsFor: 'transitions' stamp: 'as 1/31/2006 17:09'!
+!SPReadySmtpState commentStamp: '<historical>' prior: 0!
+The server waits for the client helo.!
+
+!SPReadySmtpState methodsFor: 'transitions' stamp: 'as 2/15/2006 18:37'!
 transitions
 
 	^ self anytimeTransitions
-		at: SPResetSmtpCommand put: self;
+		at: SPResetSmtpCommand put: self class;
 		at: SPHeloSmtpCommand put: SPResetSmtpState;
-		at: SPEhloSmtpCommand put: self;
+		at: SPEhloSmtpCommand put: self class;
+		yourself.! !
+
+SPSmtpState subclass: #SPRecipientSmtpState
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPRecipientSmtpState commentStamp: '<historical>' prior: 0!
+The client has received at least one recipient address.!
+
+!SPRecipientSmtpState methodsFor: 'transitions' stamp: 'as 2/15/2006 20:06'!
+transitions
+
+	^ self defaultTransitions
+		at: SPRecipientSmtpCommand put: self class;
+		at: SPDataSmtpCommand put: SPResetSmtpState;
 		yourself.! !
 
 SPSmtpState subclass: #SPResetSmtpState
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail'!
+	category: 'Stamp-Mail-Server'!
+
+!SPResetSmtpState commentStamp: '<historical>' prior: 0!
+The server is reset and can receive a new mail.!
 
 !SPResetSmtpState methodsFor: 'transitions' stamp: 'as 1/31/2006 17:10'!
 transitions
@@ -600,15 +533,15 @@ allowedCommands
 
 	^ self transitions keys.! !
 
-!SPSmtpState methodsFor: 'transitions' stamp: 'as 1/31/2006 17:02'!
+!SPSmtpState methodsFor: 'transitions' stamp: 'as 2/15/2006 18:44'!
 anytimeTransitions
 
 	"Transitions that are always possible."
 
 	^ Dictionary new
-		at: SPVerifySmtpCommand put: self;
-		at: SPNoopSmtpCommand put: self;
-		at: SPQuitSmtpCommand put: self;
+		at: SPVerifySmtpCommand put: self class;
+		at: SPNoopSmtpCommand put: self class;
+		at: SPQuitSmtpCommand put: self class;
 		yourself.! !
 
 !SPSmtpState methodsFor: 'commands' stamp: 'as 1/12/2006 16:23'!
@@ -640,32 +573,44 @@ nextStateClassFor: aSPSmtpCommand
 
 	^ self transitions at: aSPSmtpCommand class.! !
 
-!SPSmtpState methodsFor: 'state' stamp: 'as 1/31/2006 17:05'!
+!SPSmtpState methodsFor: 'state' stamp: 'as 2/15/2006 18:21'!
 nextStateFor: aSPSmtpCommand
 
 	"The state follwing a transition/(SMTP command)."
 
-	^ (self class nextStateClassFor: aSPSmtpCommand) on: owner.! !
+	^ (self nextStateClassFor: aSPSmtpCommand) on: owner.! !
 
 !SPSmtpState methodsFor: 'accessing' stamp: 'as 1/12/2006 15:57'!
 owner: aSPMailReceiver
 
 	owner := aSPMailReceiver.! !
 
-!SPSmtpState methodsFor: 'transitions' stamp: 'as 1/31/2006 17:03'!
+!SPSmtpState methodsFor: 'transitions' stamp: 'as 2/6/2006 15:43'!
 transitions
 
-	"This must return a dictionary with mappings: 'command class' -> 'state class'.
-	 The meaning is: 'command class' is an allowed command in this state and has
-	 next state 'state class'."
+	"This must return a dictionary with mappings: SPSmtpCommand -> SPSmtpState.
+	 The meaning is: SPSmtpCommand is an allowed command in this state and has
+	 next state SPSmtpState."
 
 	self subclassResponsibility.! !
+
+Object subclass: #SPUser
+	instanceVariableNames: 'id address password lists'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Model'!
+
+!SPUser commentStamp: '<historical>' prior: 0!
+A Stamp user.!
 
 Object subclass: #TestingSelf
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Testing'!
+
+!TestingSelf commentStamp: '<historical>' prior: 0!
+testing self!
 
 !TestingSelf class methodsFor: 'as yet unclassified' stamp: 'as 1/12/2006 21:40'!
 method
@@ -691,6 +636,9 @@ Object subclass: #TestingSingleton
 TestingSingleton class
 	instanceVariableNames: 'uniqueInstance'!
 
+!TestingSingleton commentStamp: '<historical>' prior: 0!
+testing singleton!
+
 !TestingSingleton class methodsFor: 'as yet unclassified' stamp: 'as 1/13/2006 09:42'!
 uniqueInstance
 
@@ -704,11 +652,156 @@ initialize
 
 	var1 := 1.! !
 
+Exception subclass: #SPSmtpCommandException
+	instanceVariableNames: 'server'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPSmtpCommandException commentStamp: '<historical>' prior: 0!
+Indicates that an SMTP command from the client failed on the server.!
+
+!SPSmtpCommandException class methodsFor: 'instance creation' stamp: 'as 1/31/2006 11:22'!
+on: aSPMailReceiver
+
+	^ self new
+		server: aSPMailReceiver;
+		yourself.! !
+
+!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:21'!
+defaultAction
+
+	server reply: self reply.! !
+
+!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/17/2006 17:55'!
+isResumable
+
+	^ false.! !
+
+!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:05'!
+reply
+
+	"Every command failure should be replied to the client."
+
+	self subclassResponsibility.! !
+
+!SPSmtpCommandException methodsFor: 'accessing' stamp: 'as 1/31/2006 11:24'!
+server: aSPMailReceiver
+
+	server := aSPMailReceiver.! !
+
+SPSmtpCommandException subclass: #SPSmtpCommandNotAllowed
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPSmtpCommandNotAllowed commentStamp: '<historical>' prior: 0!
+The command is not allowed in the current state of the server.!
+
+!SPSmtpCommandNotAllowed methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:04'!
+reply
+
+	^ SPSmtpReply badSequence.! !
+
+SPSmtpCommandException subclass: #SPSmtpCommandNotFound
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPSmtpCommandNotFound commentStamp: '<historical>' prior: 0!
+The specified command was not found.!
+
+!SPSmtpCommandNotFound methodsFor: 'priv handling' stamp: 'as 1/17/2006 18:06'!
+reply
+
+	^ SPSmtpReply commandUnrecognized.! !
+
+TestCase subclass: #SPCodeTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Tests'!
+
+!SPCodeTest commentStamp: '<historical>' prior: 0!
+Test different coding style aspects of the implementation.!
+
+!SPCodeTest methodsFor: 'configuration' stamp: 'as 1/11/2006 17:03'!
+packageName
+
+	^ 'Stamp'.! !
+
+!SPCodeTest methodsFor: 'testing' stamp: 'as 1/11/2006 17:03'!
+testClassComment
+
+	"Each class should have a comment."
+
+	(PackageInfo named: self packageName) classes do: [
+		:each |
+		self assert: each hasComment.
+	].! !
+
+TestCase subclass: #SPMailReceivingTest
+	instanceVariableNames: 'server client'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Tests'!
+
+!SPMailReceivingTest commentStamp: '<historical>' prior: 0!
+Test the whole mail receiving subsystem.!
+
+!SPMailReceivingTest methodsFor: 'running' stamp: 'as 2/21/2006 10:15'!
+findPortFor: aSPMailListener
+
+	1024 to: 65536 do: [
+		:port |
+		[ aSPMailListener verifyPortAvailability: port. ^ port. ]
+			on: Error
+			do: [ :ex | ex return.]
+	].! !
+
+!SPMailReceivingTest methodsFor: 'running' stamp: 'as 2/21/2006 11:16'!
+setUp
+
+	| port tries maxTries delay |
+	server := SPMailListener new.
+	port := self findPortFor: server.
+	server startOn: port.
+
+	tries := 0.
+	maxTries := 10.
+	delay := Delay forMilliseconds: 300.
+	[
+		[ client := SMTPClient openOnHostNamed: 'localhost' port: port. ]
+			on: ConnectionTimedOut
+			do: [ :ex | tries := tries + 1. ex return. ].
+		delay wait.
+	] doWhileTrue: [
+		client == nil and: [ tries <= maxTries ].
+	]! !
+
+!SPMailReceivingTest methodsFor: 'running' stamp: 'as 2/14/2006 16:46'!
+tearDown
+
+	server stop.
+	server waitForStopUntil: 3000.
+	server kill.! !
+
+!SPMailReceivingTest methodsFor: 'testing' stamp: 'as 2/21/2006 11:33'!
+testBasic
+
+	client
+		reset;
+		mailFrom: 'user@host.com';
+		recipient: 'user2@host.com';
+		data: 'Subject: test'.! !
+
 String subclass: #SPSmtpReply
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail'!
+	category: 'Stamp-Mail-Server'!
 
 !SPSmtpReply commentStamp: '<historical>' prior: 0!
 SMTP replies are sent from the server to the client and are just strings.!
@@ -747,3 +840,19 @@ okay
 ready
 
 	^ '220 ', NetNameResolver localHostName.! !
+
+TcpService subclass: #SPMailListener
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPMailListener commentStamp: '<historical>' prior: 0!
+A TCP service accepting SMTP connections.!
+
+!SPMailListener methodsFor: 'conversation' stamp: 'as 1/31/2006 14:37'!
+serve: aSocket
+
+	| server |
+	server := SPMailReceiver on: (SocketStream on: aSocket).
+	server receive.! !
