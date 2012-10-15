@@ -562,12 +562,12 @@ SPObject subclass: #SPMailArchive
 !SPMailArchive commentStamp: '<historical>' prior: 0!
 Mail archive that basically wraps around MailDB.!
 
-!SPMailArchive methodsFor: 'storing' stamp: 'as 9/27/2006 13:17'!
+!SPMailArchive methodsFor: 'storing' stamp: 'as 10/2/2006 12:36'!
 addMessage: aSPMailMessage
 
 	aSPMailMessage lists do: [
 		:list | | dir |
-		dir := (self preferenceAt: #archiveDir), list address addressString.
+		dir := (self preferenceAt: #archiveDir), '/', list address addressString.
 		(MailDB openOn: dir) addNewMessage: aSPMailMessage mail.
 	].
 ! !
@@ -788,17 +788,18 @@ queueMail
 
 	kernel queue incoming: message.! !
 
-!SPMailReceiver methodsFor: 'receiving' stamp: 'as 5/4/2006 15:42'!
+!SPMailReceiver methodsFor: 'receiving' stamp: 'as 10/3/2006 16:06'!
 receive
 
 	"Receive commands from client as long as connection is there and
 	 quit is not requested."
 
 	self reply: SPSmtpReply ready.
-	[ quit not and: [ stream isConnected ] ] whileTrue: [
-		self receiveCommand.
-	].
-	stream close.! !
+	[
+		[
+			[ quit not and: [ stream isConnected. ] ] whileTrue: [ self receiveCommand. ].
+		] on: Exception do: [ self reply: SPSmtpReply closing. ].
+	] ensure: [ stream close. ].! !
 
 !SPMailReceiver methodsFor: 'receiving' stamp: 'as 4/18/2006 16:50'!
 receiveCommand
@@ -1124,12 +1125,12 @@ doExecute
 	target user: (target kernel manager userWithAddress: sender).
 	self state: SPMailSmtpState.! !
 
-!SPMailSmtpCommand methodsFor: 'executing' stamp: 'as 9/26/2006 15:27'!
+!SPMailSmtpCommand methodsFor: 'executing' stamp: 'as 10/3/2006 15:52'!
 doValidate
 
 	[ sender := SPMailAddress fromPath: argument. ]
 		on: SPInvalidMailAddressException
-		do: [ SPWrongSmtpCommandException signal. ].! !
+		do: [ (SPWrongSmtpCommandException withReceiver: target) signal. ].! !
 
 SPSmtpCommand subclass: #SPNoopSmtpCommand
 	instanceVariableNames: ''
@@ -1233,12 +1234,12 @@ doExecute
 		self state: SPRecipientSmtpState.
 	].! !
 
-!SPRecipientSmtpCommand methodsFor: 'executing' stamp: 'as 9/22/2006 17:24'!
+!SPRecipientSmtpCommand methodsFor: 'executing' stamp: 'as 10/3/2006 15:52'!
 doValidate
 
 	[ recipient := SPMailAddress fromPath: argument. ]
 		on: SPInvalidMailAddressException
-		do: [ SPWrongSmtpCommandException signal. ].! !
+		do: [ (SPWrongSmtpCommandException withReceiver: target) signal. ].! !
 
 SPSmtpCommand subclass: #SPResetSmtpCommand
 	instanceVariableNames: ''
@@ -1288,7 +1289,7 @@ argumentFor: aString command: aSmtpCommand
 
 	^ aString copyFrom: (aSmtpCommand verb size + 1) to: aString size.! !
 
-!SPSmtpCommand class methodsFor: 'private' stamp: 'as 9/22/2006 17:23'!
+!SPSmtpCommand class methodsFor: 'private' stamp: 'as 10/3/2006 15:51'!
 commandFor: aString target: aSPMailReceiver
 
 	"Extract command and return an instance of the appropriate command class.
@@ -1301,7 +1302,7 @@ commandFor: aString target: aSPMailReceiver
 	] ifNone: [
 		nil	
 	].
-	class isNil ifTrue: [ (SPNotFoundSmtpCommandException on: aSPMailReceiver) signal. ].
+	class isNil ifTrue: [ (SPNotFoundSmtpCommandException withReceiver: aSPMailReceiver) signal. ].
 	^ class new.! !
 
 !SPSmtpCommand class methodsFor: 'instance creation' stamp: 'as 1/18/2006 15:55'!
@@ -1418,11 +1419,11 @@ target: aSPMailReceiver
 
 	target := aSPMailReceiver.! !
 
-!SPSmtpCommand methodsFor: 'state' stamp: 'as 9/22/2006 17:23'!
+!SPSmtpCommand methodsFor: 'state' stamp: 'as 10/3/2006 15:51'!
 validateState
 
 	(self states includes: target state) ifFalse: [
-		(SPNotAllowedSmtpCommandException on: target) signal.
+		(SPNotAllowedSmtpCommandException withReceiver: target) signal.
 	].! !
 
 !SPSmtpCommand methodsFor: 'smtp' stamp: 'as 4/20/2006 19:34'!
@@ -1819,7 +1820,7 @@ listener: aSPMailListener
 
 	listener := aSPMailListener.! !
 
-!SPMailService methodsFor: 'conversation' stamp: 'as 9/14/2006 09:42'!
+!SPMailService methodsFor: 'conversation' stamp: 'as 10/3/2006 15:51'!
 serve: aSocket
 
 	| receiver |
@@ -2092,7 +2093,7 @@ SPException subclass: #SPListNotFoundException
 The list was not found in the system.!
 
 SPException subclass: #SPSmtpCommandException
-	instanceVariableNames: 'server'
+	instanceVariableNames: 'receiver'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server'!
@@ -2128,17 +2129,22 @@ reply
 
 	^ SPSmtpReply commandUnrecognized.! !
 
-!SPSmtpCommandException class methodsFor: 'instance creation' stamp: 'as 1/31/2006 11:22'!
-on: aSPMailReceiver
+!SPSmtpCommandException class methodsFor: 'instance creation' stamp: 'as 10/3/2006 15:50'!
+withReceiver: aSPMailReceiver
 
 	^ self new
-		server: aSPMailReceiver;
+		receiver: aSPMailReceiver;
 		yourself.! !
 
-!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:21'!
+!SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 10/3/2006 15:50'!
 defaultAction
 
-	server reply: self reply.! !
+	receiver reply: self reply.! !
+
+!SPSmtpCommandException methodsFor: 'accessing' stamp: 'as 10/3/2006 15:49'!
+receiver: aSPMailReceiver
+
+	receiver := aSPMailReceiver.! !
 
 !SPSmtpCommandException methodsFor: 'priv handling' stamp: 'as 1/31/2006 11:05'!
 reply
