@@ -776,15 +776,15 @@ withValue: valueNumber min: minNumber max: maxNumber
 		max: maxNumber;
 		value: valueNumber.! !
 
-!SPNumberConfigurationAttribute methodsFor: 'check' stamp: 'as 12/12/2006 14:34'!
+!SPNumberConfigurationAttribute methodsFor: 'check' stamp: 'as 1/18/2007 01:05'!
 checkLimits: aNumber
 
 	aNumber < min ifTrue:
 		[ SPInvalidConfigurationAttributeValueException
-			signal: 'Value should not be smaller than ', min. ].
+			signal: 'Value should not be smaller than ', min asString. ].
 	aNumber > max ifTrue:
 		[ SPInvalidConfigurationAttributeValueException
-			signal: 'Value should not be higher than ', max. ].! !
+			signal: 'Value should not be higher than ', max asString. ].! !
 
 !SPNumberConfigurationAttribute methodsFor: 'configuration' stamp: 'as 12/12/2006 14:28'!
 checkValue: aNumber
@@ -858,10 +858,10 @@ address: aSPMailAddress
 
 	address := aSPMailAddress.! !
 
-!SPContact methodsFor: 'configuration' stamp: 'as 1/15/2007 10:31'!
+!SPContact methodsFor: 'configuration' stamp: 'as 1/17/2007 19:44'!
 config
 
-	SPKernel instance configurator.! !
+	^ SPKernel instance configurator.! !
 
 !SPContact methodsFor: 'configuration' stamp: 'as 1/16/2007 14:24'!
 contactVerificationLength
@@ -972,13 +972,14 @@ new
 
 	self shouldNotImplement.! !
 
-!SPKernel class methodsFor: 'instance creation' stamp: 'as 1/16/2007 11:36'!
+!SPKernel class methodsFor: 'instance creation' stamp: 'as 1/16/2007 16:58'!
 withDatabase: pathString user: userString
 
-	instance ifNil: [ SPKernelAlreadyInitializedException signal. ].
+	instance ifNotNil: [ SPKernelAlreadyInitializedException signal. ].
 	^ instance _ self basicNew initialize
 		database: pathString;
-		user: userString. ! !
+		user: userString;
+		initializeDatabases.! !
 
 !SPKernel methodsFor: 'access' stamp: 'as 6/12/2006 14:08'!
 archive
@@ -1000,15 +1001,19 @@ database: pathString
 
 	database _ pathString.! !
 
-!SPKernel methodsFor: 'initialize-release' stamp: 'as 1/15/2007 10:26'!
+!SPKernel methodsFor: 'initialize-release' stamp: 'as 1/16/2007 17:15'!
 initialize
 
+	listener _ SPMailListener new.
+	sender _ SPMailSender new.
+	queue _ SPMailQueue new.! !
+
+!SPKernel methodsFor: 'initialize-release' stamp: 'as 1/16/2007 16:58'!
+initializeDatabases
+
 	configurator _ SPConfigurator withDatabase: database, '/config' user: user.
-	listener _ SPMailListener.
-	sender _ SPMailSender.
 	archive _ SPMailArchive withDatabase: database, '/archive' user: user.
-	manager _ SPListManager withDatabase: database, '/model' user: user.
-	queue _ SPMailQueue.! !
+	manager _ SPListManager withDatabase: database, '/model' user: user.! !
 
 !SPKernel methodsFor: 'access' stamp: 'as 3/10/2006 16:19'!
 listener
@@ -1046,22 +1051,24 @@ setUser: aString
 	manager user: aString.
 	archive user: aString.! !
 
-!SPKernel methodsFor: 'start-stop' stamp: 'as 1/16/2007 14:34'!
+!SPKernel methodsFor: 'start-stop' stamp: 'as 1/17/2007 13:36'!
 start
 
 	configurator open.
 	archive open.
 	manager open.
+	sender start.
 	queue start.
 	listener start.! !
 
-!SPKernel methodsFor: 'start-stop' stamp: 'as 1/16/2007 14:34'!
+!SPKernel methodsFor: 'start-stop' stamp: 'as 1/17/2007 13:37'!
 stop
 
 	listener stop.
 	queue stop.
 	listener waitForStop.
 	queue waitForStop.
+	sender stop.
 	archive close.
 	manager close.
 	configurator close.! !
@@ -1201,207 +1208,15 @@ unmoderate
 
 	moderated := false.! !
 
-Object subclass: #SPListManager
-	instanceVariableNames: 'lists users subscriptions'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-ListManager'!
-
-!SPListManager commentStamp: 'as 12/4/2006 12:39' prior: 0!
-Access/modify lists, users, contacts and subscriptions.!
-
-!SPListManager methodsFor: 'add-remove' stamp: 'as 1/15/2007 10:42'!
-addContact: aSPContact user: aSPUser
-
-	self critical: [
-		aSPUser addContact: aSPContact.
-	].! !
-
-!SPListManager methodsFor: 'add-remove' stamp: 'as 1/15/2007 11:05'!
-addList: aSPList
-
-	self critical: [
-		lists add: aSPList.
-	].! !
-
-!SPListManager methodsFor: 'add-remove' stamp: 'as 1/15/2007 11:05'!
-addUser: aSPUser
-
-	self critical: [
-		users add: aSPUser.
-	].! !
-
-!SPListManager methodsFor: 'get-list' stamp: 'as 1/15/2007 11:05'!
-allLists
-
-	^ self critical: [ lists. ].! !
-
-!SPListManager methodsFor: 'get-subscription' stamp: 'as 1/15/2007 11:06'!
-allSubscriptions
-
-	^ self critical: [ subscriptions. ].! !
-
-!SPListManager methodsFor: 'get-user' stamp: 'as 1/15/2007 11:07'!
-allUsers
-
-	^ self critical: [ users. ].! !
-
-!SPListManager methodsFor: 'get-contact' stamp: 'as 1/15/2007 11:07'!
-contactWithAddress: aSPMailAddress
-
-	| contact |
-	self critical: [
-		users detect: [
-			:user |
-			contact _ user contacts detect: [ :each | each address = aSPMailAddress. ] ifNone: [ nil. ].
-			contact notNil.
-		].
-	].
-	^ contact.! !
-
-!SPListManager methodsFor: 'initialize-release' stamp: 'as 1/15/2007 11:12'!
-initialize
-
-	users _ Set new.
-	lists _ Set new.
-	subscriptions _ Set new.! !
-
-!SPListManager methodsFor: 'initialize-release' stamp: 'as 1/15/2007 11:11'!
-initializeDatabase
-
-	self root
-		at: #users put: users;
-		at: #lists put: lists;
-		at: #subscriptions put: subscriptions.! !
-
-!SPListManager methodsFor: 'test' stamp: 'as 12/4/2006 14:52'!
-isAllowed: aSPMailAddress postTo: aSPList
-
-	| user |
-	user _ self userWithAddress: aSPMailAddress.
-	^ aSPList isModerated not and: [
-		aSPList isOpen or: [
-			user notNil and: [ self isSubscribed: user to: aSPList. ].
-		].
-	].! !
-
-!SPListManager methodsFor: 'test' stamp: 'as 1/15/2007 11:07'!
-isSubscribed: aSPUser to: aSPList
-
-	^ self critical: [
-		(subscriptions detect: [
-			:subscription |
-			subscription list = aSPList and: [ aSPUser contacts includes: subscription contact. ].
-		]) notNil.
-	].! !
-
-!SPListManager methodsFor: 'get-list' stamp: 'as 1/15/2007 11:06'!
-listWithAddress: aSPMailAddress
-
-	^ self critical: [
-		lists
-			detect: [ :each | each address = aSPMailAddress. ]
-			ifNone: [ nil. ].
-	].! !
-
-!SPListManager methodsFor: 'database' stamp: 'as 1/15/2007 11:03'!
-newRoot
-
-	^ Dictionary new.! !
-
-!SPListManager methodsFor: 'get-other' stamp: 'as 1/15/2007 11:07'!
-recipientsForList: aSPList
-
-	| activeSubscriptions |
-	^ self critical: [
-		activeSubscriptions _ subscriptions select: [ :each | each list = aSPList and: [ each isActive. ]. ].
-		activeSubscriptions collect: [ :subscription | subscription contact address. ].
-	].! !
-
-!SPListManager methodsFor: 'add-remove' stamp: 'as 1/15/2007 11:05'!
-removeContact: aSPContact
-
-	self critical: [
-		aSPContact user removeContact: aSPContact.
-		subscriptions removeAll: (self subscriptionsForContact: aSPContact).
-	].! !
-
-!SPListManager methodsFor: 'add-remove' stamp: 'as 1/15/2007 11:05'!
-removeList: aSPList
-
-	self critical: [
-		lists remove: aSPList ifAbsent: [ SPListNotFoundException signal. ].
-		subscriptions removeAll: (self subscriptionsForList: aSPList).
-	].! !
-
-!SPListManager methodsFor: 'add-remove' stamp: 'as 1/15/2007 11:05'!
-removeUser: aSPUser
-
-	self critical: [
-		users remove: aSPUser ifAbsent: [ SPUserNotFoundException signal. ].
-		subscriptions removeAll: (self subscriptionsForUser: aSPUser).
-	].! !
-
-!SPListManager methodsFor: 'subscription' stamp: 'as 1/15/2007 11:08'!
-subscribe: aSPContact to: aSPList
-
-	| subscription |
-	aSPContact isVerified ifFalse: [ SPContactNotVerifiedException signal. ].
-	subscription _ SPSubscription withList: aSPList contact: aSPContact.
-	^ self critical: [ subscriptions add: subscription. ].! !
-
-!SPListManager methodsFor: 'get-subscription' stamp: 'as 1/15/2007 11:06'!
-subscriptionsForContact: aSPContact
-
-	^ self critical: [ subscriptions select: [ :each | aSPContact = each contact. ]. ].! !
-
-!SPListManager methodsFor: 'get-subscription' stamp: 'as 1/15/2007 11:06'!
-subscriptionsForList: aSPList
-
-	^ self critical: [ subscriptions select: [ :each | each list = aSPList. ]].! !
-
-!SPListManager methodsFor: 'get-subscription' stamp: 'as 1/15/2007 11:06'!
-subscriptionsForUser: aSPUser
-
-	| contacts |
-	^ self critical: [
-		contacts _ Set withAll: aSPUser contacts.
-		subscriptions select: [ :each | contacts includes: each contact. ].
-	].! !
-
-!SPListManager methodsFor: 'subscription' stamp: 'as 1/15/2007 11:08'!
-unsubscribe: aSPSubscription
-
-	self critical: [
-		subscriptions remove: aSPSubscription ifAbsent: [ SPSubscriptionNotFoundException signal. ].
-	].! !
-
-!SPListManager methodsFor: 'get-user' stamp: 'as 1/15/2007 11:07'!
-userWithAddress: aSPMailAddress
-
-	^ self critical: [
-		users
-			detect: [ :each | each contacts includes: aSPMailAddress. ]
-			ifNone: [ nil. ].
-	].! !
-
-!SPListManager methodsFor: 'get-user' stamp: 'as 1/15/2007 11:07'!
-userWithName: aString
-
-	^ self critical: [
-		users
-			detect: [ :each | each name = aString. ]
-			ifNone: [ nil. ].
-	].! !
-
 Object subclass: #SPMagmaClient
 	instanceVariableNames: 'database session user monitor'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Core'!
 
-!SPMagmaClient commentStamp: 'as 1/9/2007 16:53' prior: 0!
-Client to the Magma object database. Can only work with a local database stored in the filesystem.!
+!SPMagmaClient commentStamp: 'as 1/17/2007 13:20' prior: 0!
+Client to the Magma object database. Can only work with a local database stored in the filesystem.
+The methods newRoot and initializeDatabase must be overwritten by subclasses.!
 
 SPMagmaClient subclass: #SPConfigurator
 	instanceVariableNames: ''
@@ -1440,6 +1255,216 @@ preferenceAt: aSymbol put: anObject
 	self critical: [
 		self config preferenceAt: aSymbol put: anObject.
 	].! !
+
+SPMagmaClient subclass: #SPListManager
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-ListManager'!
+
+!SPListManager commentStamp: 'as 12/4/2006 12:39' prior: 0!
+Access/modify lists, users, contacts and subscriptions.!
+
+!SPListManager methodsFor: 'add-remove' stamp: 'as 1/15/2007 10:42'!
+addContact: aSPContact user: aSPUser
+
+	self critical: [
+		aSPUser addContact: aSPContact.
+	].! !
+
+!SPListManager methodsFor: 'add-remove' stamp: 'as 1/17/2007 15:00'!
+addList: aSPList
+
+	self critical: [
+		self lists add: aSPList.
+	].! !
+
+!SPListManager methodsFor: 'add-remove' stamp: 'as 1/17/2007 15:01'!
+addUser: aSPUser
+
+	self critical: [
+		self users add: aSPUser.
+	].! !
+
+!SPListManager methodsFor: 'get-list' stamp: 'as 1/15/2007 11:05'!
+allLists
+
+	^ self critical: [ lists. ].! !
+
+!SPListManager methodsFor: 'get-subscription' stamp: 'as 1/17/2007 15:02'!
+allSubscriptions
+
+	^ self critical: [ self subscriptions. ].! !
+
+!SPListManager methodsFor: 'get-user' stamp: 'as 1/17/2007 15:02'!
+allUsers
+
+	^ self critical: [ self users. ].! !
+
+!SPListManager methodsFor: 'get-contact' stamp: 'as 1/17/2007 15:04'!
+contactWithAddress: aSPMailAddress
+
+	| contact |
+	self critical: [
+		self users detect: [
+			:u |
+			contact _ u contacts detect: [ :c | c address = aSPMailAddress. ] ifNone: [ nil. ].
+			contact notNil.
+		].
+	].
+	^ contact.! !
+
+!SPListManager methodsFor: 'initialize-release' stamp: 'as 1/17/2007 14:29'!
+initializeDatabase
+
+	self root
+		at: #users put: Set new;
+		at: #lists put: Set new;
+		at: #subscriptions put: Set new.! !
+
+!SPListManager methodsFor: 'test' stamp: 'as 12/4/2006 14:52'!
+isAllowed: aSPMailAddress postTo: aSPList
+
+	| user |
+	user _ self userWithAddress: aSPMailAddress.
+	^ aSPList isModerated not and: [
+		aSPList isOpen or: [
+			user notNil and: [ self isSubscribed: user to: aSPList. ].
+		].
+	].! !
+
+!SPListManager methodsFor: 'test' stamp: 'as 1/18/2007 01:56'!
+isSubscribed: aSPUser to: aSPList
+
+	^ self critical: [
+		(self subscriptions detect: [
+			:subscription |
+			subscription list = aSPList and: [ aSPUser contacts includes: subscription contact. ].
+		] ifNone: [ nil. ]) notNil.
+	].! !
+
+!SPListManager methodsFor: 'get-list' stamp: 'as 1/17/2007 15:01'!
+listWithAddress: aSPMailAddress
+
+	^ self critical: [
+		self lists
+			detect: [ :each | each address = aSPMailAddress. ]
+			ifNone: [ nil. ].
+	].! !
+
+!SPListManager methodsFor: 'get-list' stamp: 'as 1/18/2007 02:05'!
+listWithName: aString
+
+	^ self critical: [
+		self lists
+			detect: [ :each | each name = aString. ]
+			ifNone: [ nil. ].
+	].! !
+
+!SPListManager methodsFor: 'access' stamp: 'as 1/17/2007 14:57'!
+lists
+
+	^ session root at: #lists.! !
+
+!SPListManager methodsFor: 'database' stamp: 'as 1/15/2007 11:03'!
+newRoot
+
+	^ Dictionary new.! !
+
+!SPListManager methodsFor: 'get-other' stamp: 'as 1/17/2007 15:03'!
+recipientsForList: aSPList
+
+	| activeSubscriptions |
+	^ self critical: [
+		activeSubscriptions _ self subscriptions select: [ :each | each list = aSPList and: [ each isActive. ]. ].
+		activeSubscriptions collect: [ :subscription | subscription contact address. ].
+	].! !
+
+!SPListManager methodsFor: 'add-remove' stamp: 'as 1/17/2007 15:01'!
+removeContact: aSPContact
+
+	self critical: [
+		aSPContact user removeContact: aSPContact.
+		self subscriptions removeAll: (self subscriptionsForContact: aSPContact).
+	].! !
+
+!SPListManager methodsFor: 'add-remove' stamp: 'as 1/17/2007 15:01'!
+removeList: aSPList
+
+	self critical: [
+		self lists remove: aSPList ifAbsent: [ SPListNotFoundException signal. ].
+		self subscriptions removeAll: (self subscriptionsForList: aSPList).
+	].! !
+
+!SPListManager methodsFor: 'add-remove' stamp: 'as 1/17/2007 15:01'!
+removeUser: aSPUser
+
+	self critical: [
+		self users remove: aSPUser ifAbsent: [ SPUserNotFoundException signal. ].
+		self subscriptions removeAll: (self subscriptionsForUser: aSPUser).
+	].! !
+
+!SPListManager methodsFor: 'subscription' stamp: 'as 1/17/2007 15:03'!
+subscribe: aSPContact to: aSPList
+
+	| subscription |
+	aSPContact isVerified ifFalse: [ SPContactNotVerifiedException signal. ].
+	subscription _ SPSubscription withList: aSPList contact: aSPContact.
+	^ self critical: [ self subscriptions add: subscription. ].! !
+
+!SPListManager methodsFor: 'access' stamp: 'as 1/17/2007 14:58'!
+subscriptions
+
+	^ session root at: #subscriptions.! !
+
+!SPListManager methodsFor: 'get-subscription' stamp: 'as 1/17/2007 15:02'!
+subscriptionsForContact: aSPContact
+
+	^ self critical: [ self subscriptions select: [ :each | aSPContact = each contact. ]. ].! !
+
+!SPListManager methodsFor: 'get-subscription' stamp: 'as 1/17/2007 15:02'!
+subscriptionsForList: aSPList
+
+	^ self critical: [ self subscriptions select: [ :each | each list = aSPList. ]].! !
+
+!SPListManager methodsFor: 'get-subscription' stamp: 'as 1/17/2007 15:02'!
+subscriptionsForUser: aSPUser
+
+	| contacts |
+	^ self critical: [
+		contacts _ Set withAll: aSPUser contacts.
+		self subscriptions select: [ :each | contacts includes: each contact. ].
+	].! !
+
+!SPListManager methodsFor: 'subscription' stamp: 'as 1/17/2007 15:03'!
+unsubscribe: aSPSubscription
+
+	self critical: [
+		self subscriptions remove: aSPSubscription ifAbsent: [ SPSubscriptionNotFoundException signal. ].
+	].! !
+
+!SPListManager methodsFor: 'get-user' stamp: 'as 1/18/2007 01:51'!
+userWithAddress: aSPMailAddress
+
+	^ self critical: [
+		self users
+			detect: [ :u | (u contacts collect: [ :c | c address. ]) includes: aSPMailAddress. ]
+			ifNone: [ nil. ].
+	].! !
+
+!SPListManager methodsFor: 'get-user' stamp: 'as 1/17/2007 15:02'!
+userWithName: aString
+
+	^ self critical: [
+		self users
+			detect: [ :each | each name = aString. ]
+			ifNone: [ nil. ].
+	].! !
+
+!SPListManager methodsFor: 'access' stamp: 'as 1/17/2007 14:57'!
+users
+
+	^ session root at: #users.! !
 
 !SPMagmaClient class methodsFor: 'instance creation' stamp: 'as 1/15/2007 10:15'!
 withDatabase: pathString user: userString
@@ -1528,6 +1553,37 @@ user: userString
 
 	user := userString.! !
 
+SPMagmaClient subclass: #SPMailArchive
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Storage'!
+
+!SPMailArchive commentStamp: '<historical>' prior: 0!
+Mail archive that basically wraps around MailDB.!
+
+!SPMailArchive methodsFor: 'store' stamp: 'as 11/17/2006 14:52'!
+addMessage: aMailMessage toList: aSPList
+
+		| dir |
+		dir := self archiveDir, '/', aSPList address asString.
+		(MailDB openOn: dir) addNewMessage: aMailMessage.! !
+
+!SPMailArchive methodsFor: 'preferences' stamp: 'as 10/16/2006 19:17'!
+archiveDir
+
+	^ self preferenceAt: #archiveDir.! !
+
+!SPMailArchive methodsFor: 'initialize-release' stamp: 'as 1/16/2007 17:11'!
+initializeDatabase
+
+	"todo"! !
+
+!SPMailArchive methodsFor: 'database' stamp: 'as 1/16/2007 17:12'!
+newRoot
+
+	^ Dictionary new.! !
+
 Object subclass: #SPMailAddress
 	instanceVariableNames: 'localPart domain'
 	classVariableNames: ''
@@ -1600,27 +1656,6 @@ localPart: aString
 path
 
 	^ '<', localPart, '@', domain, '>'.! !
-
-Object subclass: #SPMailArchive
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Storage'!
-
-!SPMailArchive commentStamp: '<historical>' prior: 0!
-Mail archive that basically wraps around MailDB.!
-
-!SPMailArchive methodsFor: 'store' stamp: 'as 11/17/2006 14:52'!
-addMessage: aMailMessage toList: aSPList
-
-		| dir |
-		dir := self archiveDir, '/', aSPList address asString.
-		(MailDB openOn: dir) addNewMessage: aMailMessage.! !
-
-!SPMailArchive methodsFor: 'preferences' stamp: 'as 10/16/2006 19:17'!
-archiveDir
-
-	^ self preferenceAt: #archiveDir.! !
 
 Object subclass: #SPMailListener
 	instanceVariableNames: 'service connections monitor'
@@ -1810,10 +1845,10 @@ state: aSymbol
 
 	state := aSymbol.! !
 
-!SPMailMessage methodsFor: 'configuration' stamp: 'as 1/15/2007 11:33'!
+!SPMailMessage methodsFor: 'configuration' stamp: 'as 1/17/2007 22:40'!
 timezone
 
-	self config preferenceAt: #timezone.! !
+	^ self config preferenceAt: #timezone.! !
 
 Object subclass: #SPMailQueue
 	instanceVariableNames: 'process run processMonitor queue queueMonitor'
@@ -1831,10 +1866,10 @@ add: aSPMailMessage
 		queue add: aSPMailMessage.
 	].! !
 
-!SPMailQueue methodsFor: 'check' stamp: 'as 12/11/2006 15:40'!
+!SPMailQueue methodsFor: 'check' stamp: 'as 1/17/2007 19:45'!
 checkQueueNotFull
 
-	self queue size >= self queueSize ifTrue: [
+	queue size >= self queueSize ifTrue: [
 		SPQueueFullException signal.
 	].! !
 
@@ -1884,12 +1919,12 @@ messageLifetime
 
 	^ self config preferenceAt: #messageLifetime.! !
 
-!SPMailQueue methodsFor: 'processing' stamp: 'as 12/11/2006 15:01'!
+!SPMailQueue methodsFor: 'processing' stamp: 'as 1/18/2007 02:48'!
 processMessage: aSPMailMessage
 
 	[
-		SPMailMessage state = #new ifTrue: [ self processNewMessage: aSPMailMessage. ].
-		SPMailMessage state = #saved ifTrue: [ self processSavedMessage: aSPMailMessage. ].
+		aSPMailMessage state = #new ifTrue: [ self processNewMessage: aSPMailMessage. ].
+		aSPMailMessage state = #saved ifTrue: [ self processSavedMessage: aSPMailMessage. ].
 	]
 	on: Exception do: [ :ex | ex return. ].! !
 
@@ -1903,7 +1938,7 @@ processNewMessage: aSPMailMessage
 		aSPMailMessage state: #saved.
 	].! !
 
-!SPMailQueue methodsFor: 'processing' stamp: 'as 12/11/2006 15:17'!
+!SPMailQueue methodsFor: 'processing' stamp: 'as 1/18/2007 01:24'!
 processQueue
 
 	| start |
@@ -1911,7 +1946,7 @@ processQueue
 		processMonitor critical: [
 			run ifFalse: [ processMonitor wait. ].
 			start _ DateAndTime now.
-			self queue do: [
+			queue do: [
 				:message |
 				self processMessage: message.
 			].
@@ -1919,7 +1954,7 @@ processQueue
 		].
 	].! !
 
-!SPMailQueue methodsFor: 'processing' stamp: 'as 1/16/2007 15:29'!
+!SPMailQueue methodsFor: 'processing' stamp: 'as 1/18/2007 02:17'!
 processSavedMessage: aSPMailMessage
 
 	| manager list sender |
@@ -1928,7 +1963,7 @@ processSavedMessage: aSPMailMessage
 	list ifNotNil: [
 		sender _ aSPMailMessage sender.
 		(manager isAllowed: sender postTo: list) ifTrue: [
-			sender
+			SPKernel instance sender
 				sendMessage: aSPMailMessage mail
 				from: sender
 				to: (manager recipientsForList: list).
@@ -2027,10 +2062,10 @@ close: aString
 	self replyClosing: aString.
 	stream close.! !
 
-!SPMailReceiver methodsFor: 'configuration' stamp: 'as 1/15/2007 17:36'!
+!SPMailReceiver methodsFor: 'configuration' stamp: 'as 1/17/2007 13:39'!
 config
 
-	^ SPKernel configurator.! !
+	^ SPKernel instance configurator.! !
 
 !SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 10/5/2006 14:22'!
 initMessages
@@ -2125,7 +2160,7 @@ quit
 	stream close.
 	SPKernel instance listener removeConnection: self.! !
 
-!SPMailReceiver methodsFor: 'receive' stamp: 'as 12/12/2006 09:11'!
+!SPMailReceiver methodsFor: 'receive' stamp: 'as 1/17/2007 22:41'!
 receive
 
 	"Receive commands from client as long as connection is there and
@@ -2136,7 +2171,7 @@ receive
 	[
 		[
 			[ quit not and: [ stream isConnected. ] ] whileTrue: [ self receiveCommand. ].
-		] on: Exception do: [ self replyClosing: 'Unknown error'. ].
+		] on: Exception do: [ :e | self replyClosing: 'Unknown error'. ].
 	] ensure: [ self quit. ].! !
 
 !SPMailReceiver methodsFor: 'receive' stamp: 'as 11/16/2006 15:35'!
@@ -2335,18 +2370,17 @@ initClient
 		onHost: hostIP
 		port: self senderPort.! !
 
-!SPMailSender methodsFor: 'initialize-release' stamp: 'as 1/16/2007 14:33'!
+!SPMailSender methodsFor: 'initialize-release' stamp: 'as 1/17/2007 13:29'!
 initialize
 
-	monitor _ Monitor new.
-	self initClient.! !
+	monitor _ Monitor new.! !
 
 !SPMailSender methodsFor: 'configuration' stamp: 'as 1/15/2007 18:12'!
 resolverTimeout
 
 	^ self config preferenceAt: #resolverTimeout.! !
 
-!SPMailSender methodsFor: 'send' stamp: 'as 11/17/2006 13:35'!
+!SPMailSender methodsFor: 'send' stamp: 'as 1/18/2007 02:28'!
 sendMessage: aMailMessage from: aSPMailAddress to: aCollection
 
 	monitor critical: [
@@ -2366,6 +2400,17 @@ senderPort
 senderServer
 
 	^ self config preferenceAt: #senderServer.! !
+
+!SPMailSender methodsFor: 'start-stop' stamp: 'as 1/17/2007 13:29'!
+start
+
+	self initClient.! !
+
+!SPMailSender methodsFor: 'start-stop' stamp: 'as 1/17/2007 13:30'!
+stop
+
+	client close.
+	client _ nil.! !
 
 Object subclass: #SPPassword
 	instanceVariableNames: 'password'
@@ -3823,10 +3868,11 @@ from: aSPMailAddress
 	self sendCommand: 'mail from:', aSPMailAddress path.
 	self checkResponse.! !
 
-!SPSmtpClient methodsFor: 'private' stamp: 'as 10/10/2006 14:27'!
+!SPSmtpClient methodsFor: 'private' stamp: 'as 1/18/2007 02:40'!
 login
 
-	"anonymous login"! !
+	self sendCommand: 'helo me'.
+	self checkResponse.! !
 
 !SPSmtpClient methodsFor: 'open-close' stamp: 'as 10/10/2006 14:34'!
 open
