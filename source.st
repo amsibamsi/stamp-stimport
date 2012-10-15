@@ -134,7 +134,7 @@ shouldNotIncludeUser: aSPUser
 	^ name = aSPList name.! !
 
 Object subclass: #SPListManager
-	instanceVariableNames: 'kernel'
+	instanceVariableNames: 'kernel lists'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Model'!
@@ -147,10 +147,53 @@ withKernel: aSPKernel
 
 	^ self new kernel: aSPKernel.! !
 
+!SPListManager methodsFor: 'operations' stamp: 'as 3/22/2006 15:34'!
+addList: nameString
+
+	self listShouldNotExist: nameString.
+	lists add: (SPList withName: nameString).! !
+
+!SPListManager methodsFor: 'initialize-release' stamp: 'as 3/22/2006 15:25'!
+initialize
+
+	lists := Set new.! !
+
 !SPListManager methodsFor: 'accessing' stamp: 'as 3/14/2006 14:42'!
 kernel: aSPKernel
 
 	kernel := aSPKernel.! !
+
+!SPListManager methodsFor: 'private' stamp: 'as 3/22/2006 15:26'!
+listNamed: nameString
+
+	^ lists detect: [ :list | list name = nameString. ] ifNone: [ nil. ].! !
+
+!SPListManager methodsFor: 'private' stamp: 'as 3/22/2006 15:28'!
+listShouldExist: nameString
+
+	| list |
+	list := self listNamed: nameString.
+	list isNil ifTrue: [ SPListNotFoundException signal. ].
+	self assert: list notNil.
+	^ list.! !
+
+!SPListManager methodsFor: 'private' stamp: 'as 3/22/2006 15:31'!
+listShouldNotExist: nameString
+
+	| list |
+	list := self listNamed: nameString.
+	list notNil ifTrue: [ SPListAlreadyExistsException signal ].
+	self assert: list isNil.! !
+
+!SPListManager methodsFor: 'operations' stamp: 'as 3/22/2006 15:32'!
+list: nameString
+
+	^ self listShouldExist: nameString.! !
+
+!SPListManager methodsFor: 'operations' stamp: 'as 3/22/2006 15:33'!
+removeList: nameString
+
+	lists remove: (self listShouldExist: nameString).! !
 
 Object subclass: #SPMailQueue
 	instanceVariableNames: 'kernel buffer'
@@ -166,12 +209,19 @@ withKernel: aSPKernel
 
 	^ self new kernel: aSPKernel.! !
 
-!SPMailQueue methodsFor: 'private' stamp: 'as 3/16/2006 16:00'!
+!SPMailQueue methodsFor: 'private' stamp: 'as 3/22/2006 16:55'!
 handle: aMailMessage
 
+	| listName list |
+	listName := (aMailMessage to) copyUpTo: '@'.
+	list := kernel listManager list: listName.
+	list allUsers do: [
+		
+	].
+
 	"fix me"
-	(MailDB openOn: 'testing') addNewMessage: aMailMessage.
-	SPMailSender deliverMessage: aMailMessage usingServer: 'ubecx.unibe.ch'.
+	"(MailDB openOn: 'testing') addNewMessage: aMailMessage.
+	SPMailSender deliverMessage: aMailMessage usingServer: 'ubecx.unibe.ch'."
 	! !
 
 !SPMailQueue methodsFor: 'accessing' stamp: 'as 3/14/2006 14:41'!
@@ -904,23 +954,27 @@ removeUser: nameString
 
 	users remove: (self userShouldExist: nameString).! !
 
-!SPUserManager methodsFor: 'private' stamp: 'as 3/21/2006 14:27'!
+!SPUserManager methodsFor: 'private' stamp: 'as 3/22/2006 15:22'!
+userNamed: nameString
+
+	^ users detect: [ :user | user name = nameString. ] ifNone: [ nil. ].! !
+
+!SPUserManager methodsFor: 'private' stamp: 'as 3/22/2006 15:24'!
 userShouldExist: nameString
 
-	| selectedUsers |
-	selectedUsers := users select: [ :user | user name = nameString ].
-	self assert: (selectedUsers size <= 1).
-	selectedUsers isEmpty ifTrue: [ SPUserNotFoundException signal. ].
-	self assert: (selectedUsers notEmpty).
-	^ selectedUsers first.! !
+	| user |
+	user := self userNamed: nameString.
+	user isNil ifTrue: [ SPUserNotFoundException signal. ].
+	self assert: user notNil.
+	^ user.! !
 
-!SPUserManager methodsFor: 'private' stamp: 'as 3/21/2006 14:23'!
+!SPUserManager methodsFor: 'private' stamp: 'as 3/22/2006 15:24'!
 userShouldNotExist: nameString
 
-	| userExists |
-	userExists := self userExists: nameString.
-	userExists ifTrue: [ SPUserAlreadyExistsException signal ].
-	self assert: userExists not.! !
+	| user |
+	user := self userNamed: nameString.
+	user notNil ifTrue: [ SPUserAlreadyExistsException signal ].
+	self assert: user isNil.! !
 
 !SPUserManager methodsFor: 'operations' stamp: 'as 3/21/2006 14:37'!
 user: nameString
@@ -1284,7 +1338,19 @@ Exception subclass: #SPModelException
 	poolDictionaries: ''
 	category: 'Stamp-Model'!
 
+SPModelException subclass: #SPListAlreadyExistsException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Model'!
+
 SPModelException subclass: #SPListAlreadyIncludedException
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Model'!
+
+SPModelException subclass: #SPListNotFoundException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
