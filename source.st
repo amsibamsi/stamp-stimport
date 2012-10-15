@@ -3063,6 +3063,16 @@ contactExists: aSPContact
 		contacts includes: aSPContact.
 	].! !
 
+!SPListManager methodsFor: 'get-contact' stamp: 'as 3/8/2007 17:28'!
+contactWithAddress: aSPMailAddress
+
+	^ monitor critical: [
+		contacts detect: [
+			:each |
+			each address = aSPMailAddress.
+		] ifNone: [ nil. ].
+	].! !
+
 !SPListManager methodsFor: 'get-contact' stamp: 'as 2/21/2007 14:53'!
 contacts
 
@@ -3070,13 +3080,13 @@ contacts
 		contacts copy.
 	].! !
 
-!SPListManager methodsFor: 'get-contact' stamp: 'as 2/21/2007 14:54'!
+!SPListManager methodsFor: 'get-contact' stamp: 'as 3/8/2007 17:28'!
 contactsForUser: aSPUser
 
 	^ monitor critical: [
 		contacts select: [
 			:each |
-			each user = aSPUser.
+			each user == aSPUser.
 		].
 	].! !
 
@@ -3315,13 +3325,15 @@ userExists: aSPUser
 		users includes: aSPUser.
 	].! !
 
-!SPListManager methodsFor: 'get-user' stamp: 'as 2/5/2007 10:46'!
+!SPListManager methodsFor: 'get-user' stamp: 'as 3/8/2007 17:30'!
 userWithAddress: aSPMailAddress
 
-	^ monitor critical: [
-		users
-			detect: [ :u | (u contacts collect: [ :c | c address. ]) includes: aSPMailAddress. ]
-			ifNone: [ nil. ].
+	| contact |
+	contact _ self contactWithAddress: aSPMailAddress.
+	contact ifNil: [
+		^ nil.
+	] ifNotNil: [
+		^ contact user.
 	].! !
 
 !SPListManager methodsFor: 'get-user' stamp: 'as 1/24/2007 15:26'!
@@ -3660,11 +3672,15 @@ from: fromString toAll: collectionOfStrings mail: mailString
 		recipients: recipients
 		mail: (MailMessage from: mailString).! !
 
-!SPMailMessage class methodsFor: 'class initialization' stamp: 'as 10/17/2006 16:18'!
-initialize
+!SPMailMessage class methodsFor: 'access' stamp: 'as 3/8/2007 17:18'!
+messageId
 
-	messageId := 0.
-	monitor := Monitor new.! !
+	^ messageId ifNil: [ messageId _ 0. ].! !
+
+!SPMailMessage class methodsFor: 'access' stamp: 'as 3/8/2007 17:17'!
+monitor
+
+	^ monitor ifNil: [ monitor _ Monitor new. ].! !
 
 !SPMailMessage class methodsFor: 'instance creation' stamp: 'as 2/26/2007 13:37'!
 sender: fromSPMailAddress recipients: collectionOfSPMailAddress mail: aMailMessage
@@ -3675,11 +3691,11 @@ sender: fromSPMailAddress recipients: collectionOfSPMailAddress mail: aMailMessa
 		mail: aMailMessage;
 		ensureMessageId.! !
 
-!SPMailMessage class methodsFor: 'id' stamp: 'as 10/17/2006 16:20'!
+!SPMailMessage class methodsFor: 'id' stamp: 'as 3/8/2007 17:18'!
 uniqueMessageId
 
-	monitor critical: [
-		messageId := messageId + 1.
+	self monitor critical: [
+		messageId _ self messageId + 1.
 		^ messageId.
 	].! !
 
@@ -3755,14 +3771,6 @@ SPMailMessage subclass: #SPMailPosting
 A mail message dedicated for postings to mailing lists.
 Only the first recipient is used and is interpreted as list address.!
 
-!SPMailPosting class methodsFor: 'instance creation' stamp: 'as 2/26/2007 15:37'!
-from: fromString to: toString mail: mailString
-
-	^ self
-		from: fromString
-		to: (Array with: toString)
-		mail: mailString.! !
-
 !SPMailPosting methodsFor: 'post' stamp: 'as 2/26/2007 11:23'!
 admin
 
@@ -3785,20 +3793,20 @@ listRecipients
 
 	^ SPKernel instance manager recipientsForList: self recipientList.! !
 
-!SPMailPosting methodsFor: 'access' stamp: 'as 3/8/2007 15:14'!
+!SPMailPosting methodsFor: 'access' stamp: 'as 3/8/2007 17:37'!
 mail
 
 	| message |
-	message _ MailMessage from: mail.
+	message _ MailMessage from: mail text.
 	message returnPath: self admin asString.
 	message subject: '[', self recipientList name, '] ', mail subject.
 	^ message.! !
 
-!SPMailPosting methodsFor: 'post' stamp: 'as 3/8/2007 15:44'!
+!SPMailPosting methodsFor: 'post' stamp: 'as 3/8/2007 17:31'!
 recipientList
 
 	| list |
-	list _ SPKernel instance manager listWithAddress: recipients first.
+	list _ SPKernel instance manager listWithAddress: recipients atRandom.
 	list ifNil: [ SPListNotFoundException signal. ].
 	^ list.! !
 
@@ -4187,7 +4195,7 @@ quit
 	stream close.
 	SPKernel instance listener removeConnection: self.! !
 
-!SPMailReceiver methodsFor: 'receive' stamp: 'as 2/5/2007 16:19'!
+!SPMailReceiver methodsFor: 'receive' stamp: 'as 3/8/2007 17:34'!
 receive
 
 	"Receive commands from client as long as connection is there and
@@ -5502,4 +5510,3 @@ to: aSPMailAddress
 	self sendCommand: 'rcpt to:', aSPMailAddress path.
 	self checkResponse.! !
 SPWeb initialize!
-SPMailMessage initialize!
