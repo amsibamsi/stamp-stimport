@@ -11,6 +11,25 @@ SystemOrganization addCategory: #'Stamp-Storage'!
 SystemOrganization addCategory: #'Stamp-Tests'!
 SystemOrganization addCategory: #'Stamp-Web'!
 
+!MailMessage class methodsFor: '*Stamp' stamp: 'as 9/27/2006 13:39'!
+dateStampNow
+	"Return the current date and time formatted as a email Date: line"
+	"The result conforms to RFC822 with a long year, e.g.  'Thu, 18 Feb 1999 20:38:51'"
+
+	"Fix:
+	 According to RFC822, this must also include the time zone.
+	 Anselm Strauss, astrauss@gmx.ch, Wed, 20 Sep 2006"
+
+	| zone digits sign |
+	zone := DateAndTime localTimeZone offset.
+	digits := zone hours abs * 100 + zone minutes abs.
+	zone negative ifTrue: [ sign := '-'. ] ifFalse: [ sign := '+'. ].
+
+	^	(Date today weekday copyFrom: 1 to: 3), ', ',
+		(Date today printFormat: #(1 2 3 $  2 1 1)), ' ',
+		Time now print24, ' ',
+		sign, (digits printPaddedWith: $0 to: 4).! !
+
 !MailMessage methodsFor: '*Stamp' stamp: 'as 9/19/2006 18:11'!
 addField: nameString fromString: valueString
 
