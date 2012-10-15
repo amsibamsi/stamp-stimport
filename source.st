@@ -1,16 +1,17 @@
 SystemOrganization addCategory: #'Stamp-Configuration'!
+SystemOrganization addCategory: #'Stamp-Storage'!
+SystemOrganization addCategory: #'Stamp-Core'!
 SystemOrganization addCategory: #'Stamp-Lists'!
-SystemOrganization addCategory: #'Stamp-Mail-Message'!
 SystemOrganization addCategory: #'Stamp-Mail-Client'!
+SystemOrganization addCategory: #'Stamp-Mail-Message'!
 SystemOrganization addCategory: #'Stamp-Mail-Server'!
 SystemOrganization addCategory: #'Stamp-Mail-Server-Commands'!
 SystemOrganization addCategory: #'Stamp-Mail-Server-States'!
-SystemOrganization addCategory: #'Stamp-Core'!
 SystemOrganization addCategory: #'Stamp-Tests'!
 SystemOrganization addCategory: #'Stamp-Users'!
 
 Object subclass: #SPKernel
-	instanceVariableNames: 'config listener queue listManager userManager'
+	instanceVariableNames: 'config listener queue archive listManager userManager'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Core'!
@@ -18,16 +19,22 @@ Object subclass: #SPKernel
 !SPKernel commentStamp: '<historical>' prior: 0!
 The core of a running Stamp application instance.!
 
+!SPKernel methodsFor: 'accessing' stamp: 'as 6/12/2006 14:08'!
+archive
+
+	^ archive.! !
+
 !SPKernel methodsFor: 'accessing' stamp: 'as 5/15/2006 11:25'!
 configuration
 
 	^ config.! !
 
-!SPKernel methodsFor: 'initialize-release' stamp: 'as 5/17/2006 13:09'!
+!SPKernel methodsFor: 'initialize-release' stamp: 'as 6/12/2006 13:28'!
 initialize
 
-	listener := SPMailListener withKernel: self onPort: (config valueAt: #port).
+	listener := SPMailListener withKernel: self.
 	queue := SPMailQueue withKernel: self.
+	archive := SPMailArchive new.
 	listManager := SPListManager withKernel: self.
 	userManager := SPUserManager withKernel: self.! !
 
@@ -205,57 +212,120 @@ removeList: nameString
 
 	lists remove: (self listShouldExist: nameString).! !
 
-Object subclass: #SPMailMessage
-	instanceVariableNames: 'sender receiver clientId mail'
+Object subclass: #SPMailAddress
+	instanceVariableNames: 'localPart domain'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Message'!
 
-!SPMailMessage methodsFor: 'accessing' stamp: 'as 5/24/2006 14:14'!
-clientId
+!SPMailAddress commentStamp: '<historical>' prior: 0!
+An address as used in electronic mails.!
 
-	^ clientId.! !
+!SPMailAddress class methodsFor: 'instance creation' stamp: 'as 6/8/2006 18:11'!
+fromForwardPath: aString
 
-!SPMailMessage methodsFor: 'accessing' stamp: 'as 5/24/2006 14:14'!
-clientId: aString
+	| path localPart domain |
+	path := (aString copyAfter: self leftDelimiter) copyUpTo: self rightDelimiter.
+	localPart := path copyUpTo: self middleDelimiter.
+	domain := path copyAfter: self middleDelimiter.
 
-	clientId := aString.! !
+	^ self new
+		localPart: localPart;
+		domain: domain.! !
+
+!SPMailAddress class methodsFor: 'instance creation' stamp: 'as 6/8/2006 17:57'!
+leftDelimiter
+
+	^ $<.! !
+
+!SPMailAddress class methodsFor: 'instance creation' stamp: 'as 6/8/2006 18:10'!
+middleDelimiter
+
+	^ $@.! !
+
+!SPMailAddress class methodsFor: 'instance creation' stamp: 'as 6/8/2006 17:57'!
+rightDelimiter
+
+	^ $>.! !
+
+!SPMailAddress methodsFor: 'accessing' stamp: 'as 6/8/2006 16:51'!
+domain
+
+	^ domain.! !
+
+!SPMailAddress methodsFor: 'accessing' stamp: 'as 6/8/2006 16:51'!
+domain: aString
+
+	domain := aString.! !
+
+!SPMailAddress methodsFor: 'accessing' stamp: 'as 6/8/2006 17:32'!
+localPart
+
+	^ localPart.! !
+
+!SPMailAddress methodsFor: 'accessing' stamp: 'as 6/8/2006 17:31'!
+localPart: aString
+
+	localPart := aString.! !
+
+Object subclass: #SPMailMessage
+	instanceVariableNames: 'lists mail sender'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Message'!
+
+!SPMailMessage commentStamp: '<historical>' prior: 0!
+A mail message that contains some attributes specific to mail reception besides the normal mail data.
+
+When relaying mail, SMTP servers specify a separate sender and recipients that are not necessarily equal to the ones of the mail message. This makes it possible to relay mail for different users without modifying the actual mail message, but sometimes this can also be a bit confusing.
+
+In addition to the normal mail message this implementation contains sender and recipients as they were specified by the relaying server.!
+
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 6/8/2006 18:31'!
+addList: aSPMailingList
+
+	lists add: aSPMailingList.! !
+
+!SPMailMessage methodsFor: 'initialize-release' stamp: 'as 6/8/2006 18:32'!
+initialize
+
+	lists := OrderedCollection new.! !
+
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 6/8/2006 18:32'!
+lists
+
+	^ lists.! !
+
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 6/12/2006 14:07'!
+lists: aCollection
+
+	lists := aCollection.! !
 
 !SPMailMessage methodsFor: 'accessing' stamp: 'as 5/24/2006 12:42'!
 mail
 
 	^ mail.! !
 
-!SPMailMessage methodsFor: 'accessing' stamp: 'as 5/24/2006 12:41'!
-mail: aMailMessage
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 6/12/2006 14:32'!
+mail: aString
 
-	mail := aMailMessage.! !
+	mail := MailMessage from: aString.! !
 
-!SPMailMessage methodsFor: 'accessing' stamp: 'as 5/23/2006 13:30'!
-receiver
-
-	^ receiver.! !
-
-!SPMailMessage methodsFor: 'accessing' stamp: 'as 5/23/2006 13:36'!
-receiver: aString
-
-	receiver := aString.! !
-
-!SPMailMessage methodsFor: 'accessing' stamp: 'as 5/23/2006 13:36'!
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 6/12/2006 12:29'!
 sender
 
 	^ sender.! !
 
-!SPMailMessage methodsFor: 'accessing' stamp: 'as 5/23/2006 13:37'!
-sender: aString
+!SPMailMessage methodsFor: 'accessing' stamp: 'as 6/12/2006 12:29'!
+sender: aSPMailAddress
 
-	sender := aString.! !
+	sender := aSPMailAddress.! !
 
 Object subclass: #SPMailQueue
 	instanceVariableNames: 'kernel buffer'
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Core'!
+	category: 'Stamp-Mail-Server'!
 
 !SPMailQueue commentStamp: '<historical>' prior: 0!
 Handles incoming mail, e.g. storing/forwarding/...!
@@ -265,19 +335,10 @@ withKernel: aSPKernel
 
 	^ self new kernel: aSPKernel.! !
 
-!SPMailQueue methodsFor: 'private' stamp: 'as 3/22/2006 16:55'!
-handle: aMailMessage
+!SPMailQueue methodsFor: 'private' stamp: 'as 6/12/2006 13:28'!
+handle: aSPMailMessage
 
-	| listName list |
-	listName := (aMailMessage to) copyUpTo: '@'.
-	list := kernel listManager list: listName.
-	list allUsers do: [
-		
-	].
-
-	"fix me"
-	"(MailDB openOn: 'testing') addNewMessage: aMailMessage.
-	SPMailSender deliverMessage: aMailMessage usingServer: 'ubecx.unibe.ch'."
+	kernel archive addNewMessage: aSPMailMessage mail.
 	! !
 
 !SPMailQueue methodsFor: 'accessing' stamp: 'as 3/14/2006 14:41'!
@@ -297,11 +358,9 @@ Object subclass: #SPMailReceiver
 	category: 'Stamp-Mail-Server'!
 
 !SPMailReceiver commentStamp: '<historical>' prior: 0!
-Minimalistic mail server following RFC 2821 that only receives mail. One receiver serves one client connection, and the whole will usually be multithreaded.
+Minimalistic mail server trying to follow RFC 2821. It only receives mail. One receiver serves one client connection, and the whole will usually be multithreaded.
 
-A SPMailReceiver is created on a socket. Mail reception starts with the receive method. After its return received data is available in message, sender and receiver.
-
-The receiver is normally in command mode, where it looks for client SMTP commands. It can switch to data mode, as stored in dataMode, to receive mail data and then switch back.!
+A SPMailReceiver is created on a socket. Mail reception starts with the receive method. After its return received data is available in the message.!
 
 !SPMailReceiver class methodsFor: 'instance creation' stamp: 'as 3/16/2006 15:23'!
 on: aSocketStream withKernel: aSPKernel
@@ -311,11 +370,6 @@ on: aSocketStream withKernel: aSPKernel
 		kernel: aSPKernel;
 		yourself.! !
 
-!SPMailReceiver methodsFor: 'accessing' stamp: 'as 5/24/2006 14:15'!
-clientId: aString
-
-	message clientId: aString.! !
-
 !SPMailReceiver methodsFor: 'settings' stamp: 'as 2/6/2006 15:19'!
 dataDelimiter
 
@@ -323,12 +377,12 @@ dataDelimiter
 
 	^ String crlf, '.', String crlf.! !
 
-!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 5/24/2006 13:55'!
+!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 6/12/2006 14:27'!
 initialize
 
+	quit := false.
 	message := SPMailMessage new.
-	self state: SPReadySmtpState.
-	quit := false.! !
+	self state: SPReadySmtpState.! !
 
 !SPMailReceiver methodsFor: 'private' stamp: 'as 5/24/2006 14:16'!
 insertTrace! !
@@ -338,17 +392,12 @@ kernel: aSPKernel
 
 	kernel := aSPKernel.! !
 
-!SPMailReceiver methodsFor: 'accessing' stamp: 'as 5/24/2006 11:44'!
-mailFrom: aString
+!SPMailReceiver methodsFor: 'message' stamp: 'as 6/8/2006 18:31'!
+list: aSPMailingList
 
-	message sender: aString.! !
+	message addList: aSPMailingList.! !
 
-!SPMailReceiver methodsFor: 'accessing' stamp: 'as 5/24/2006 11:44'!
-mailTo: aString
-
-	message receiver: aString.! !
-
-!SPMailReceiver methodsFor: 'accessing' stamp: 'as 5/24/2006 11:46'!
+!SPMailReceiver methodsFor: 'message' stamp: 'as 5/24/2006 11:46'!
 mail: aString
 
 	message mail: aString.! !
@@ -401,10 +450,16 @@ requestQuit
 
 	quit := true.! !
 
-!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 5/24/2006 13:54'!
+!SPMailReceiver methodsFor: 'initialize-release' stamp: 'as 6/12/2006 14:27'!
 reset
 
-	message mailFrom: nil; mailTo: nil; mail: nil.! !
+	message := SPMailMessage new.
+	self state: SPResetSmtpState.! !
+
+!SPMailReceiver methodsFor: 'message' stamp: 'as 6/12/2006 12:29'!
+sender: aSPMailAddress
+
+	message sender: aSPMailAddress.! !
 
 !SPMailReceiver methodsFor: 'state' stamp: 'as 1/11/2006 14:34'!
 state
@@ -427,20 +482,89 @@ Object subclass: #SPModel
 	poolDictionaries: ''
 	category: 'Stamp-Core'!
 
-!SPModel methodsFor: 'configuration' stamp: 'as 5/17/2006 13:20'!
+!SPModel commentStamp: '<historical>' prior: 0!
+A component of Stamps model. Most likely you want to subclass this.!
+
+SPModel subclass: #SPMailArchive
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Storage'!
+
+!SPMailArchive commentStamp: '<historical>' prior: 0!
+Mail archive that basically wraps around MailDB.!
+
+!SPMailArchive methodsFor: 'messages' stamp: 'as 6/12/2006 14:15'!
+addNewMessage: aMailMessage
+
+	(MailDB openOn: 'stamp-archive') addNewMessage: aMailMessage.! !
+
+SPModel subclass: #SPMailListener
+	instanceVariableNames: 'kernel service'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPMailListener commentStamp: '<historical>' prior: 0!
+Listens for incoming SMTP connections and treats them appropriately.!
+
+!SPMailListener class methodsFor: 'instance creation' stamp: 'as 5/30/2006 09:21'!
+withKernel: aSPKernel
+
+	^ self new kernel: aSPKernel.! !
+
+!SPMailListener methodsFor: 'initialize-release' stamp: 'as 5/30/2006 09:31'!
+initialize
+
+	service := SPMailService withListener: self onPort: (self preferenceAt: #port).! !
+
+!SPMailListener methodsFor: 'accessing' stamp: 'as 5/30/2006 14:11'!
+kernel
+
+	^ kernel.! !
+
+!SPMailListener methodsFor: 'accessing' stamp: 'as 3/14/2006 14:36'!
+kernel: aSPKernel
+
+	kernel := aSPKernel.! !
+
+!SPMailListener methodsFor: 'starting and stopping' stamp: 'as 5/30/2006 14:06'!
+start
+
+	service start.! !
+
+!SPMailListener methodsFor: 'starting and stopping' stamp: 'as 5/30/2006 14:06'!
+stop
+
+	service stop.! !
+
+!SPModel class methodsFor: 'configuration' stamp: 'as 5/30/2006 16:08'!
 configuration
 
-	^ (self class name, self defaultConfigurationSuffix) instance.! !
+	| c |
+	c := Smalltalk classNamed: (self name, self defaultConfigurationSuffix).
+	c ifNil: [ c := self defaultConfiguration. ].
+	^ c localConfiguration.! !
 
-!SPModel methodsFor: 'settings' stamp: 'as 5/17/2006 13:21'!
+!SPModel class methodsFor: 'configuration' stamp: 'as 5/30/2006 16:09'!
+defaultConfiguration
+
+	^ SPBaseConfiguration.! !
+
+!SPModel class methodsFor: 'configuration' stamp: 'as 5/26/2006 10:20'!
 defaultConfigurationSuffix
 
 	^ 'Configuration'.! !
 
-!SPModel methodsFor: 'configuration' stamp: 'as 5/17/2006 13:14'!
+!SPModel class methodsFor: 'configuration' stamp: 'as 5/26/2006 10:21'!
 preferenceAt: aSymbol
 
-	self configuration valueAt: aSymbol.! !
+	^ self configuration valueAt: aSymbol.! !
+
+!SPModel methodsFor: 'configuration' stamp: 'as 5/26/2006 10:21'!
+preferenceAt: aSymbol
+
+	^ self class preferenceAt: aSymbol.! !
 
 Object subclass: #SPSmtpCommand
 	instanceVariableNames: 'argument target reply state'
@@ -501,8 +625,8 @@ SPSmtpCommand subclass: #SPEhloSmtpCommand
 	poolDictionaries: ''
 	category: 'Stamp-Mail-Server-Commands'!
 
-!SPEhloSmtpCommand commentStamp: 'as 3/6/2006 11:19' prior: 0!
-The EHLO command unimplemented since no service extension are needed/implemented.!
+!SPEhloSmtpCommand commentStamp: '<historical>' prior: 0!
+The EHLO command is unimplemented since no service extension are needed/implemented.!
 
 !SPEhloSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:12'!
 initStates
@@ -551,10 +675,9 @@ verb
 
 	^ 'helo'.! !
 
-!SPHeloSmtpCommand methodsFor: 'executing' stamp: 'as 5/24/2006 13:59'!
+!SPHeloSmtpCommand methodsFor: 'executing' stamp: 'as 6/8/2006 18:34'!
 doExecute
 
-	target clientId: argument.
 	self state: SPResetSmtpState.! !
 
 !SPHeloSmtpCommand methodsFor: 'executing' stamp: 'as 4/20/2006 19:37'!
@@ -585,10 +708,10 @@ verb
 
 	^ 'mail from:'.! !
 
-!SPMailSmtpCommand methodsFor: 'executing' stamp: 'as 4/21/2006 10:56'!
+!SPMailSmtpCommand methodsFor: 'executing' stamp: 'as 6/12/2006 14:05'!
 doExecute
 
-	target mailFrom: argument.
+	target sender: (SPMailAddress fromForwardPath: argument).
 	self state: SPMailSmtpState.! !
 
 !SPMailSmtpCommand methodsFor: 'executing' stamp: 'as 4/21/2006 10:54'!
@@ -669,7 +792,7 @@ SPSmtpCommand subclass: #SPRecipientSmtpCommand
 	category: 'Stamp-Mail-Server-Commands'!
 
 !SPRecipientSmtpCommand commentStamp: '<historical>' prior: 0!
-Spcifies a recipient address.!
+Specifies a recipient address.!
 
 !SPRecipientSmtpCommand class methodsFor: 'class initialization' stamp: 'as 4/21/2006 11:12'!
 initStates
@@ -686,10 +809,13 @@ verb
 
 	^ 'rcpt to:'.! !
 
-!SPRecipientSmtpCommand methodsFor: 'executing' stamp: 'as 4/21/2006 10:53'!
+!SPRecipientSmtpCommand methodsFor: 'executing' stamp: 'as 6/12/2006 13:13'!
 doExecute
 
-	target mailTo: argument.
+	| recipient list |
+	recipient := SPMailAddress fromForwardPath: argument.
+	list := recipient localPart.
+	target list: list.
 	self state: SPRecipientSmtpState.! !
 
 !SPRecipientSmtpCommand methodsFor: 'executing' stamp: 'as 4/21/2006 10:55'!
@@ -926,7 +1052,7 @@ Object subclass: #SPSmtpReply
 	category: 'Stamp-Mail-Server'!
 
 !SPSmtpReply commentStamp: '<historical>' prior: 0!
-SMTP replies are sent from a server to a client.!
+SMTP replies are sent from a server to a client as answer to client SMTP commands.!
 
 !SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 4/20/2006 16:16'!
 badSequence
@@ -1209,6 +1335,32 @@ user: nameString
 
 	^ self userShouldExist: nameString.! !
 
+TcpService subclass: #SPMailService
+	instanceVariableNames: 'listener'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPMailService commentStamp: '<historical>' prior: 0!
+A TCP service listening for incoming SMTP connections.!
+
+!SPMailService class methodsFor: 'instance creation' stamp: 'as 5/30/2006 09:28'!
+withListener: aSPMailListener onPort: aNumber
+
+	^ (self on: aNumber) listener: aSPMailListener.! !
+
+!SPMailService methodsFor: 'accessing' stamp: 'as 5/30/2006 09:17'!
+listener: aSPMailListener
+
+	listener := aSPMailListener.! !
+
+!SPMailService methodsFor: 'conversation' stamp: 'as 5/30/2006 09:17'!
+serve: aSocket
+
+	| receiver |
+	receiver := SPMailReceiver on: (SocketStream on: aSocket) withKernel: listener kernel.
+	receiver receive.! !
+
 !String methodsFor: '*Stamp' stamp: 'as 3/7/2006 12:09'!
 convertToSmtpText
 
@@ -1233,31 +1385,80 @@ convertToSqueakText
 	convertedString := convertedString copyReplaceAll: lf with: cr.
 	^ convertedString.! !
 
-TcpService subclass: #SPMailListener
-	instanceVariableNames: 'kernel'
+WASystemConfiguration subclass: #SPBaseConfiguration
+	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
-	category: 'Stamp-Mail-Server'!
+	category: 'Stamp-Configuration'!
 
-!SPMailListener commentStamp: '<historical>' prior: 0!
-A TCP service accepting SMTP connections.!
+!SPBaseConfiguration commentStamp: '<historical>' prior: 0!
+Basic configuration attributes for Stamp.!
 
-!SPMailListener class methodsFor: 'instance creation' stamp: 'as 3/14/2006 14:35'!
-withKernel: aSPKernel onPort: aNumber
+!SPBaseConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 15:28'!
+attributes
 
-	^ (self on: aNumber) kernel: aSPKernel.! !
+	^ Array
+		with: (WAStringAttribute key: #rootDir).! !
 
-!SPMailListener methodsFor: 'accessing' stamp: 'as 3/14/2006 14:36'!
-kernel: aSPKernel
+!SPBaseConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 15:28'!
+rootDir
 
-	kernel := aSPKernel.! !
+	^ 'stamp'.! !
 
-!SPMailListener methodsFor: 'conversation' stamp: 'as 3/16/2006 15:23'!
-serve: aSocket
+WASystemConfiguration subclass: #SPModelConfiguration
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration'!
 
-	| server |
-	server := SPMailReceiver on: (SocketStream on: aSocket) withKernel: kernel.
-	server receive.! !
+!SPModelConfiguration commentStamp: '<historical>' prior: 0!
+Configuration for a Stamp model component. Includes a basic configuration as ancestor by default.!
+
+SPModelConfiguration subclass: #SPMailArchiveConfiguration
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration'!
+
+!SPMailArchiveConfiguration commentStamp: '<historical>' prior: 0!
+Mail archive configuration.!
+
+!SPMailArchiveConfiguration methodsFor: 'as yet unclassified' stamp: 'as 6/7/2006 17:15'!
+archiveDir
+
+	^ (self valueAt: #rootDir), '/archive'.! !
+
+!SPMailArchiveConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 15:23'!
+attributes
+
+	^ Array
+		with: (WAStringAttribute key: #archiveDir).! !
+
+SPModelConfiguration subclass: #SPMailListenerConfiguration
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Configuration'!
+
+!SPMailListenerConfiguration commentStamp: '<historical>' prior: 0!
+Mail listener configuration.!
+
+!SPMailListenerConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 09:41'!
+attributes
+
+	^ Array
+		with: (WANumberAttribute key: #port).! !
+
+!SPMailListenerConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 09:42'!
+port
+
+	^ 2525.! !
+
+!SPModelConfiguration methodsFor: 'as yet unclassified' stamp: 'as 5/30/2006 15:32'!
+ancestors
+
+	^ Array
+		with: (SPBaseConfiguration localConfiguration).! !
 
 Exception subclass: #SPModelException
 	instanceVariableNames: ''
@@ -1265,11 +1466,17 @@ Exception subclass: #SPModelException
 	poolDictionaries: ''
 	category: 'Stamp-Core'!
 
+!SPModelException commentStamp: '<historical>' prior: 0!
+Indicates an exception somewhere in the model of Stamp.!
+
 SPModelException subclass: #SPListAlreadyExistsException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Lists'!
+
+!SPListAlreadyExistsException commentStamp: '<historical>' prior: 0!
+Indicates that, against expectations, a mailing list already exists.!
 
 SPModelException subclass: #SPListAlreadyIncludedException
 	instanceVariableNames: ''
@@ -1277,17 +1484,26 @@ SPModelException subclass: #SPListAlreadyIncludedException
 	poolDictionaries: ''
 	category: 'Stamp-Lists'!
 
+!SPListAlreadyIncludedException commentStamp: '<historical>' prior: 0!
+Indicates that, against expectations, a mailing list is already included by a user.!
+
 SPModelException subclass: #SPListNotFoundException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Lists'!
 
+!SPListNotFoundException commentStamp: '<historical>' prior: 0!
+Indicates that, against expectations, a mailing list does not exist.!
+
 SPModelException subclass: #SPListNotIncludedException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Lists'!
+
+!SPListNotIncludedException commentStamp: '<historical>' prior: 0!
+Indicates that, against expectations, a mailing list is not included by a user.!
 
 !SPModelException methodsFor: 'priv handling' stamp: 'as 3/20/2006 15:58'!
 isResumable
@@ -1300,11 +1516,17 @@ SPModelException subclass: #SPUserAlreadyExistsException
 	poolDictionaries: ''
 	category: 'Stamp-Users'!
 
+!SPUserAlreadyExistsException commentStamp: '<historical>' prior: 0!
+Indicates that, against expectations, a user already exists.!
+
 SPModelException subclass: #SPUserAlreadyIncludedException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Users'!
+
+!SPUserAlreadyIncludedException commentStamp: '<historical>' prior: 0!
+Indicates that, against expectations, a user is already included by a mailing list.!
 
 SPModelException subclass: #SPUserNotFoundException
 	instanceVariableNames: ''
@@ -1312,11 +1534,17 @@ SPModelException subclass: #SPUserNotFoundException
 	poolDictionaries: ''
 	category: 'Stamp-Users'!
 
+!SPUserNotFoundException commentStamp: '<historical>' prior: 0!
+Indicates that, against expectations, a user does not exist.!
+
 SPModelException subclass: #SPUserNotIncludedException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Users'!
+
+!SPUserNotIncludedException commentStamp: '<historical>' prior: 0!
+Indicates that, against expectations, a user is not included by a mailing list.!
 
 Exception subclass: #SPSmtpCommandException
 	instanceVariableNames: 'server'
@@ -1383,6 +1611,47 @@ The specified command was not found.!
 reply
 
 	^ SPSmtpReply commandUnrecognized.! !
+
+SMTPClient subclass: #SPMailSender
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Client'!
+
+!SPMailSender commentStamp: '<historical>' prior: 0!
+Some minor changes to my superclass.!
+
+!SPMailSender class methodsFor: 'sending mail' stamp: 'as 3/16/2006 15:58'!
+deliverMessage: aMailMessage usingServer: aString
+
+	self
+		deliverMailFrom: aMailMessage from
+		to: aMailMessage recipients
+		text: aMailMessage text
+		usingServer: aString.! !
+
+!SPMailSender class methodsFor: 'instance creation' stamp: 'as 2/22/2006 15:08'!
+openOnHost: hostIP port: portNumber
+
+	^ self new openOnHost: hostIP port: portNumber! !
+
+!SPMailSender methodsFor: 'private protocol' stamp: 'as 2/22/2006 14:43'!
+login
+
+	"anonymous"
+	self initiateSession.! !
+
+!SPMailSender methodsFor: 'actions' stamp: 'as 2/22/2006 15:48'!
+reopen
+
+	self close.
+	self ensureConnection.! !
+
+!SPMailSender methodsFor: 'private protocol' stamp: 'as 2/22/2006 15:15'!
+reset
+
+	self sendCommand: 'RSET'.
+	self checkResponse.! !
 
 TestCase subclass: #SPCodeTest
 	instanceVariableNames: ''
@@ -1593,45 +1862,4 @@ testCrLf
 testLf
 
 	self assert: lf convertToSqueakText = cr.! !
-
-SMTPClient subclass: #SPMailSender
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Client'!
-
-!SPMailSender commentStamp: '<historical>' prior: 0!
-Some changes to SMTPClient.!
-
-!SPMailSender class methodsFor: 'sending mail' stamp: 'as 3/16/2006 15:58'!
-deliverMessage: aMailMessage usingServer: aString
-
-	self
-		deliverMailFrom: aMailMessage from
-		to: aMailMessage recipients
-		text: aMailMessage text
-		usingServer: aString.! !
-
-!SPMailSender class methodsFor: 'instance creation' stamp: 'as 2/22/2006 15:08'!
-openOnHost: hostIP port: portNumber
-
-	^ self new openOnHost: hostIP port: portNumber! !
-
-!SPMailSender methodsFor: 'private protocol' stamp: 'as 2/22/2006 14:43'!
-login
-
-	"anonymous"
-	self initiateSession.! !
-
-!SPMailSender methodsFor: 'actions' stamp: 'as 2/22/2006 15:48'!
-reopen
-
-	self close.
-	self ensureConnection.! !
-
-!SPMailSender methodsFor: 'private protocol' stamp: 'as 2/22/2006 15:15'!
-reset
-
-	self sendCommand: 'RSET'.
-	self checkResponse.! !
 SPSmtpCommand initialize!
