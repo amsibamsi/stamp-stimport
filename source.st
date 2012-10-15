@@ -652,6 +652,98 @@ initialize
 
 	var1 := 1.! !
 
+TcpService subclass: #SPMailListener
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPMailListener commentStamp: '<historical>' prior: 0!
+A TCP service accepting SMTP connections.!
+
+!SPMailListener methodsFor: 'conversation' stamp: 'as 1/31/2006 14:37'!
+serve: aSocket
+
+	| server |
+	server := SPMailReceiver on: (SocketStream on: aSocket).
+	server receive.! !
+
+String subclass: #SPSmtpReply
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Server'!
+
+!SPSmtpReply commentStamp: '<historical>' prior: 0!
+SMTP replies are sent from the server to the client and are just strings.!
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:05'!
+badSequence
+
+	^ '503 Bad sequence of commands'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:15'!
+cannotVerify
+
+	^ '252 Verification is disabled'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:16'!
+commandUnrecognized
+
+	^ '500 Syntax error or command unrecognized'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:21'!
+mailInput
+
+	^ '354 Start mail input; end with <CRLF>.<CRLF>'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:22'!
+notImplemented
+
+	^ '502 Command not implemented'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:23'!
+okay
+
+	^ '250 Okay'.! !
+
+!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/17/2006 16:09'!
+ready
+
+	^ '220 ', NetNameResolver localHostName.! !
+
+SMTPClient subclass: #SPMailSender
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Mail-Client'!
+
+!SPMailSender commentStamp: '<historical>' prior: 0!
+Some changes to SMTPClient.!
+
+!SPMailSender class methodsFor: 'instance creation' stamp: 'as 2/22/2006 15:08'!
+openOnHost: hostIP port: portNumber
+
+	^ self new openOnHost: hostIP port: portNumber! !
+
+!SPMailSender methodsFor: 'private protocol' stamp: 'as 2/22/2006 14:43'!
+login
+
+	"anonymous"
+	self initiateSession.! !
+
+!SPMailSender methodsFor: 'actions' stamp: 'as 2/22/2006 15:48'!
+reopen
+
+	self close.
+	self ensureConnection.! !
+
+!SPMailSender methodsFor: 'private protocol' stamp: 'as 2/22/2006 15:15'!
+reset
+
+	self sendCommand: 'RSET'.
+	self checkResponse.! !
+
 Exception subclass: #SPSmtpCommandException
 	instanceVariableNames: 'server'
 	classVariableNames: ''
@@ -761,7 +853,7 @@ findPortFor: aSPMailListener
 			do: [ :ex | ex return.]
 	].! !
 
-!SPMailReceivingTest methodsFor: 'running' stamp: 'as 2/21/2006 11:16'!
+!SPMailReceivingTest methodsFor: 'running' stamp: 'as 2/22/2006 16:01'!
 setUp
 
 	| port tries maxTries delay |
@@ -773,7 +865,7 @@ setUp
 	maxTries := 10.
 	delay := Delay forMilliseconds: 300.
 	[
-		[ client := SMTPClient openOnHostNamed: 'localhost' port: port. ]
+		[ client := SPMailSender openOnHostNamed: 'localhost' port: port. ]
 			on: ConnectionTimedOut
 			do: [ :ex | tries := tries + 1. ex return. ].
 		delay wait.
@@ -781,78 +873,39 @@ setUp
 		client == nil and: [ tries <= maxTries ].
 	]! !
 
-!SPMailReceivingTest methodsFor: 'running' stamp: 'as 2/14/2006 16:46'!
+!SPMailReceivingTest methodsFor: 'running' stamp: 'as 2/22/2006 15:39'!
 tearDown
 
+	client close.
 	server stop.
-	server waitForStopUntil: 3000.
+	server waitForStopUntil: 2000.
 	server kill.! !
 
-!SPMailReceivingTest methodsFor: 'testing' stamp: 'as 2/21/2006 11:33'!
+!SPMailReceivingTest methodsFor: 'testing' stamp: 'as 2/22/2006 15:19'!
 testBasic
 
 	client
-		reset;
+		reopen;
 		mailFrom: 'user@host.com';
 		recipient: 'user2@host.com';
-		data: 'Subject: test'.! !
+		data: 'Subject: test';
+		quit.! !
 
-String subclass: #SPSmtpReply
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server'!
+!SPMailReceivingTest methodsFor: 'testing' stamp: 'as 2/22/2006 15:22'!
+testQuit
 
-!SPSmtpReply commentStamp: '<historical>' prior: 0!
-SMTP replies are sent from the server to the client and are just strings.!
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:05'!
-badSequence
-
-	^ '503 Bad sequence of commands'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:15'!
-cannotVerify
-
-	^ '252 Verification is disabled'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:16'!
-commandUnrecognized
-
-	^ '500 Syntax error or command unrecognized'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:21'!
-mailInput
-
-	^ '354 Start mail input; end with <CRLF>.<CRLF>'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:22'!
-notImplemented
-
-	^ '502 Command not implemented'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 2/6/2006 15:23'!
-okay
-
-	^ '250 Okay'.! !
-
-!SPSmtpReply class methodsFor: 'instance creation' stamp: 'as 1/17/2006 16:09'!
-ready
-
-	^ '220 ', NetNameResolver localHostName.! !
-
-TcpService subclass: #SPMailListener
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Stamp-Mail-Server'!
-
-!SPMailListener commentStamp: '<historical>' prior: 0!
-A TCP service accepting SMTP connections.!
-
-!SPMailListener methodsFor: 'conversation' stamp: 'as 1/31/2006 14:37'!
-serve: aSocket
-
-	| server |
-	server := SPMailReceiver on: (SocketStream on: aSocket).
-	server receive.! !
+	client
+		reopen;
+		quit;
+		reopen;
+		mailFrom: 'user@host.com';
+		quit;
+		reopen;
+		mailFrom: 'user@host.com';
+		recipient: 'user2@host.com';
+		quit;
+		reopen;
+		mailFrom: 'user@host.com';
+		recipient: 'user2@host.com';
+		data: 'Subject: test';
+		quit.! !
