@@ -935,7 +935,7 @@ initTable
 	self updateTable.
 	table rowPeriod: 1; rowColors: self rowColors.! !
 
-!SPWATable methodsFor: 'rendering' stamp: 'as 3/5/2007 12:53'!
+!SPWATable methodsFor: 'rendering' stamp: 'as 3/9/2007 14:54'!
 renderContentOn: html
 
 	html render: table.! !
@@ -1188,7 +1188,7 @@ renderContentOn: html
 	self renderAddList: html.
 	! !
 
-!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 3/5/2007 10:27'!
+!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 3/9/2007 15:01'!
 tableColumns
 
 	^ OrderedCollection new
@@ -1480,7 +1480,7 @@ remove: aSPUser
 	self call: (SPWebUnregister withUser: aSPUser).
 	self updateTable.! !
 
-!SPWebUserAdmin methodsFor: 'rendering' stamp: 'as 2/28/2007 18:23'!
+!SPWebUserAdmin methodsFor: 'rendering' stamp: 'as 3/9/2007 14:53'!
 renderContentOn: html
 
 	self renderTitle: 'Users' renderer: html.
@@ -3275,14 +3275,14 @@ subscriptionExists: aSPSubscription
 		subscriptions includes: aSPSubscription.
 	].! !
 
-!SPListManager methodsFor: 'get-subscription' stamp: 'as 3/8/2007 15:51'!
+!SPListManager methodsFor: 'get-subscription' stamp: 'as 3/9/2007 14:35'!
 subscriptionFor: aSPUser to: aSPList
 
 	^ monitor critical: [
 		subscriptions detect: [
 			:subscription |
 			subscription list == aSPList and:
-				[ aSPUser verifiedContacts includes: subscription contact. ].
+				[ contacts includes: subscription contact. ].
 		] ifNone: [ nil. ].
 	].! !
 
@@ -3394,6 +3394,11 @@ fromString: aString
 	^ self new
 		localPart: localPart;
 		domain: domain.! !
+
+!SPMailAddress methodsFor: 'compare' stamp: 'as 3/9/2007 15:04'!
+<= aSPMailAddress
+
+	^ self asString <= aSPMailAddress asString.! !
 
 !SPMailAddress methodsFor: 'compare' stamp: 'as 2/27/2007 17:41'!
 = anObject
