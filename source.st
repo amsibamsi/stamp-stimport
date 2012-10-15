@@ -561,11 +561,14 @@ SPException subclass: #SPContactVerificationFailedException
 !SPContactVerificationFailedException commentStamp: 'as 2/15/2007 16:50' prior: 0!
 Verification failed.!
 
-SPException subclass: #SPEmpyArgumentException
+SPException subclass: #SPEmptyArgumentException
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Stamp-Core'!
+
+!SPEmptyArgumentException commentStamp: 'as 3/1/2007 18:43' prior: 0!
+Argument must not be empty.!
 
 !SPException methodsFor: 'priv handling' stamp: 'as 2/21/2007 13:47'!
 defaultAction
@@ -900,7 +903,7 @@ WAComponent subclass: #SPWAComponent
 !SPWAComponent commentStamp: 'as 2/15/2007 14:48' prior: 0!
 Basic web application functionality for Stamp.!
 
-!SPWAComponent methodsFor: 'exception' stamp: 'as 2/26/2007 09:50'!
+!SPWAComponent methodsFor: 'exception' stamp: 'as 3/1/2007 18:40'!
 do: aBlock catchExceptions: exceptions
 
 	aBlock on: exceptions do: [
@@ -963,45 +966,32 @@ SPWATable subclass: #SPWebConfiguration
 !SPWebConfiguration commentStamp: 'as 2/28/2007 12:27' prior: 0!
 Configuration editor.!
 
-!SPWebConfiguration methodsFor: 'call/answer' stamp: 'as 2/28/2007 21:45'!
-cancel
+!SPWebConfiguration methodsFor: 'rendering' stamp: 'as 3/1/2007 18:21'!
+columns
 
-	self answer.! !
+	^ OrderedCollection new
+		add: (WAReportColumn selector: #key title: 'Name');
+		add: (WAReportColumn selector: #value title: 'Value');
+		add: (WAReportColumn new title: 'Edit'; valueBlock: [ :item | 'edit'. ]; clickBlock: [ :item | self edit: item. ]; yourself);
+		yourself.! !
 
-!SPWebConfiguration methodsFor: 'preferences' stamp: 'as 2/28/2007 14:49'!
-preferenceAt: aSymbol put: aString
+!SPWebConfiguration methodsFor: 'call/answer' stamp: 'as 3/1/2007 18:27'!
+edit: anAssociation
 
-	self do: [
-		SPKernel instance configurator preferenceAt: aSymbol putString: aString.
-	] catchExceptions: Exception.! !
+	self call: (SPWebEditPreference withKey: anAssociation key value: anAssociation value).! !
 
-!SPWebConfiguration methodsFor: 'preferences' stamp: 'as 2/28/2007 14:41'!
-preferences
-
-	^ SPKernel instance configurator allPreferences associations.! !
-
-!SPWebConfiguration methodsFor: 'rendering' stamp: 'as 2/28/2007 21:45'!
+!SPWebConfiguration methodsFor: 'rendering' stamp: 'as 3/1/2007 18:25'!
 renderContentOn: html
 
 	self renderTitle: 'Preferences' renderer: html.
+	super renderContentOn: html.! !
 
-	html form: [
-		html table: [
-			html tableHeadings: #('Name' 'Value').
-			self preferences do: [
-				:each |
-				html tableRow: [
-					html tableData: [ html text: each key. ].
-					html tableData: [ html textInputWithValue: each value callback: [ :v | self preferenceAt: each key put: v. ]. ].
-				].
-			].
-		].
-		html tableRowWith: [
-			html submitButtonWithAction: [ . ] text: 'Submit'.
-			html space.
-			html submitButtonOn: #cancel of: self.
-		] span: 2.
-	].! !
+!SPWebConfiguration methodsFor: 'rendering' stamp: 'as 3/1/2007 18:16'!
+rows
+
+	^ OrderedCollection new
+		addAll: (SPKernel instance configurator allPreferences associations);
+		yourself.! !
 
 SPWATable subclass: #SPWebContacts
 	instanceVariableNames: 'user address'
@@ -1116,15 +1106,17 @@ add
 		SPKernel instance manager addList: address name: name description: description.
 	] catchExceptions: SPException.! !
 
-!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 2/28/2007 17:36'!
+!SPWebListAdmin methodsFor: 'rendering' stamp: 'as 3/1/2007 17:35'!
 columns
 
 	^ OrderedCollection new
 		add: (WAReportColumn selector: #name title: 'Name');
 		add: (WAReportColumn selector: #address title: 'Address');
+		add: (WAReportColumn selector: #admin title: 'Admin');
 		add: (WAReportColumn selector: #description title: 'Description');
 		add: (WAReportColumn new title: 'Subscriptions'; valueBlock: [ :item | self numberOfSubscriptions: item. ]);
 		add: (WAReportColumn selector: #isLocked title: 'Locked' onClick: [ :item | item invertLocking. ]);
+		add: (WAReportColumn new title: 'Edit'; valueBlock: [ : item | 'edit'. ]; clickBlock: [ :item | self edit: item.]);
 		add: (WAReportColumn new title: 'Remove'; valueBlock: [ : item | 'remove'. ]; clickBlock: [ :item | self remove: item.]);
 		yourself.! !
 
@@ -1138,6 +1130,11 @@ confirmRemove: aSPList
 	] ifFalse: [
 		^ true.
 	].! !
+
+!SPWebListAdmin methodsFor: 'lists' stamp: 'as 3/1/2007 18:12'!
+edit: aSPList
+
+	self call: (SPWebEditList withList: aSPList).! !
 
 !SPWebListAdmin methodsFor: 'lists' stamp: 'as 2/28/2007 17:25'!
 numberOfSubscriptions: aSPList
@@ -1615,6 +1612,134 @@ verify
 		SPKernel instance manager verifyContact: contact code: code.
 		self answer.
 	] catchExceptions: SPException.! !
+
+SPWAComponent subclass: #SPWebEditList
+	instanceVariableNames: 'list name description admin'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebEditList commentStamp: 'as 3/1/2007 17:52' prior: 0!
+Edit a list.!
+
+!SPWebEditList class methodsFor: 'instance creation' stamp: 'as 3/1/2007 17:27'!
+withList: aSPList
+
+	^ self new
+		list: aSPList;
+		yourself.! !
+
+!SPWebEditList methodsFor: 'call/answer' stamp: 'as 3/1/2007 17:46'!
+cancel
+
+	self answer.! !
+
+!SPWebEditList methodsFor: 'access' stamp: 'as 3/1/2007 17:51'!
+list: aSPList
+
+	list _ aSPList.
+	name _ list name.
+	admin _ list admin asString.
+	description _ list description.
+	! !
+
+!SPWebEditList methodsFor: 'rendering' stamp: 'as 3/1/2007 17:34'!
+renderContentOn: html
+
+	self renderTitle: 'Edit List' renderer: html.
+	html form: [
+		html table: [
+			html tableRowWithLabel: 'Name:' column: [
+				html textInputWithValue: name callback: [ :v | name _ v. ]
+			].
+			html tableRowWithLabel: 'Address:' column: [
+				html text: list address.
+			].
+			html tableRowWithLabel: 'Admin:' column: [
+				html textInputWithValue: admin callback: [ :v | admin _ v. ]
+			].
+			html tableRowWithLabel: 'Description:' column: [
+				html textInputWithValue: description callback: [ :v | description _ v. ]
+			].
+			html attributes alignCenter.
+			html tableRowWith: [
+				html submitButtonOn: #save of: self.
+				html space.
+				html submitButtonOn: #cancel of: self.
+			] span: 2.
+		].
+	].! !
+
+!SPWebEditList methodsFor: 'call/answer' stamp: 'as 3/1/2007 18:04'!
+save
+
+	self do: [
+		list name: name; description: description.
+		admin isEmpty ifTrue: [
+			list admin: nil.
+		] ifFalse: [
+			list admin: (SPMailAddress fromString: admin).
+		].
+	] catchExceptions: SPException.
+	self answer.! !
+
+SPWAComponent subclass: #SPWebEditPreference
+	instanceVariableNames: 'user list contact preference key value'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Stamp-Web'!
+
+!SPWebEditPreference commentStamp: 'as 3/1/2007 18:22' prior: 0!
+Edit a configuration preference.!
+
+!SPWebEditPreference class methodsFor: 'instance creation' stamp: 'as 3/1/2007 18:31'!
+withKey: aSymbol value: anObject
+
+	^ self new
+		key: aSymbol;
+		value: anObject;
+		yourself.! !
+
+!SPWebEditPreference methodsFor: 'call/answer' stamp: 'as 3/1/2007 18:22'!
+cancel
+
+	self answer.! !
+
+!SPWebEditPreference methodsFor: 'access' stamp: 'as 3/1/2007 18:27'!
+key: aSymbol
+
+	key _ aSymbol.! !
+
+!SPWebEditPreference methodsFor: 'preferences' stamp: 'as 3/1/2007 18:23'!
+preferenceAt: aSymbol put: aString
+
+	self do: [
+		SPKernel instance configurator preferenceAt: aSymbol putString: aString.
+	] catchExceptions: Exception.! !
+
+!SPWebEditPreference methodsFor: 'rendering' stamp: 'as 3/1/2007 18:32'!
+renderContentOn: html
+
+	self renderTitle: 'Edit Preference' renderer: html.
+	html paragraph: 'New value for preference ', key asString, ':'.
+	html form: [
+		html textInputWithValue: value callback: [ :v | value _ v. ].
+		html submitButtonOn: #save of: self.
+		html submitButtonOn: #cancel of: self.
+	].! !
+
+!SPWebEditPreference methodsFor: 'call/answer' stamp: 'as 3/1/2007 18:33'!
+save
+
+	self do: [
+		self preferenceAt: key put: value.
+		self answer.
+	] catchExceptions: SPException.! !
+
+!SPWebEditPreference methodsFor: 'access' stamp: 'as 3/1/2007 18:30'!
+value: anObject
+
+	value _ anObject asString.! !
 
 SPWAComponent subclass: #SPWebEmpty
 	instanceVariableNames: ''
@@ -2644,25 +2769,15 @@ address: aSPMailAddress
 
 	address := aSPMailAddress.! !
 
-!SPList methodsFor: 'access' stamp: 'as 2/27/2007 22:22'!
+!SPList methodsFor: 'access' stamp: 'as 3/1/2007 17:55'!
 admin
 
-	^ admin ifNil: [ self adminAddress. ].! !
+	^ admin.! !
 
 !SPList methodsFor: 'access' stamp: 'as 2/6/2007 18:17'!
 admin: aSPMailAddress
 
 	admin _ aSPMailAddress.! !
-
-!SPList methodsFor: 'configuration' stamp: 'as 2/27/2007 22:23'!
-adminAddress
-
-	^ self config preferenceAt: #adminAddress.! !
-
-!SPList methodsFor: 'configuration' stamp: 'as 2/27/2007 22:24'!
-config
-
-	^ SPKernel instance configurator.! !
 
 !SPList methodsFor: 'access' stamp: 'as 2/6/2007 18:08'!
 description
@@ -2786,6 +2901,14 @@ addUser: nameString password: passwordString
 adminAddress
 
 	^ SPKernel instance configurator preferenceAt: #adminAddress.! !
+
+!SPListManager methodsFor: 'get-contact' stamp: 'as 3/1/2007 18:00'!
+adminForList: aSPList
+
+	| admin |
+	admin _ aSPList admin.
+	admin ifNil: [ admin _ self adminAddress. ].
+	^ admin.! !
 
 !SPListManager methodsFor: 'get-contact' stamp: 'as 2/21/2007 15:02'!
 allContacts
@@ -3653,12 +3776,12 @@ Object subclass: #SPMailNotifier
 !SPMailNotifier commentStamp: 'as 2/26/2007 13:28' prior: 0!
 Send pre-defined mail notifications.!
 
-!SPMailNotifier class methodsFor: 'notifications' stamp: 'as 2/28/2007 19:02'!
+!SPMailNotifier class methodsFor: 'notifications' stamp: 'as 3/1/2007 18:09'!
 acceptedSubscription: aSPSubscription
 
 	self send: (
 		SPMailMessage
-			from: aSPSubscription list admin asString
+			from: (self listAdmin: aSPSubscription list) asString
 			to: aSPSubscription contact address asString
 			mail: (self textAcceptedSubscription: aSPSubscription)
 	).! !
@@ -3673,12 +3796,12 @@ config
 
 	^ SPKernel instance configurator.! !
 
-!SPMailNotifier class methodsFor: 'notifications' stamp: 'as 2/28/2007 17:13'!
+!SPMailNotifier class methodsFor: 'notifications' stamp: 'as 3/1/2007 18:07'!
 deniedSubscription: aSPSubscription
 
 	self send: (
 		SPMailMessage
-			from: aSPSubscription list admin asString
+			from: (self listAdmin: aSPSubscription list) asString
 			to: aSPSubscription contact address asString
 			mail: (self textDeniedSubscription: aSPSubscription)
 	).! !
@@ -3689,12 +3812,17 @@ greetingText
 ^
 'Hi, this is Stamp, the mailing list manager at ', self serverName, '.'.! !
 
-!SPMailNotifier class methodsFor: 'notifications' stamp: 'as 2/28/2007 17:10'!
+!SPMailNotifier class methodsFor: 'lists' stamp: 'as 3/1/2007 18:10'!
+listAdmin: aSPList
+
+	^ SPKernel instance manager adminForList: aSPList.! !
+
+!SPMailNotifier class methodsFor: 'notifications' stamp: 'as 3/1/2007 18:09'!
 pendingSubscription: aSPSubscription
 
 	self send: (
 		SPMailMessage
-			from: aSPSubscription list admin asString
+			from: (self listAdmin: aSPSubscription list) asString
 			to: aSPSubscription list admin asString
 			mail: (self textPendingSubscription: aSPSubscription)
 	).! !
@@ -3709,11 +3837,11 @@ serverName
 
 	^ self config preferenceAt: #serverName.! !
 
-!SPMailNotifier class methodsFor: 'text' stamp: 'as 2/28/2007 17:12'!
+!SPMailNotifier class methodsFor: 'text' stamp: 'as 3/1/2007 18:09'!
 textAcceptedSubscription: aSPSubscription
 
 ^ (self
-	textFrom: aSPSubscription list admin asString
+	textFrom: (self listAdmin: aSPSubscription list) asString
 	to: aSPSubscription contact address asString
 	subject: 'Subscription Accepted'),
 self greetingText, '
@@ -3723,11 +3851,11 @@ Your subscription from ', aSPSubscription contact address asString, ' for the li
 
 ', self textFooter.! !
 
-!SPMailNotifier class methodsFor: 'text' stamp: 'as 2/28/2007 17:12'!
+!SPMailNotifier class methodsFor: 'text' stamp: 'as 3/1/2007 18:09'!
 textDeniedSubscription: aSPSubscription
 
 ^ (self
-	textFrom: aSPSubscription list admin asString
+	textFrom: (self listAdmin: aSPSubscription list) asString
 	to: aSPSubscription contact address asString
 	subject: 'Subscription Denied'),
 self greetingText, '
@@ -3755,11 +3883,11 @@ Date: ', MailMessage dateStampNow, ' ', self timezone, '
 
 '.! !
 
-!SPMailNotifier class methodsFor: 'text' stamp: 'as 2/27/2007 22:31'!
+!SPMailNotifier class methodsFor: 'text' stamp: 'as 3/1/2007 18:09'!
 textPendingSubscription: aSPSubscription
 
 ^ (self
-	textFrom: aSPSubscription list admin asString
+	textFrom: (self listAdmin: aSPSubscription list) asString
 	to: aSPSubscription list admin asString
 	subject: 'New Subscription'),
 self greetingText, '
@@ -5180,11 +5308,11 @@ activate
 
 	active := true.! !
 
-!SPUser methodsFor: 'check' stamp: 'as 3/1/2007 11:55'!
+!SPUser methodsFor: 'check' stamp: 'as 3/1/2007 18:43'!
 checkNotNilOrEmpty: aString
 
 	(aString isNil or: [ aString isEmpty. ]) ifTrue: [
-		SPEmpyArgumentException signal: 'Username is empty'.
+		SPEmptyArgumentException signal: 'Username is empty'.
 	].! !
 
 !SPUser methodsFor: 'state' stamp: 'as 9/5/2006 11:26'!
@@ -5212,10 +5340,10 @@ name
 
 	^ name.! !
 
-!SPUser methodsFor: 'access' stamp: 'as 3/1/2007 11:52'!
+!SPUser methodsFor: 'access' stamp: 'as 3/1/2007 17:49'!
 name: aString
 
-	self checkNotNil: aString.
+	self checkNotNilOrEmpty: aString.
 	name _ aString.! !
 
 !SPUser methodsFor: 'password' stamp: 'as 9/26/2006 15:03'!
