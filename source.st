@@ -1687,7 +1687,7 @@ renderContentOn: html
 	html divNamed: 'header' with: banner.
 	html divNamed: 'main' with: main.! !
 
-!SPWeb methodsFor: 'rendering' stamp: 'as 3/26/2007 21:56'!
+!SPWeb methodsFor: 'rendering' stamp: 'as 3/30/2007 11:55'!
 style
 
 	^
@@ -1695,8 +1695,21 @@ style
 body {
   font-family: Verdana, Arial, Helvetica, sans-serif;
   font-size: 80%;
-  padding: 0;
   margin: 0;
+}
+
+#header {
+  margin: 0px;
+  padding: 0px;
+}
+
+a {
+  text-decoration: none;
+  color: #004280;
+}
+
+td {
+  margin: 5px;
 }
 '.! !
 
@@ -1717,7 +1730,7 @@ renderContentOn: html
 		html divNamed: 'subtitle' with: [ html paragraph: self subtitle. ].
 	].! !
 
-!SPWebBanner methodsFor: 'rendering' stamp: 'as 3/26/2007 21:56'!
+!SPWebBanner methodsFor: 'rendering' stamp: 'as 3/29/2007 13:26'!
 style
 
 	^
@@ -1725,13 +1738,13 @@ style
 #banner {
   font-family: "Trebuchet MS", Verdana, Arial, Helvetica, sans-serif;
   color: white;
-  background-color: darkblue;
-  margin: 0;
-  padding; 0;
+  background-color: #004082;
+  margin: 0px;
+  padding: 5px;
 }
 
 #title {
-  font-size: 200%;
+  font-size: large;
 }
 
 #subtitle {
@@ -2231,18 +2244,17 @@ renderContentOn: html
 	self renderNavigation: html.
 	html divNamed: 'body' with: body.! !
 
-!SPWebMain methodsFor: 'rendering' stamp: 'as 2/27/2007 14:54'!
+!SPWebMain methodsFor: 'rendering' stamp: 'as 3/29/2007 13:44'!
 renderNavigation: html
 
-	html div: [
-		html cssId: 'navigation'.
+	html divNamed: 'navigation' with: [
 		user ifNotNil: [
-			html paragraph: [ html text: 'Logged in as '; emphasis: user name. ].
 			self isRootUser ifTrue: [
 				self renderNavigation: html items: self rootNavigationItems.
 			] ifFalse: [
 				self renderNavigation: html items: self userNavigationItems.
 			].
+			html paragraph: [ html text: 'Logged in as '; emphasis: user name. ].
 		] ifNil: [
 			self renderNavigation: html items: self publicNavigationItems.
 		].
@@ -2266,6 +2278,44 @@ renderNavigation: html items: aCollection
 rootNavigationItems
 
 	^ #('List Administration' 'User Administration' 'Pending Subscriptions' 'Queue' 'System' 'Configuration' 'Logout' 'Change Password').! !
+
+!SPWebMain methodsFor: 'rendering' stamp: 'as 3/30/2007 11:31'!
+style
+
+	^
+'
+#navigation {
+  padding: 5px;
+}
+
+#navigation p {
+  padding: 5px;
+  font-size: 10px;
+}
+
+#navigation ul {
+  padding: 0;
+  margin: 0;
+}
+
+#navigation li {
+  display: table-cell;
+  padding: 5px;
+  border-right: solid 1px #004082;
+}
+
+#navigation a {
+  text-decoration: none;
+  font-weight: bold;
+  color: #004082;
+  font-size: 11px;
+}
+
+#body {
+  margin: 5px;
+  padding: 5px;
+}
+'.! !
 
 !SPWebMain methodsFor: 'accessing' stamp: 'as 2/22/2007 15:06'!
 user: aSPUser
